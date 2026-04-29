@@ -82,9 +82,9 @@
 
 Внутри SocialHub раскрыты контейнеры (сервисы) и их хранилища:
 
-```
+
          <img width="1049" height="712" alt="image" src="https://github.com/user-attachments/assets/8c0bb079-e17a-4bdb-b934-738aa11469fc" />        
-```
+
 
 **Хранилища по сервисам:**
 
