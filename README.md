@@ -95,7 +95,7 @@
 | Community Service | PostgreSQL | Сообщества, участники, подписки |
 | Moderation Service | PostgreSQL | Жалобы, аудит, блокировки |
 | Messaging Service | MongoDB | История переписки, диалоги |
-| Notification Service | — | Транспорт событий (async, без хранилища) |
+| Notification Service | MongoDB | Транспорт событий (async, без хранилища) |
 
 ### Роли в системе
 
