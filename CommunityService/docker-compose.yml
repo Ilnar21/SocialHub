@@ -1,0 +1,47 @@
+services:
+  community-db:
+    image: postgres:16-alpine
+    container_name: socialhub-community-db
+    environment:
+      POSTGRES_DB: socialhub_community
+      POSTGRES_USER: socialhub
+      POSTGRES_PASSWORD: socialhub_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - community_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U socialhub -d socialhub_community"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  community-service:
+    build:
+      context: .
+      dockerfile: src/SocialHub.Community.Api/Dockerfile
+    container_name: socialhub-community-service
+    depends_on:
+      community-db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__CommunityDatabase: Host=community-db;Port=5432;Database=socialhub_community;Username=socialhub;Password=socialhub_password
+      ApplyMigrationsOnStartup: "true"
+      ExternalServices__NotificationBaseUrl: ""
+      ExternalServices__PostBaseUrl: ""
+    ports:
+      - "5001:8080"
+
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: socialhub-gateway-stub
+    depends_on:
+      - community-service
+    ports:
+      - "8080:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+
+volumes:
+  community_postgres_data:
