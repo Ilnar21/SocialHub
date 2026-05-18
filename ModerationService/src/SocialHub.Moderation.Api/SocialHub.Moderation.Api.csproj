@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Npgsql" Version="9.0.3" />
+    <ProjectReference Include="..\SocialHub.Moderation.Application\SocialHub.Moderation.Application.csproj" />
+    <ProjectReference Include="..\SocialHub.Moderation.Infrastructure\SocialHub.Moderation.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
