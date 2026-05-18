@@ -14,8 +14,8 @@ services:
 
   message-service:
     build:
-      context: ./src/SocialHub.Message.Api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/SocialHub.Message.Api/Dockerfile
     container_name: socialhub-message-service
     depends_on:
       message-db:
