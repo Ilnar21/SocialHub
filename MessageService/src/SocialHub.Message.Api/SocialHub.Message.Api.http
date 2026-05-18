@@ -1,0 +1,20 @@
+@host = http://localhost:5002
+@ivan = 11111111-1111-1111-1111-111111111111
+@maria = 22222222-2222-2222-2222-222222222222
+
+GET {{host}}/health
+
+###
+
+POST {{host}}/api/dialogs/{{maria}}/messages
+X-User-Id: {{ivan}}
+Content-Type: application/json
+
+{
+  "text": "Привет! Ты смотрела новую схему C4?"
+}
+
+###
+
+GET {{host}}/api/dialogs
+X-User-Id: {{ivan}}
