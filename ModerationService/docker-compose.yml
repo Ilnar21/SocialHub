@@ -18,8 +18,8 @@ services:
 
   moderation-service:
     build:
-      context: ./src/SocialHub.Moderation.Api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/SocialHub.Moderation.Api/Dockerfile
     container_name: socialhub-moderation-service
     depends_on:
       moderation-db:
