@@ -1,0 +1,30 @@
+services:
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: socialhub_auth
+      POSTGRES_USER: socialhub
+      POSTGRES_PASSWORD: socialhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+
+  authservice:
+    image: authservice
+    build:
+      context: .
+      dockerfile: AuthService/Dockerfile
+    environment:
+      ConnectionStrings__AuthDb: Host=auth-db;Port=5432;Database=socialhub_auth;Username=socialhub;Password=socialhub
+      Jwt__Issuer: SocialHub.AuthService
+      Jwt__Audience: SocialHub.Services
+      Jwt__Secret: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_BYTES
+      Jwt__AccessTokenLifetimeMinutes: 60
+    ports:
+      - "5080:8080"
+    depends_on:
+      - auth-db
+
+volumes:
+  auth-db-data:
