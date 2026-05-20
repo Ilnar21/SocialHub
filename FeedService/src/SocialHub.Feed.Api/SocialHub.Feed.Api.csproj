@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>SocialHub.Feed.Api</RootNamespace>
+        <AssemblyName>SocialHub.Feed.Api</AssemblyName>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.16" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\SocialHub.Feed.Application\SocialHub.Feed.Application.csproj" />
+        <ProjectReference Include="..\SocialHub.Feed.Infrastructure\SocialHub.Feed.Infrastructure.csproj" />
+    </ItemGroup>
+
+</Project>

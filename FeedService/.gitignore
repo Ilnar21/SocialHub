@@ -1,0 +1,22 @@
+## .NET / Rider / VS
+bin/
+obj/
+out/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+
+## Build artifacts
+*.dll
+*.pdb
+*.exe
+
+## NuGet
+**/packages/
+*.nupkg
+
+## OS
+.DS_Store
+Thumbs.db
