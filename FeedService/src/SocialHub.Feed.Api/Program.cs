@@ -1,5 +1,7 @@
+using Microsoft.OpenApi.Models;
 using SocialHub.Feed.Api.Middleware;
 using SocialHub.Feed.Api.Services;
+using SocialHub.Feed.Api.Swagger;
 using SocialHub.Feed.Application.Abstractions;
 using SocialHub.Feed.Infrastructure;
 
@@ -14,7 +16,16 @@ builder.Services.AddFeedInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "SocialHub Feed Service",
+        Version = "v1",
+        Description = "Лента пользователя: подписки + ранжирование + Redis-кэш.",
+    });
+    options.OperationFilter<UserHeadersOperationFilter>();
+});
 
 var app = builder.Build();
 
