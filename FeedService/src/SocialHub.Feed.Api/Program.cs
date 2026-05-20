@@ -1,3 +1,4 @@
+using SocialHub.Feed.Api.Middleware;
 using SocialHub.Feed.Api.Services;
 using SocialHub.Feed.Application.Abstractions;
 using SocialHub.Feed.Infrastructure;
@@ -16,6 +17,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
