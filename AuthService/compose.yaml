@@ -2,13 +2,18 @@ services:
   auth-db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: socialhub_auth
-      POSTGRES_USER: socialhub
-      POSTGRES_PASSWORD: socialhub
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   authservice:
     image: authservice
@@ -16,15 +21,16 @@ services:
       context: .
       dockerfile: AuthService/Dockerfile
     environment:
-      ConnectionStrings__AuthDb: Host=auth-db;Port=5432;Database=socialhub_auth;Username=socialhub;Password=socialhub
-      Jwt__Issuer: SocialHub.AuthService
-      Jwt__Audience: SocialHub.Services
-      Jwt__Secret: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_BYTES
-      Jwt__AccessTokenLifetimeMinutes: 60
+      ConnectionStrings__AuthDb: Host=auth-db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__AccessTokenLifetimeMinutes: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES}
     ports:
-      - "5080:8080"
+      - "${AUTH_SERVICE_PORT}:8080"
     depends_on:
-      - auth-db
+      auth-db:
+        condition: service_healthy
 
 volumes:
   auth-db-data:

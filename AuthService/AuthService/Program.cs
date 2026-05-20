@@ -1,12 +1,18 @@
 using System.Text.Json.Serialization;
 using AuthService.Application;
+using AuthService.Infrastructure.Configuration;
 using AuthService.Infrastructure;
 using AuthService.Infrastructure.Persistence;
 using AuthService.Infrastructure.Security;
 using AuthService.Presentation.Endpoints;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+
+DotEnv.Load();
+PostgresEnvironment.ApplyConnectionString();
+PostgresEnvironment.ApplyJwtSettings();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +24,41 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "SocialHub Auth & User Service",
+        Version = "v1"
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter JWT access token."
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            []
+        }
+    });
+});
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("JWT settings are not configured.");
@@ -51,7 +92,10 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
-await DatabaseSeeder.SeedAsync(app.Services);
+await DatabaseInitializer.InitializeAsync(app.Services);
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseAuthentication();
 app.UseAuthorization();
