@@ -33,6 +33,43 @@ app.MapPost("/posts", async (
     return ToHttpResult(result, result.Value?.Id);
 });
 
+app.MapPost("/api/posts/from-suggested", async (
+    PublishSuggestedPostRequest request,
+    PostService postService,
+    CancellationToken cancellationToken) =>
+{
+    var result = await postService.CreateAsync(
+        new CreatePostRequest(request.AuthorUserId, request.CommunityId, request.Title, request.Text),
+        cancellationToken);
+
+    if (!result.Succeeded || result.Value is null)
+    {
+        return Results.Ok(new PostPublicationResult(false, null, result.Error));
+    }
+
+    return Results.Ok(new PostPublicationResult(true, result.Value.Id, null));
+});
+
+app.MapPost("/internal/posts/by-communities", async (
+    PostsByCommunitiesRequest request,
+    PostService postService,
+    CancellationToken cancellationToken) =>
+{
+    var snapshots = new List<PostSnapshot>();
+
+    foreach (var communityId in request.CommunityIds.Distinct().Take(100))
+    {
+        var posts = await postService.ListByCommunityAsync(communityId, cancellationToken);
+        snapshots.AddRange(posts.Select(ToSnapshot));
+    }
+
+    return Results.Ok(
+        snapshots
+            .OrderByDescending(post => post.CreatedAt)
+            .Take(Math.Clamp(request.Limit, 1, 100))
+            .ToArray());
+});
+
 app.MapGet("/posts/{postId:guid}", async (
     Guid postId,
     PostService postService,
@@ -71,6 +108,18 @@ app.MapDelete("/posts/{postId:guid}", async (
     return ToHttpResult(result);
 });
 
+app.MapPost("/api/posts/{postId:guid}/moderation-delete", (
+    Guid postId,
+    [FromBody] ModerationDeleteRequest request) =>
+{
+    return Results.Accepted($"/posts/{postId}", new
+    {
+        postId,
+        request.Reason,
+        moderationAccepted = true
+    });
+});
+
 app.Run();
 
 static IResult ToHttpResult<T>(OperationResult<T> result, Guid? createdId = null)
@@ -89,3 +138,43 @@ static IResult ToHttpResult<T>(OperationResult<T> result, Guid? createdId = null
         title: result.Error,
         statusCode: result.StatusCode);
 }
+
+static PostSnapshot ToSnapshot(PostResponse post)
+{
+    var previewText = post.Text.Length <= 240
+        ? post.Text
+        : post.Text[..240];
+
+    return new PostSnapshot(
+        post.Id,
+        post.CommunityId,
+        post.AuthorId,
+        post.Title,
+        previewText,
+        Likes: 0,
+        Comments: 0,
+        post.CreatedAt);
+}
+
+public sealed record PublishSuggestedPostRequest(
+    Guid CommunityId,
+    Guid AuthorUserId,
+    Guid SuggestedPostId,
+    string Title,
+    string Text);
+
+public sealed record PostPublicationResult(bool Succeeded, Guid? PostId, string? Warning);
+
+public sealed record PostsByCommunitiesRequest(IReadOnlyCollection<Guid> CommunityIds, int Limit);
+
+public sealed record PostSnapshot(
+    Guid Id,
+    Guid CommunityId,
+    Guid AuthorId,
+    string Title,
+    string PreviewText,
+    int Likes,
+    int Comments,
+    DateTimeOffset CreatedAt);
+
+public sealed record ModerationDeleteRequest(string Reason);
