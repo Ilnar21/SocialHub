@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using SocialHub.Notification.Api.Middleware;
 using SocialHub.Notification.Api.Services;
 using SocialHub.Notification.Application.Abstractions;
@@ -11,7 +12,8 @@ builder.Services.AddScoped<ICurrentUserContext, HeaderCurrentUserContext>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
