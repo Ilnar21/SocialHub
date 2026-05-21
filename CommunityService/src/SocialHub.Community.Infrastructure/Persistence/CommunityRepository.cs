@@ -40,11 +40,27 @@ public sealed class CommunityRepository : ICommunityRepository
             .FirstOrDefaultAsync(m => m.CommunityId == communityId && m.UserId == userId, cancellationToken);
     }
 
+    public Task<bool> IsMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken)
+    {
+        return _dbContext.CommunityMembers
+            .AsNoTracking()
+            .AnyAsync(m => m.CommunityId == communityId && m.UserId == userId, cancellationToken);
+    }
+
     public Task<List<CommunityMember>> GetMembersAsync(Guid communityId, CancellationToken cancellationToken)
     {
         return _dbContext.CommunityMembers
             .AsNoTracking()
             .Where(m => m.CommunityId == communityId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<List<Guid>> GetCommunityIdsByUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return _dbContext.CommunityMembers
+            .AsNoTracking()
+            .Where(m => m.UserId == userId)
+            .Select(m => m.CommunityId)
             .ToListAsync(cancellationToken);
     }
 

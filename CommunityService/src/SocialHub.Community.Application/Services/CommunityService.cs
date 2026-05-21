@@ -118,6 +118,16 @@ public sealed class CommunityService : ICommunityService
             .ToList();
     }
 
+    public async Task<bool> IsMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken)
+    {
+        return await _repository.IsMemberAsync(communityId, userId, cancellationToken);
+    }
+
+    public async Task<List<Guid>> GetCommunityIdsByUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return await _repository.GetCommunityIdsByUserAsync(userId, cancellationToken);
+    }
+
     public async Task RemoveMemberAsync(Guid communityId, Guid memberUserId, CancellationToken cancellationToken)
     {
         await EnsureCurrentUserCanAdminCommunityAsync(communityId, cancellationToken);

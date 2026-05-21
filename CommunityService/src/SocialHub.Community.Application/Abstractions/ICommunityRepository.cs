@@ -9,7 +9,9 @@ public interface ICommunityRepository
     Task<Community.Domain.Entities.Community?> GetCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task<bool> CommunityNameExistsAsync(string normalizedName, CancellationToken cancellationToken);
     Task<CommunityMember?> GetMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken);
+    Task<bool> IsMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken);
     Task<List<CommunityMember>> GetMembersAsync(Guid communityId, CancellationToken cancellationToken);
+    Task<List<Guid>> GetCommunityIdsByUserAsync(Guid userId, CancellationToken cancellationToken);
     Task<int> CountMembershipsAsync(Guid userId, CancellationToken cancellationToken);
     Task<SuggestedPost?> GetSuggestedPostAsync(Guid communityId, Guid suggestedPostId, CancellationToken cancellationToken);
     Task<List<SuggestedPost>> GetSuggestedPostsAsync(Guid communityId, SuggestedPostStatus? status, CancellationToken cancellationToken);
