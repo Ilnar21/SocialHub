@@ -1,7 +1,9 @@
 param(
     [string]$BaseUrl = "http://127.0.0.1:8080",
-    [string]$NotificationContainer = "socialhub-notification-service"
+    [string]$NotificationContainer = ""
 )
+
+$ErrorActionPreference = "Stop"
 
 function Invoke-JsonPost {
     param(
@@ -15,14 +17,21 @@ function Invoke-JsonPost {
         -Uri $Uri `
         -Headers $Headers `
         -ContentType "application/json" `
-        -Body ($Body | ConvertTo-Json)
+        -Body ($Body | ConvertTo-Json) `
+        -ErrorAction Stop
 }
 
-function Test-ContainerExists {
-    param([string]$Name)
+function Resolve-NotificationContainer {
+    param([string]$PreferredName)
 
-    $containerId = docker ps -a --filter "name=$Name" --format "{{.ID}}"
-    return -not [string]::IsNullOrWhiteSpace($containerId)
+    if (![string]::IsNullOrWhiteSpace($PreferredName)) {
+        $preferredId = docker ps -a --filter "name=$PreferredName" --format "{{.Names}}" | Select-Object -First 1
+        if (![string]::IsNullOrWhiteSpace($preferredId)) {
+            return $preferredId
+        }
+    }
+
+    return docker ps -a --filter "name=notification-service" --format "{{.Names}}" | Select-Object -First 1
 }
 
 $suffix = Get-Random -Minimum 100000 -Maximum 999999
@@ -83,16 +92,17 @@ Invoke-JsonPost `
     -Body @{} | Out-Null
 
 $stoppedNotification = $false
+$resolvedNotificationContainer = Resolve-NotificationContainer $NotificationContainer
 
 try {
-    if (Test-ContainerExists $NotificationContainer) {
-        Write-Host "Stopping $NotificationContainer to simulate NotificationService failure"
-        docker stop $NotificationContainer | Out-Null
+    if (![string]::IsNullOrWhiteSpace($resolvedNotificationContainer)) {
+        Write-Host "Stopping $resolvedNotificationContainer to simulate NotificationService failure"
+        docker stop $resolvedNotificationContainer | Out-Null
         $stoppedNotification = $true
         Start-Sleep -Seconds 2
     }
     else {
-        Write-Host "Container $NotificationContainer was not found. Continuing without docker stop."
+        Write-Host "NotificationService container was not found. Continuing without docker stop."
     }
 
     $suggested = Invoke-JsonPost `
@@ -111,8 +121,8 @@ try {
 }
 finally {
     if ($stoppedNotification) {
-        Write-Host "Starting $NotificationContainer again"
-        docker start $NotificationContainer | Out-Null
+        Write-Host "Starting $resolvedNotificationContainer again"
+        docker start $resolvedNotificationContainer | Out-Null
     }
 }
 

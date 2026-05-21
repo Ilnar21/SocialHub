@@ -103,6 +103,11 @@ public sealed class CommunityRepository : ICommunityRepository
         await _dbContext.Communities.AddAsync(community, cancellationToken);
     }
 
+    public async Task AddMemberAsync(CommunityMember member, CancellationToken cancellationToken)
+    {
+        await _dbContext.CommunityMembers.AddAsync(member, cancellationToken);
+    }
+
     public async Task AddSuggestedPostAsync(SuggestedPost suggestedPost, CancellationToken cancellationToken)
     {
         await _dbContext.SuggestedPosts.AddAsync(suggestedPost, cancellationToken);

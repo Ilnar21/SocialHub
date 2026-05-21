@@ -17,6 +17,7 @@ public interface ICommunityRepository
     Task<SuggestedPost?> GetSuggestedPostAsync(Guid communityId, Guid suggestedPostId, CancellationToken cancellationToken);
     Task<List<SuggestedPost>> GetSuggestedPostsAsync(Guid communityId, SuggestedPostStatus? status, CancellationToken cancellationToken);
     Task AddCommunityAsync(Community.Domain.Entities.Community community, CancellationToken cancellationToken);
+    Task AddMemberAsync(CommunityMember member, CancellationToken cancellationToken);
     Task AddSuggestedPostAsync(SuggestedPost suggestedPost, CancellationToken cancellationToken);
     Task AddAuditLogAsync(CommunityAuditLog auditLog, CancellationToken cancellationToken);
     void RemoveMember(CommunityMember member);

@@ -246,6 +246,11 @@ public sealed class CommunityServiceTests
             return Task.CompletedTask;
         }
 
+        public Task AddMemberAsync(CommunityMember member, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task AddSuggestedPostAsync(SuggestedPost suggestedPost, CancellationToken cancellationToken)
         {
             SuggestedPosts.Add(suggestedPost);

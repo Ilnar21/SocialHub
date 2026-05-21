@@ -96,6 +96,7 @@ public sealed class CommunityService : ICommunityService
 
         var now = DateTime.UtcNow;
         var member = community.AddMember(_currentUser.UserId, now);
+        await _repository.AddMemberAsync(member, cancellationToken);
         await _repository.AddAuditLogAsync(new CommunityAuditLog(communityId, _currentUser.UserId, "MEMBER_JOINED", "User joined the community.", now), cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
