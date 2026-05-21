@@ -28,8 +28,20 @@ public sealed class NotificationEventProcessor : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await ProcessNextEventAsync(stoppingToken);
-            await Task.Delay(TimeSpan.FromSeconds(_options.PollingIntervalSeconds), stoppingToken);
+            try
+            {
+                await ProcessNextEventAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Notification event processor cycle failed. Worker will continue after delay.");
+            }
+
+            await DelayBeforeNextCycleAsync(stoppingToken);
         }
     }
 
@@ -101,5 +113,11 @@ public sealed class NotificationEventProcessor : BackgroundService
                 "Email delivery for notification event {EventId} failed. In-site notification remains available.",
                 notificationEvent.Id);
         }
+    }
+
+    private Task DelayBeforeNextCycleAsync(CancellationToken stoppingToken)
+    {
+        var delaySeconds = Math.Max(1, _options.PollingIntervalSeconds);
+        return Task.Delay(TimeSpan.FromSeconds(delaySeconds), stoppingToken);
     }
 }
