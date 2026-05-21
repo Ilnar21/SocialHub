@@ -53,14 +53,7 @@ public sealed class NotificationService : INotificationService
 
         await _eventRepository.AddAsync(notificationEvent, cancellationToken);
 
-        return new NotificationEventResponse(
-            notificationEvent.Id,
-            notificationEvent.RecipientUserId,
-            notificationEvent.Type,
-            notificationEvent.Status,
-            notificationEvent.SourceService,
-            notificationEvent.SourceEntityId,
-            notificationEvent.CreatedAtUtc);
+        return ToEventResponse(notificationEvent);
     }
 
     public async Task<NotificationListResponse> GetCurrentUserNotificationsAsync(CancellationToken cancellationToken)
@@ -106,5 +99,17 @@ public sealed class NotificationService : INotificationService
             notification.IsRead,
             notification.CreatedAtUtc,
             notification.ReadAtUtc);
+    }
+
+    private static NotificationEventResponse ToEventResponse(NotificationEvent notificationEvent)
+    {
+        return new NotificationEventResponse(
+            notificationEvent.Id,
+            notificationEvent.RecipientUserId,
+            notificationEvent.Type,
+            notificationEvent.Status,
+            notificationEvent.SourceService,
+            notificationEvent.SourceEntityId,
+            notificationEvent.CreatedAtUtc);
     }
 }

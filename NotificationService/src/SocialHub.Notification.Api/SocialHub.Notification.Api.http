@@ -17,3 +17,17 @@ Content-Type: application/json
   "message": "You received a new message",
   "sourceService": "MessageService"
 }
+
+###
+
+POST {{SocialHub.Notification.Api_HostAddress}}/api/notification-events
+Content-Type: application/json
+
+{
+  "recipientUserId": "{{UserId}}",
+  "type": "SuggestedPostApproved",
+  "title": "Suggested post approved",
+  "message": "Your suggested post was approved",
+  "sourceService": "CommunityService",
+  "sourceEntityId": "22222222-2222-2222-2222-222222222222"
+}
