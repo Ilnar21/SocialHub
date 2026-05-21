@@ -161,6 +161,7 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-SocialHub.AuthService}
       Jwt__Audience: ${JWT_AUDIENCE:-SocialHub.Client}
       Jwt__Secret: ${JWT_SECRET:-development-secret-key-for-socialhub-integration}
+      DevAuth__EnableHeaderFallback: ${DEV_AUTH_ENABLE_HEADER_FALLBACK:-false}
     depends_on:
       community-db:
         condition: service_healthy

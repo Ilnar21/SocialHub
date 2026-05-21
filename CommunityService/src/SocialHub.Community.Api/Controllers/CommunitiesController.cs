@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using SocialHub.Community.Application.Abstractions;
 using SocialHub.Community.Application.Models.Communities;
 using SocialHub.Community.Application.Models.Members;
@@ -8,6 +9,7 @@ using SocialHub.Community.Domain.Enums;
 namespace SocialHub.Community.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/communities")]
 public sealed class CommunitiesController : ControllerBase
 {
