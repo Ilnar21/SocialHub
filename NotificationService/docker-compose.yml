@@ -1,0 +1,35 @@
+services:
+  notification-db:
+    image: mongo:7
+    container_name: socialhub-notification-db
+    ports:
+      - "27019:27017"
+    volumes:
+      - notification_mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: src/SocialHub.Notification.Api/Dockerfile
+    container_name: socialhub-notification-service
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Mongo__ConnectionString: mongodb://notification-db:27017
+      Mongo__DatabaseName: socialhub_notifications
+      Mongo__NotificationsCollection: notifications
+      Mongo__EventsCollection: notification_events
+      NotificationProcessing__PollingIntervalSeconds: "2"
+      NotificationProcessing__MaxAttempts: "5"
+    ports:
+      - "5004:8080"
+
+volumes:
+  notification_mongo_data:
