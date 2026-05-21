@@ -1,10 +1,12 @@
 using SocialHub.Notification.Api.Services;
 using SocialHub.Notification.Application.Abstractions;
+using SocialHub.Notification.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserContext, HeaderCurrentUserContext>();
+builder.Services.AddInfrastructure();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
