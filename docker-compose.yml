@@ -165,9 +165,6 @@ services:
       DevAuth__EnableHeaderFallback: ${DEV_AUTH_ENABLE_HEADER_FALLBACK:-false}
       InternalAuth__RequireInternalToken: ${INTERNAL_AUTH_REQUIRE_TOKEN:-true}
       InternalAuth__Token: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
-      DevAuth__EnableHeaderFallback: ${DEV_AUTH_ENABLE_HEADER_FALLBACK:-false}
-      InternalAuth__RequireInternalToken: ${INTERNAL_AUTH_REQUIRE_TOKEN:-true}
-      InternalAuth__Token: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
     depends_on:
       community-db:
         condition: service_healthy
