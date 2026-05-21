@@ -26,6 +26,12 @@ public sealed class CommunitiesController : ControllerBase
         return Ok(await _communityService.GetCommunitiesAsync(cancellationToken));
     }
 
+    [HttpGet("my")]
+    public async Task<ActionResult<List<CommunitySummaryResponse>>> GetMyCommunities(CancellationToken cancellationToken)
+    {
+        return Ok(await _communityService.GetCurrentUserCommunitiesAsync(cancellationToken));
+    }
+
     [HttpGet("{communityId:guid}")]
     public async Task<ActionResult<CommunityDetailsResponse>> GetCommunity(Guid communityId, CancellationToken cancellationToken)
     {

@@ -38,6 +38,15 @@ public sealed class CommunityService : ICommunityService
             .ToList();
     }
 
+    public async Task<List<CommunitySummaryResponse>> GetCurrentUserCommunitiesAsync(CancellationToken cancellationToken)
+    {
+        var communities = await _repository.GetCommunitiesByUserAsync(_currentUser.UserId, cancellationToken);
+        return communities
+            .OrderBy(c => c.Name)
+            .Select(ToSummary)
+            .ToList();
+    }
+
     public async Task<CommunityDetailsResponse> GetCommunityAsync(Guid communityId, CancellationToken cancellationToken)
     {
         var community = await GetRequiredCommunityAsync(communityId, cancellationToken);

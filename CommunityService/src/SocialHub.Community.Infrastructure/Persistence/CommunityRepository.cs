@@ -22,6 +22,15 @@ public sealed class CommunityRepository : ICommunityRepository
             .ToListAsync(cancellationToken);
     }
 
+    public Task<List<Domain.Entities.Community>> GetCommunitiesByUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return _dbContext.Communities
+            .AsNoTracking()
+            .Include(c => c.Members)
+            .Where(c => c.Members.Any(m => m.UserId == userId))
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<Domain.Entities.Community?> GetCommunityAsync(Guid communityId, CancellationToken cancellationToken)
     {
         return _dbContext.Communities

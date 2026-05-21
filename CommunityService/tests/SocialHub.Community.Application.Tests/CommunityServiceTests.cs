@@ -51,6 +51,20 @@ public sealed class CommunityServiceTests
     }
 
     [Fact]
+    public async Task GetCurrentUserCommunitiesAsync_ReturnsOnlyJoinedCommunities()
+    {
+        var repository = new FakeCommunityRepository();
+        repository.AddSeedCommunity("Joined", OwnerId, UserId);
+        repository.AddSeedCommunity("Not Joined", OwnerId);
+        var service = CreateService(repository);
+
+        var response = await service.GetCurrentUserCommunitiesAsync(CancellationToken.None);
+
+        Assert.Single(response);
+        Assert.Equal("Joined", response[0].Name);
+    }
+
+    [Fact]
     public async Task LeaveCommunityAsync_RejectsOwner()
     {
         var repository = new FakeCommunityRepository();
@@ -148,6 +162,15 @@ public sealed class CommunityServiceTests
         public Task<List<CommunityEntity>> GetCommunitiesAsync(CancellationToken cancellationToken)
         {
             return Task.FromResult(Communities.ToList());
+        }
+
+        public Task<List<CommunityEntity>> GetCommunitiesByUserAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            var communities = Communities
+                .Where(x => x.Members.Any(member => member.UserId == userId))
+                .ToList();
+
+            return Task.FromResult(communities);
         }
 
         public Task<CommunityEntity?> GetCommunityAsync(Guid communityId, CancellationToken cancellationToken)
