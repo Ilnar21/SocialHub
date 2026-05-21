@@ -44,4 +44,17 @@ public sealed class NotificationEvent
     {
         Status = NotificationEventStatus.Processing;
     }
+
+    public void MarkCompleted(DateTime processedAtUtc)
+    {
+        Status = NotificationEventStatus.Completed;
+        ProcessedAtUtc = processedAtUtc;
+        LastError = null;
+    }
+
+    public void MarkFailed(string error)
+    {
+        Status = NotificationEventStatus.Failed;
+        LastError = error;
+    }
 }

@@ -1,6 +1,8 @@
 using SocialHub.Notification.Application.Abstractions;
 using SocialHub.Notification.Application.Exceptions;
+using SocialHub.Notification.Application.Models.Events;
 using SocialHub.Notification.Application.Models.Notifications;
+using SocialHub.Notification.Domain.Entities;
 using NotificationEntity = SocialHub.Notification.Domain.Entities.Notification;
 
 namespace SocialHub.Notification.Application.Services;
@@ -8,11 +10,16 @@ namespace SocialHub.Notification.Application.Services;
 public sealed class NotificationService : INotificationService
 {
     private readonly INotificationRepository _repository;
+    private readonly INotificationEventRepository _eventRepository;
     private readonly ICurrentUserContext _currentUser;
 
-    public NotificationService(INotificationRepository repository, ICurrentUserContext currentUser)
+    public NotificationService(
+        INotificationRepository repository,
+        INotificationEventRepository eventRepository,
+        ICurrentUserContext currentUser)
     {
         _repository = repository;
+        _eventRepository = eventRepository;
         _currentUser = currentUser;
     }
 
@@ -31,6 +38,29 @@ public sealed class NotificationService : INotificationService
         await _repository.SaveChangesAsync(cancellationToken);
 
         return ToResponse(notification);
+    }
+
+    public async Task<NotificationEventResponse> CreateEventAsync(CreateNotificationEventRequest request, CancellationToken cancellationToken)
+    {
+        var notificationEvent = new NotificationEvent(
+            request.RecipientUserId,
+            request.Type,
+            request.Title,
+            request.Message,
+            request.SourceService,
+            request.SourceEntityId,
+            DateTime.UtcNow);
+
+        await _eventRepository.AddAsync(notificationEvent, cancellationToken);
+
+        return new NotificationEventResponse(
+            notificationEvent.Id,
+            notificationEvent.RecipientUserId,
+            notificationEvent.Type,
+            notificationEvent.Status,
+            notificationEvent.SourceService,
+            notificationEvent.SourceEntityId,
+            notificationEvent.CreatedAtUtc);
     }
 
     public async Task<NotificationListResponse> GetCurrentUserNotificationsAsync(CancellationToken cancellationToken)
