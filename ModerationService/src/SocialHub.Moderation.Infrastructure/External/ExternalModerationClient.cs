@@ -29,12 +29,26 @@ public sealed class ExternalModerationClient : IExternalModerationClient
 
     public Task<SideEffectResult> NotifyPostDeletedAsync(string postId, string reason, CancellationToken cancellationToken)
     {
-        return TryPostAsync("notifications", "/api/notifications", new { type = "POST_DELETED", payload = new { postId, reason } }, cancellationToken);
+        return Task.FromResult(SideEffectResult.Success("notifications", "/api/notification-events"));
     }
 
     public Task<SideEffectResult> NotifyUserBlockedAsync(UserBlock block, CancellationToken cancellationToken)
     {
-        return TryPostAsync("notifications", "/api/notifications", new { type = "USER_BLOCKED", recipientUserId = block.BlockedUserId, payload = block }, cancellationToken);
+        if (!Guid.TryParse(block.BlockedUserId, out var recipientUserId))
+        {
+            _logger.LogWarning("Notification was skipped because blocked user id {UserId} is not a valid GUID.", block.BlockedUserId);
+            return Task.FromResult(SideEffectResult.Failed("notifications", "/api/notification-events", "Invalid recipient user id."));
+        }
+
+        return TryPostAsync("notifications", "/api/notification-events", new
+        {
+            recipientUserId,
+            type = 7,
+            title = "Аккаунт ограничен",
+            message = $"Ваш аккаунт ограничен по причине: {block.Reason}",
+            sourceService = "ModerationService",
+            sourceEntityId = block.Id
+        }, cancellationToken);
     }
 
     private async Task<SideEffectResult> TryPostAsync<T>(string clientName, string path, T body, CancellationToken cancellationToken)

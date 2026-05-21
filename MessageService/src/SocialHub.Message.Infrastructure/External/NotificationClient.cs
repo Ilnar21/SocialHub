@@ -23,18 +23,26 @@ public sealed class NotificationClient : INotificationClient
             return;
         }
 
+        if (!Guid.TryParse(request.RecipientUserId, out var recipientUserId))
+        {
+            _logger.LogWarning("Notification was skipped because recipient id {UserId} is not a valid GUID.", request.RecipientUserId);
+            return;
+        }
+
+        var sourceEntityId = Guid.TryParse(request.MessageId, out var messageId)
+            ? messageId
+            : (Guid?)null;
+
         try
         {
-            await _httpClient.PostAsJsonAsync("/api/notifications", new
+            await _httpClient.PostAsJsonAsync("/api/notification-events", new
             {
-                type = "MESSAGE_RECEIVED",
-                recipientUserId = request.RecipientUserId,
-                payload = new
-                {
-                    request.SenderUserId,
-                    request.MessageId,
-                    request.SentAt
-                }
+                recipientUserId,
+                type = 1,
+                title = "Новое сообщение",
+                message = $"Пользователь {request.SenderUserId} отправил вам сообщение.",
+                sourceService = "MessageService",
+                sourceEntityId
             }, cancellationToken);
         }
         catch (Exception ex)
