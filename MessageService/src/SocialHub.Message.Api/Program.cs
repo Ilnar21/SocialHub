@@ -17,7 +17,18 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "message-service" }));
+app.MapGet("/health", async (IMessageStorageHealthCheck storage, CancellationToken cancellationToken) =>
+{
+    var mongoHealthy = await storage.IsHealthyAsync(cancellationToken);
+    var status = mongoHealthy ? "ok" : "degraded";
+
+    return Results.Json(new
+    {
+        status,
+        service = "message-service",
+        dependencies = new { mongo = mongoHealthy ? "ok" : "unavailable" }
+    }, statusCode: mongoHealthy ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable);
+});
 app.MapControllers();
 
 app.Run();

@@ -20,6 +20,8 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IDialogRepository, MongoDialogRepository>();
+        services.AddScoped<IMessageStorageHealthCheck, MongoHealthCheck>();
+        services.AddHostedService<MongoIndexInitializer>();
 
         services.AddHttpClient<INotificationClient, NotificationClient>(client =>
         {
