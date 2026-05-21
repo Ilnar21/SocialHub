@@ -1,0 +1,16 @@
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\bin\Debug\net8.0\SocialHub.Post.Application.deps.json
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\bin\Debug\net8.0\SocialHub.Post.Application.dll
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\bin\Debug\net8.0\SocialHub.Post.Application.pdb
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\bin\Debug\net8.0\SocialHub.Post.Domain.dll
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\bin\Debug\net8.0\SocialHub.Post.Domain.pdb
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\obj\Debug\net8.0\SocialHub.Post.Application.csproj.AssemblyReference.cache
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\obj\Debug\net8.0\SocialHub.Post.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\obj\Debug\net8.0\SocialHub.Post.Application.AssemblyInfoInputs.cache
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\obj\Debug\net8.0\SocialHub.Post.Application.AssemblyInfo.cs
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\obj\Debug\net8.0\SocialHub.Post.Application.csproj.CoreCompileInputs.cache
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\obj\Debug\net8.0\SocialHub.Post.Application.sourcelink.json
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\obj\Debug\net8.0\SocialHu.AFBC99A8.Up2Date
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\obj\Debug\net8.0\SocialHub.Post.Application.dll
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\obj\Debug\net8.0\refint\SocialHub.Post.Application.dll
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\obj\Debug\net8.0\SocialHub.Post.Application.pdb
+C:\Users\User\Desktop\Repos\SocialHub\PostService\src\SocialHub.Post.Application\obj\Debug\net8.0\ref\SocialHub.Post.Application.dll

@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "SocialHub.Post.Application/1.0.0": {
+        "dependencies": {
+          "SocialHub.Post.Domain": "1.0.0"
+        },
+        "runtime": {
+          "SocialHub.Post.Application.dll": {}
+        }
+      },
+      "SocialHub.Post.Domain/1.0.0": {
+        "runtime": {
+          "SocialHub.Post.Domain.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "SocialHub.Post.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "SocialHub.Post.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

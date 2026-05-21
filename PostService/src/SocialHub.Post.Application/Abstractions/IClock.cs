@@ -1,0 +1,6 @@
+namespace SocialHub.Post.Application.Abstractions;
+
+public interface IClock
+{
+    DateTimeOffset UtcNow { get; }
+}

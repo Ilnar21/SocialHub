@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "2hn34NS7aULRcJGQMnW1BUG3dYadX1PQJmaQy8GQwTU=",
+  "Source": "SocialHub.Post.Api",
+  "BasePath": "_content/SocialHub.Post.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
