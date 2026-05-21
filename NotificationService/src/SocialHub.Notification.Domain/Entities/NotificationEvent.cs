@@ -38,19 +38,25 @@ public sealed class NotificationEvent
     public NotificationEventStatus Status { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? ProcessedAtUtc { get; private set; }
+    public int AttemptCount { get; private set; }
+    public DateTime? LastAttemptAtUtc { get; private set; }
     public string? LastError { get; private set; }
 
-    public void Restore(Guid id, NotificationEventStatus status, DateTime? processedAtUtc, string? lastError)
+    public void Restore(Guid id, NotificationEventStatus status, DateTime? processedAtUtc, int attemptCount, DateTime? lastAttemptAtUtc, string? lastError)
     {
         Id = id;
         Status = status;
         ProcessedAtUtc = processedAtUtc;
+        AttemptCount = attemptCount;
+        LastAttemptAtUtc = lastAttemptAtUtc;
         LastError = lastError;
     }
 
-    public void MarkProcessing()
+    public void MarkProcessing(DateTime attemptAtUtc)
     {
         Status = NotificationEventStatus.Processing;
+        AttemptCount++;
+        LastAttemptAtUtc = attemptAtUtc;
     }
 
     public void MarkCompleted(DateTime processedAtUtc)

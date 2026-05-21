@@ -18,6 +18,8 @@ public sealed class NotificationEventDocument
     public NotificationEventStatus Status { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? ProcessedAtUtc { get; set; }
+    public int AttemptCount { get; set; }
+    public DateTime? LastAttemptAtUtc { get; set; }
     public string? LastError { get; set; }
 
     public static NotificationEventDocument FromDomain(NotificationEvent notificationEvent)
@@ -34,6 +36,8 @@ public sealed class NotificationEventDocument
             Status = notificationEvent.Status,
             CreatedAtUtc = notificationEvent.CreatedAtUtc,
             ProcessedAtUtc = notificationEvent.ProcessedAtUtc,
+            AttemptCount = notificationEvent.AttemptCount,
+            LastAttemptAtUtc = notificationEvent.LastAttemptAtUtc,
             LastError = notificationEvent.LastError
         };
     }
@@ -49,7 +53,7 @@ public sealed class NotificationEventDocument
             SourceEntityId,
             CreatedAtUtc);
 
-        notificationEvent.Restore(Id, Status, ProcessedAtUtc, LastError);
+        notificationEvent.Restore(Id, Status, ProcessedAtUtc, AttemptCount, LastAttemptAtUtc, LastError);
         return notificationEvent;
     }
 }

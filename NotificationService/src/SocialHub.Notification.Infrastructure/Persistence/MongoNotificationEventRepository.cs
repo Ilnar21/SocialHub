@@ -24,7 +24,10 @@ public sealed class MongoNotificationEventRepository : INotificationEventReposit
     public async Task<NotificationEvent?> TryTakeNextAsync(CancellationToken cancellationToken)
     {
         var filter = Builders<NotificationEventDocument>.Filter.Eq(x => x.Status, NotificationEventStatus.New);
-        var update = Builders<NotificationEventDocument>.Update.Set(x => x.Status, NotificationEventStatus.Processing);
+        var update = Builders<NotificationEventDocument>.Update
+            .Set(x => x.Status, NotificationEventStatus.Processing)
+            .Inc(x => x.AttemptCount, 1)
+            .Set(x => x.LastAttemptAtUtc, DateTime.UtcNow);
         var options = new FindOneAndUpdateOptions<NotificationEventDocument>
         {
             Sort = Builders<NotificationEventDocument>.Sort.Ascending(x => x.CreatedAtUtc),
