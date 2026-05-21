@@ -16,6 +16,7 @@ public static class DependencyInjection
 
         services.AddSingleton(_ => new NpgsqlDataSourceBuilder(connectionString).Build());
         services.AddScoped<IModerationRepository, PostgresModerationRepository>();
+        services.AddScoped<IModerationStorageHealthCheck, PostgresHealthCheck>();
         services.AddHostedService<DatabaseInitializer>();
 
         services.AddHttpClient("post", client => ConfigureBaseAddress(client, configuration["ExternalServices:PostBaseUrl"]));

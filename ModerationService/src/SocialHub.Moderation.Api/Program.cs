@@ -15,9 +15,21 @@ builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "moderation-service" }));
+app.MapGet("/health", async (IModerationStorageHealthCheck storage, CancellationToken cancellationToken) =>
+{
+    var postgresHealthy = await storage.IsHealthyAsync(cancellationToken);
+    var status = postgresHealthy ? "ok" : "degraded";
+
+    return Results.Json(new
+    {
+        status,
+        service = "moderation-service",
+        dependencies = new { postgres = postgresHealthy ? "ok" : "unavailable" }
+    }, statusCode: postgresHealthy ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable);
+});
 app.MapControllers();
 
 app.Run();
