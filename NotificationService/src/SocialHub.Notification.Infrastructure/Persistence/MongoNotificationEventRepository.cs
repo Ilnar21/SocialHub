@@ -3,16 +3,22 @@ using MongoDB.Driver;
 using SocialHub.Notification.Application.Abstractions;
 using SocialHub.Notification.Domain.Entities;
 using SocialHub.Notification.Domain.Enums;
+using SocialHub.Notification.Infrastructure.Processing;
 
 namespace SocialHub.Notification.Infrastructure.Persistence;
 
 public sealed class MongoNotificationEventRepository : INotificationEventRepository
 {
     private readonly IMongoCollection<NotificationEventDocument> _events;
+    private readonly NotificationProcessingOptions _processingOptions;
 
-    public MongoNotificationEventRepository(IMongoDatabase database, IOptions<MongoOptions> options)
+    public MongoNotificationEventRepository(
+        IMongoDatabase database,
+        IOptions<MongoOptions> options,
+        IOptions<NotificationProcessingOptions> processingOptions)
     {
         _events = database.GetCollection<NotificationEventDocument>(options.Value.EventsCollection);
+        _processingOptions = processingOptions.Value;
         EnsureIndexes();
     }
 
@@ -23,7 +29,11 @@ public sealed class MongoNotificationEventRepository : INotificationEventReposit
 
     public async Task<NotificationEvent?> TryTakeNextAsync(CancellationToken cancellationToken)
     {
-        var filter = Builders<NotificationEventDocument>.Filter.Eq(x => x.Status, NotificationEventStatus.New);
+        var retryableStatus = Builders<NotificationEventDocument>.Filter.In(
+            x => x.Status,
+            new[] { NotificationEventStatus.New, NotificationEventStatus.Failed });
+        var hasAttemptsLeft = Builders<NotificationEventDocument>.Filter.Lt(x => x.AttemptCount, _processingOptions.MaxAttempts);
+        var filter = Builders<NotificationEventDocument>.Filter.And(retryableStatus, hasAttemptsLeft);
         var update = Builders<NotificationEventDocument>.Update
             .Set(x => x.Status, NotificationEventStatus.Processing)
             .Inc(x => x.AttemptCount, 1)

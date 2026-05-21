@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SocialHub.Notification.Application.Abstractions;
 using NotificationEntity = SocialHub.Notification.Domain.Entities.Notification;
 
@@ -10,10 +11,15 @@ public sealed class NotificationEventProcessor : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<NotificationEventProcessor> _logger;
+    private readonly NotificationProcessingOptions _options;
 
-    public NotificationEventProcessor(IServiceScopeFactory scopeFactory, ILogger<NotificationEventProcessor> logger)
+    public NotificationEventProcessor(
+        IServiceScopeFactory scopeFactory,
+        IOptions<NotificationProcessingOptions> options,
+        ILogger<NotificationEventProcessor> logger)
     {
         _scopeFactory = scopeFactory;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -22,7 +28,7 @@ public sealed class NotificationEventProcessor : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             await ProcessNextEventAsync(stoppingToken);
-            await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(_options.PollingIntervalSeconds), stoppingToken);
         }
     }
 

@@ -13,6 +13,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<MongoOptions>(configuration.GetSection(MongoOptions.SectionName));
+        services.Configure<NotificationProcessingOptions>(configuration.GetSection(NotificationProcessingOptions.SectionName));
         services.AddSingleton<IMongoClient>(serviceProvider =>
         {
             var options = serviceProvider.GetRequiredService<IOptions<MongoOptions>>().Value;
