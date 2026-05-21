@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SocialHub.Notification.Api.Security;
 using SocialHub.Notification.Application.Abstractions;
 using SocialHub.Notification.Application.Models.Notifications;
 
 namespace SocialHub.Notification.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/notifications")]
 public sealed class NotificationsController : ControllerBase
 {
@@ -18,6 +21,8 @@ public sealed class NotificationsController : ControllerBase
     }
 
     [HttpPost("internal")]
+    [AllowAnonymous]
+    [ServiceFilter(typeof(InternalTokenFilter))]
     public async Task<ActionResult<NotificationResponse>> CreateInternalNotification(
         CreateNotificationRequest request,
         CancellationToken cancellationToken)

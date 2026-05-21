@@ -1,15 +1,23 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.Extensions.Options;
 using SocialHub.Notification.Application.Abstractions;
 using SocialHub.Notification.Application.Exceptions;
+using SocialHub.Notification.Api.Security;
 
 namespace SocialHub.Notification.Api.Services;
 
 public sealed class HeaderCurrentUserContext : ICurrentUserContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly DevAuthOptions _devAuthOptions;
 
-    public HeaderCurrentUserContext(IHttpContextAccessor httpContextAccessor)
+    public HeaderCurrentUserContext(
+        IHttpContextAccessor httpContextAccessor,
+        IOptions<DevAuthOptions> devAuthOptions)
     {
         _httpContextAccessor = httpContextAccessor;
+        _devAuthOptions = devAuthOptions.Value;
     }
 
     public Guid UserId
@@ -19,13 +27,22 @@ public sealed class HeaderCurrentUserContext : ICurrentUserContext
             var context = _httpContextAccessor.HttpContext
                 ?? throw AppException.Unauthorized("HTTP context is not available.");
 
-            if (!context.Request.Headers.TryGetValue("X-User-Id", out var value)
-                || !Guid.TryParse(value.FirstOrDefault(), out var userId))
+            var claimValue = context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? context.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            if (Guid.TryParse(claimValue, out var jwtUserId))
             {
-                throw AppException.Unauthorized("Header X-User-Id with a valid user GUID is required until Auth Service is connected.");
+                return jwtUserId;
             }
 
-            return userId;
+            if (_devAuthOptions.EnableHeaderFallback
+                && context.Request.Headers.TryGetValue("X-User-Id", out var value)
+                && Guid.TryParse(value.FirstOrDefault(), out var headerUserId))
+            {
+                return headerUserId;
+            }
+
+            throw AppException.Unauthorized("A valid JWT bearer token is required.");
         }
     }
 }

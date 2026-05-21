@@ -1,10 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SocialHub.Notification.Api.Security;
 using SocialHub.Notification.Application.Abstractions;
 using SocialHub.Notification.Application.Models.Events;
 
 namespace SocialHub.Notification.Api.Controllers;
 
 [ApiController]
+[AllowAnonymous]
+[ServiceFilter(typeof(InternalTokenFilter))]
 [Route("api/notification-events")]
 public sealed class NotificationEventsController : ControllerBase
 {
