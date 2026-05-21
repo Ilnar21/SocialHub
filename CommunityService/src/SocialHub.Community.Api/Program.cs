@@ -40,7 +40,19 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "community-service" }));
+app.MapGet("/health", async (CommunityDbContext dbContext, CancellationToken cancellationToken) =>
+{
+    var postgresAvailable = await dbContext.Database.CanConnectAsync(cancellationToken);
+    var status = postgresAvailable ? "ok" : "degraded";
+    var statusCode = postgresAvailable ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable;
+
+    return Results.Json(new
+    {
+        status,
+        service = "community-service",
+        postgres = postgresAvailable ? "ok" : "unavailable"
+    }, statusCode: statusCode);
+});
 
 app.MapControllers();
 
