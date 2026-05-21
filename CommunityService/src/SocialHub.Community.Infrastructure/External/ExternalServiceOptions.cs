@@ -7,4 +7,5 @@ public sealed class ExternalServiceOptions
     public string? NotificationBaseUrl { get; set; }
     public string? PostBaseUrl { get; set; }
     public string? InternalToken { get; set; }
+    public int TimeoutSeconds { get; set; } = 4;
 }

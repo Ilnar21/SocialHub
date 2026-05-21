@@ -26,6 +26,8 @@ public static class DependencyInjection
             {
                 client.BaseAddress = new Uri(options.NotificationBaseUrl);
             }
+
+            ConfigureExternalClient(client, options);
         });
 
         services.AddHttpClient<IPostServiceClient, PostServiceClient>((serviceProvider, client) =>
@@ -35,8 +37,20 @@ public static class DependencyInjection
             {
                 client.BaseAddress = new Uri(options.PostBaseUrl);
             }
+
+            ConfigureExternalClient(client, options);
         });
 
         return services;
+    }
+
+    private static void ConfigureExternalClient(HttpClient client, ExternalServiceOptions options)
+    {
+        client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+
+        if (!string.IsNullOrWhiteSpace(options.InternalToken))
+        {
+            client.DefaultRequestHeaders.Add("X-Internal-Token", options.InternalToken);
+        }
     }
 }

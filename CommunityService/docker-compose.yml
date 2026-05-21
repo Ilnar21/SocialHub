@@ -31,6 +31,7 @@ services:
       ExternalServices__NotificationBaseUrl: ""
       ExternalServices__PostBaseUrl: ""
       ExternalServices__InternalToken: "${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}"
+      ExternalServices__TimeoutSeconds: "${EXTERNAL_SERVICE_TIMEOUT_SECONDS:-4}"
       Jwt__Issuer: "${JWT_ISSUER:-SocialHub.AuthService}"
       Jwt__Audience: "${JWT_AUDIENCE:-SocialHub.Client}"
       Jwt__Secret: "${JWT_SECRET:-development-secret-key-for-socialhub-integration}"
