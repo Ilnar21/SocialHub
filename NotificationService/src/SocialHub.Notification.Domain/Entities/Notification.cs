@@ -13,7 +13,6 @@ public sealed class Notification
         NotificationType type,
         string title,
         string message,
-        DeliveryChannel channel,
         DateTime createdAtUtc)
     {
         Id = Guid.NewGuid();
@@ -21,8 +20,6 @@ public sealed class Notification
         Type = type;
         Title = Normalize(title, 160);
         Message = Normalize(message, 2_000);
-        Channel = channel;
-        DeliveryStatus = NotificationDeliveryStatus.Pending;
         CreatedAtUtc = createdAtUtc;
     }
 
@@ -31,32 +28,19 @@ public sealed class Notification
     public NotificationType Type { get; private set; }
     public string Title { get; private set; } = string.Empty;
     public string Message { get; private set; } = string.Empty;
-    public DeliveryChannel Channel { get; private set; }
-    public NotificationDeliveryStatus DeliveryStatus { get; private set; }
-    public string? EmailAddress { get; private set; }
-    public string? EmailSubject { get; private set; }
-    public string? DeliveryError { get; private set; }
+    public bool IsRead { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
-    public DateTime? DeliveredAtUtc { get; private set; }
+    public DateTime? ReadAtUtc { get; private set; }
 
-    public void AddEmailDelivery(string emailAddress, string subject)
+    public void MarkAsRead(DateTime readAtUtc)
     {
-        EmailAddress = Normalize(emailAddress, 320);
-        EmailSubject = Normalize(subject, 200);
-        Channel = DeliveryChannel.Email;
-    }
+        if (IsRead)
+        {
+            return;
+        }
 
-    public void MarkDelivered(DateTime deliveredAtUtc)
-    {
-        DeliveryStatus = NotificationDeliveryStatus.Delivered;
-        DeliveredAtUtc = deliveredAtUtc;
-        DeliveryError = null;
-    }
-
-    public void MarkFailed(string error)
-    {
-        DeliveryStatus = NotificationDeliveryStatus.Failed;
-        DeliveryError = Normalize(error, 1_000);
+        IsRead = true;
+        ReadAtUtc = readAtUtc;
     }
 
     private static string Normalize(string value, int maxLength)
