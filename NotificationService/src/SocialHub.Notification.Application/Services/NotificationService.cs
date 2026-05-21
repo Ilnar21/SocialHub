@@ -23,7 +23,9 @@ public sealed class NotificationService : INotificationService
             request.Type,
             request.Title,
             request.Message,
-            DateTime.UtcNow);
+            DateTime.UtcNow,
+            request.SourceEntityId,
+            request.SourceService);
 
         await _repository.AddAsync(notification, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
@@ -69,6 +71,8 @@ public sealed class NotificationService : INotificationService
             notification.Type,
             notification.Title,
             notification.Message,
+            notification.SourceEntityId,
+            notification.SourceService,
             notification.IsRead,
             notification.CreatedAtUtc,
             notification.ReadAtUtc);

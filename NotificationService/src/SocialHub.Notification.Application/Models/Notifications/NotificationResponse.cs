@@ -8,6 +8,8 @@ public sealed record NotificationResponse(
     NotificationType Type,
     string Title,
     string Message,
+    Guid? SourceEntityId,
+    string? SourceService,
     bool IsRead,
     DateTime CreatedAtUtc,
     DateTime? ReadAtUtc);
