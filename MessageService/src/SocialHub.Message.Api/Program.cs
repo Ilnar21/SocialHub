@@ -15,6 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.MapGet("/health", async (IMessageStorageHealthCheck storage, CancellationToken cancellationToken) =>
