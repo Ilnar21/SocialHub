@@ -2,6 +2,7 @@ using SocialHub.Message.Application.Abstractions;
 using SocialHub.Message.Application.Exceptions;
 using SocialHub.Message.Application.Models.Dialogs;
 using SocialHub.Message.Application.Models.External;
+using SocialHub.Message.Domain.Constants;
 using SocialHub.Message.Domain.Entities;
 
 namespace SocialHub.Message.Application.Services;
@@ -32,9 +33,15 @@ public sealed class MessageService : IMessageService
             throw AppException.BadRequest("Получатель сообщения указан некорректно.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.Text))
+        var text = request.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(text))
         {
             throw AppException.BadRequest("Текст сообщения не может быть пустым.");
+        }
+
+        if (text.Length > MessageLimits.MaxMessageTextLength)
+        {
+            throw AppException.BadRequest($"Текст сообщения не может быть длиннее {MessageLimits.MaxMessageTextLength} символов.");
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -43,15 +50,15 @@ public sealed class MessageService : IMessageService
             Guid.NewGuid().ToString("N"),
             senderUserId,
             normalizedRecipientUserId,
-            request.Text.Trim(),
+            text,
             now);
 
         var dialogId = BuildDialogId(participants[0], participants[1]);
         await _repository.SaveMessageAsync(dialogId, participants, message, cancellationToken);
 
-        await _notificationClient.NotifyMessageReceivedAsync(
+        _ = _notificationClient.NotifyMessageReceivedAsync(
             new MessageReceivedNotification(normalizedRecipientUserId, senderUserId, message.Id, message.SentAt),
-            cancellationToken);
+            CancellationToken.None);
 
         return new SendMessageResponse(dialogId, ToMessageResponse(message));
     }
