@@ -26,10 +26,10 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__ModerationDatabase: Host=moderation-db;Port=5432;Database=socialhub_moderation;Username=socialhub;Password=socialhub_password
-      ExternalServices__PostBaseUrl: ""
-      ExternalServices__AuthBaseUrl: ""
-      ExternalServices__NotificationBaseUrl: ""
+      ConnectionStrings__ModerationDatabase: ${MODERATION_POSTGRES_CONNECTION_STRING:-Host=moderation-db;Port=5432;Database=socialhub_moderation;Username=socialhub;Password=socialhub_password}
+      ExternalServices__PostBaseUrl: ${POST_SERVICE_BASE_URL:-}
+      ExternalServices__AuthBaseUrl: ${AUTH_SERVICE_BASE_URL:-}
+      ExternalServices__NotificationBaseUrl: ${NOTIFICATION_SERVICE_BASE_URL:-}
     ports:
       - "5003:8080"
 
