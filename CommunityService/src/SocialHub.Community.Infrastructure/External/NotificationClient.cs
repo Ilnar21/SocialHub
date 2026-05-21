@@ -29,6 +29,12 @@ public sealed class NotificationClient : INotificationClient
 
         try
         {
+            if (!string.IsNullOrWhiteSpace(_options.InternalToken))
+            {
+                _httpClient.DefaultRequestHeaders.Remove("X-Internal-Token");
+                _httpClient.DefaultRequestHeaders.Add("X-Internal-Token", _options.InternalToken);
+            }
+
             var response = await _httpClient.PostAsJsonAsync("/api/notifications/internal", request, cancellationToken);
             if (response.IsSuccessStatusCode)
             {

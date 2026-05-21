@@ -1,9 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SocialHub.Community.Api.Security;
 using SocialHub.Community.Application.Abstractions;
 
 namespace SocialHub.Community.Api.Controllers;
 
 [ApiController]
+[AllowAnonymous]
+[ServiceFilter(typeof(InternalTokenFilter))]
 public sealed class InternalCommunitiesController : ControllerBase
 {
     private readonly ICommunityService _communityService;
