@@ -1,0 +1,47 @@
+services:
+  moderation-db:
+    image: postgres:16-alpine
+    container_name: socialhub-moderation-db
+    environment:
+      POSTGRES_DB: socialhub_moderation
+      POSTGRES_USER: socialhub
+      POSTGRES_PASSWORD: socialhub_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - moderation_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U socialhub -d socialhub_moderation"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  moderation-service:
+    build:
+      context: .
+      dockerfile: src/SocialHub.Moderation.Api/Dockerfile
+    container_name: socialhub-moderation-service
+    depends_on:
+      moderation-db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__ModerationDatabase: ${MODERATION_POSTGRES_CONNECTION_STRING:-Host=moderation-db;Port=5432;Database=socialhub_moderation;Username=socialhub;Password=socialhub_password}
+      ExternalServices__PostBaseUrl: ${POST_SERVICE_BASE_URL:-}
+      ExternalServices__AuthBaseUrl: ${AUTH_SERVICE_BASE_URL:-}
+      ExternalServices__NotificationBaseUrl: ${NOTIFICATION_SERVICE_BASE_URL:-}
+    ports:
+      - "5003:8080"
+
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: socialhub-moderation-gateway-stub
+    depends_on:
+      - moderation-service
+    ports:
+      - "8083:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+
+volumes:
+  moderation_postgres_data:
