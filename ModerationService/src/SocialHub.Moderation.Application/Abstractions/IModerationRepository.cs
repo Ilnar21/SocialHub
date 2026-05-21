@@ -12,4 +12,5 @@ public interface IModerationRepository
     Task AddUserBlockWithAuditAsync(UserBlock block, AuditLog auditLog, CancellationToken cancellationToken);
     Task<AuditLog> AddAuditAsync(AuditLog auditLog, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<AuditLog>> GetAuditAsync(string? actorUserId, DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken);
+    Task AddSideEffectFailuresAsync(IReadOnlyCollection<SideEffectFailure> failures, CancellationToken cancellationToken);
 }

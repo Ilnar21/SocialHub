@@ -2,6 +2,7 @@ using SocialHub.Moderation.Application.Abstractions;
 using SocialHub.Moderation.Application.Exceptions;
 using SocialHub.Moderation.Application.Models.Audit;
 using SocialHub.Moderation.Application.Models.Blocks;
+using SocialHub.Moderation.Application.Models.External;
 using SocialHub.Moderation.Application.Models.Reports;
 using SocialHub.Moderation.Domain.Entities;
 using SocialHub.Moderation.Domain.Enums;
@@ -74,8 +75,12 @@ public sealed class ModerationService : IModerationService
         var audit = CreateAudit("POST_DELETED", "POST", report.TargetId, reason, null, "PLATFORM_MODERATOR", now);
 
         await _repository.ResolveReportWithAuditAsync(resolved, audit, cancellationToken);
-        await _externalClient.DeletePostAsync(report.TargetId, reason, cancellationToken);
-        await _externalClient.NotifyPostDeletedAsync(report.TargetId, reason, cancellationToken);
+        var sideEffects = new[]
+        {
+            await _externalClient.DeletePostAsync(report.TargetId, reason, cancellationToken),
+            await _externalClient.NotifyPostDeletedAsync(report.TargetId, reason, cancellationToken)
+        };
+        await SaveFailedSideEffectsAsync(sideEffects, "POST_DELETED", "POST", report.TargetId, cancellationToken);
 
         return ToReportResponse(resolved);
     }
@@ -100,8 +105,12 @@ public sealed class ModerationService : IModerationService
 
         var audit = CreateAudit("USER_BLOCKED", "USER", block.BlockedUserId, block.Reason, null, "PLATFORM_MODERATOR", now);
         await _repository.AddUserBlockWithAuditAsync(block, audit, cancellationToken);
-        await _externalClient.SetUserBlockedAsync(block, cancellationToken);
-        await _externalClient.NotifyUserBlockedAsync(block, cancellationToken);
+        var sideEffects = new[]
+        {
+            await _externalClient.SetUserBlockedAsync(block, cancellationToken),
+            await _externalClient.NotifyUserBlockedAsync(block, cancellationToken)
+        };
+        await SaveFailedSideEffectsAsync(sideEffects, "USER_BLOCKED", "USER", block.BlockedUserId, cancellationToken);
 
         return ToBlockResponse(block);
     }
@@ -138,6 +147,32 @@ public sealed class ModerationService : IModerationService
             && !role.Equals("MODERATOR", StringComparison.OrdinalIgnoreCase)))
         {
             throw AppException.Forbidden("Platform moderator role is required.");
+        }
+    }
+
+    private async Task SaveFailedSideEffectsAsync(
+        IReadOnlyCollection<SideEffectResult> results,
+        string action,
+        string targetType,
+        string targetId,
+        CancellationToken cancellationToken)
+    {
+        var failures = results
+            .Where(x => !x.Succeeded)
+            .Select(x => new SideEffectFailure(
+                Guid.NewGuid(),
+                action,
+                targetType,
+                targetId,
+                x.ServiceName,
+                x.RequestPath,
+                x.ErrorMessage ?? "Unknown external service error.",
+                DateTimeOffset.UtcNow))
+            .ToArray();
+
+        if (failures.Length > 0)
+        {
+            await _repository.AddSideEffectFailuresAsync(failures, cancellationToken);
         }
     }
 

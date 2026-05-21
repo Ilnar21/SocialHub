@@ -142,6 +142,39 @@ public sealed class PostgresModerationRepository : IModerationRepository
         return entries;
     }
 
+    public async Task AddSideEffectFailuresAsync(IReadOnlyCollection<SideEffectFailure> failures, CancellationToken cancellationToken)
+    {
+        if (failures.Count == 0)
+        {
+            return;
+        }
+
+        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+        foreach (var failure in failures)
+        {
+            await using var command = new NpgsqlCommand("""
+                insert into side_effect_failures
+                    (id, action, target_type, target_id, service_name, request_path, error_message, status, created_at_utc)
+                values
+                    (@id, @action, @target_type, @target_id, @service_name, @request_path, @error_message, 'FAILED', @created_at_utc);
+                """, connection, transaction);
+
+            command.Parameters.AddWithValue("id", failure.Id);
+            command.Parameters.AddWithValue("action", failure.Action);
+            command.Parameters.AddWithValue("target_type", failure.TargetType);
+            command.Parameters.AddWithValue("target_id", failure.TargetId);
+            command.Parameters.AddWithValue("service_name", failure.ServiceName);
+            command.Parameters.AddWithValue("request_path", failure.RequestPath);
+            command.Parameters.AddWithValue("error_message", failure.ErrorMessage);
+            command.Parameters.AddWithValue("created_at_utc", failure.CreatedAtUtc);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+    }
+
     private static async Task<ModerationReport?> GetReportAsync(NpgsqlConnection connection, NpgsqlTransaction? transaction, Guid reportId, CancellationToken cancellationToken)
     {
         await using var command = new NpgsqlCommand("""

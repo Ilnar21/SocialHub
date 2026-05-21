@@ -72,5 +72,19 @@ public sealed class DatabaseInitializer : IHostedService
         );
 
         create index if not exists ix_audit_logs_actor_date on audit_logs(actor_user_id, created_at_utc);
+
+        create table if not exists side_effect_failures (
+            id uuid primary key,
+            action text not null,
+            target_type text not null,
+            target_id text not null,
+            service_name text not null,
+            request_path text not null,
+            error_message text not null,
+            status text not null,
+            created_at_utc timestamptz not null
+        );
+
+        create index if not exists ix_side_effect_failures_target on side_effect_failures(target_type, target_id);
         """;
 }
