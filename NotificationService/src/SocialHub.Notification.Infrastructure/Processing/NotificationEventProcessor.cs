@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SocialHub.Notification.Application.Abstractions;
+using SocialHub.Notification.Application.Models.Email;
 using NotificationEntity = SocialHub.Notification.Domain.Entities.Notification;
 
 namespace SocialHub.Notification.Infrastructure.Processing;
@@ -37,6 +38,7 @@ public sealed class NotificationEventProcessor : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var events = scope.ServiceProvider.GetRequiredService<INotificationEventRepository>();
         var notifications = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
+        var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
 
         var notificationEvent = await events.TryTakeNextAsync(cancellationToken);
         if (notificationEvent is null)
@@ -58,6 +60,8 @@ public sealed class NotificationEventProcessor : BackgroundService
             await notifications.AddAsync(notification, cancellationToken);
             await notifications.SaveChangesAsync(cancellationToken);
 
+            await TrySendEmailAsync(emailSender, notificationEvent, cancellationToken);
+
             notificationEvent.MarkCompleted(DateTime.UtcNow);
             await events.SaveAsync(notificationEvent, cancellationToken);
 
@@ -68,6 +72,34 @@ public sealed class NotificationEventProcessor : BackgroundService
             notificationEvent.MarkFailed(ex.Message);
             await events.SaveAsync(notificationEvent, cancellationToken);
             _logger.LogWarning(ex, "Notification event {EventId} failed.", notificationEvent.Id);
+        }
+    }
+
+    private async Task TrySendEmailAsync(
+        IEmailSender emailSender,
+        Domain.Entities.NotificationEvent notificationEvent,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await emailSender.SendAsync(
+                new EmailMessage(notificationEvent.RecipientEmail, notificationEvent.Title, notificationEvent.Message),
+                cancellationToken);
+
+            if (result.Skipped)
+            {
+                _logger.LogInformation(
+                    "Email delivery for notification event {EventId} was skipped: {Reason}.",
+                    notificationEvent.Id,
+                    result.Details);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Email delivery for notification event {EventId} failed. In-site notification remains available.",
+                notificationEvent.Id);
         }
     }
 }

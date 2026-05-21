@@ -15,6 +15,7 @@ public sealed class NotificationEventDocument
     public string Message { get; set; } = string.Empty;
     public string SourceService { get; set; } = string.Empty;
     public Guid? SourceEntityId { get; set; }
+    public string? RecipientEmail { get; set; }
     public NotificationEventStatus Status { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? ProcessedAtUtc { get; set; }
@@ -33,6 +34,7 @@ public sealed class NotificationEventDocument
             Message = notificationEvent.Message,
             SourceService = notificationEvent.SourceService,
             SourceEntityId = notificationEvent.SourceEntityId,
+            RecipientEmail = notificationEvent.RecipientEmail,
             Status = notificationEvent.Status,
             CreatedAtUtc = notificationEvent.CreatedAtUtc,
             ProcessedAtUtc = notificationEvent.ProcessedAtUtc,
@@ -51,6 +53,7 @@ public sealed class NotificationEventDocument
             Message,
             SourceService,
             SourceEntityId,
+            RecipientEmail,
             CreatedAtUtc);
 
         notificationEvent.Restore(Id, Status, ProcessedAtUtc, AttemptCount, LastAttemptAtUtc, LastError);

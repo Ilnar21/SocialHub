@@ -10,4 +10,5 @@ public sealed record CreateNotificationEventRequest(
     [Required, MaxLength(NotificationLimits.TitleMaxLength)] string Title,
     [Required, MaxLength(NotificationLimits.MessageMaxLength)] string Message,
     [Required, MaxLength(NotificationLimits.SourceServiceMaxLength)] string SourceService,
-    Guid? SourceEntityId = null);
+    Guid? SourceEntityId = null,
+    [EmailAddress] string? RecipientEmail = null);

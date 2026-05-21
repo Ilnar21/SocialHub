@@ -49,6 +49,7 @@ public sealed class NotificationService : INotificationService
             request.Message,
             request.SourceService,
             request.SourceEntityId,
+            request.RecipientEmail,
             DateTime.UtcNow);
 
         await _eventRepository.AddAsync(notificationEvent, cancellationToken);

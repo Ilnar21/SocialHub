@@ -15,6 +15,7 @@ public sealed class NotificationEvent
         string message,
         string sourceService,
         Guid? sourceEntityId,
+        string? recipientEmail,
         DateTime createdAtUtc)
     {
         Id = Guid.NewGuid();
@@ -24,6 +25,7 @@ public sealed class NotificationEvent
         Message = message.Trim();
         SourceService = sourceService.Trim();
         SourceEntityId = sourceEntityId;
+        RecipientEmail = NormalizeOptional(recipientEmail, 254);
         Status = NotificationEventStatus.New;
         CreatedAtUtc = createdAtUtc;
     }
@@ -35,6 +37,7 @@ public sealed class NotificationEvent
     public string Message { get; private set; } = string.Empty;
     public string SourceService { get; private set; } = string.Empty;
     public Guid? SourceEntityId { get; private set; }
+    public string? RecipientEmail { get; private set; }
     public NotificationEventStatus Status { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? ProcessedAtUtc { get; private set; }
@@ -70,5 +73,16 @@ public sealed class NotificationEvent
     {
         Status = NotificationEventStatus.Failed;
         LastError = error;
+    }
+
+    private static string? NormalizeOptional(string? value, int maxLength)
+    {
+        var normalized = value?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return null;
+        }
+
+        return normalized.Length > maxLength ? normalized[..maxLength] : normalized;
     }
 }
