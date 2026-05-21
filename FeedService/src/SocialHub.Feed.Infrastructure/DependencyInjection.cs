@@ -49,6 +49,7 @@ public static class DependencyInjection
                 var opts = sp.GetRequiredService<IOptions<ExternalServiceOptions>>().Value;
                 client.BaseAddress = new Uri(EnsureTrailingSlash(opts.CommunityServiceUrl));
                 client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
+                AddInternalToken(client, opts.InternalToken);
             })
             .AddPolicyHandler(GetRetryPolicy());
 
@@ -72,4 +73,12 @@ public static class DependencyInjection
 
     private static string EnsureTrailingSlash(string url) =>
         url.EndsWith('/') ? url : url + "/";
+
+    private static void AddInternalToken(HttpClient client, string? token)
+    {
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            client.DefaultRequestHeaders.Add("X-Internal-Token", token);
+        }
+    }
 }

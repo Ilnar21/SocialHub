@@ -23,6 +23,10 @@ public static class DependencyInjection
         services.AddHttpClient<ICommunityAccessClient, CommunityAccessClient>(client =>
         {
             client.BaseAddress = new Uri(communityOptions.BaseUrl);
+            if (!string.IsNullOrWhiteSpace(communityOptions.InternalToken))
+            {
+                client.DefaultRequestHeaders.Add("X-Internal-Token", communityOptions.InternalToken);
+            }
         });
 
         return services;

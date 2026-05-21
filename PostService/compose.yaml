@@ -17,6 +17,7 @@ services:
       ASPNETCORE_URLS: http://+:8080
       CommunityService__BaseUrl: http://community-service:8080
       CommunityService__SkipMembershipCheck: "true"
+      CommunityService__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
     ports:
       - "8082:8080"
 

@@ -13,6 +13,8 @@ public sealed class ExternalServiceOptions
 
     public string PostServiceUrl { get; set; } = "http://post-service:8080";
 
+    public string? InternalToken { get; set; }
+
     /// <summary>Таймаут одного исходящего запроса. Часть бюджета NFR-2 (5 секунд).</summary>
     public int TimeoutSeconds { get; set; } = 4;
 }

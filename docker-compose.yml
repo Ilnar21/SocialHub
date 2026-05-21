@@ -186,6 +186,7 @@ services:
       Mongo__DatabaseName: socialhub_messages
       Mongo__DialogsCollection: dialogs
       NotificationService__BaseUrl: http://notification-service:8080
+      NotificationService__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
     depends_on:
       message-db:
         condition: service_healthy
@@ -204,6 +205,7 @@ services:
       ExternalServices__PostBaseUrl: http://post-service:8080
       ExternalServices__AuthBaseUrl: http://auth-service:8080
       ExternalServices__NotificationBaseUrl: http://notification-service:8080
+      ExternalServices__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
     depends_on:
       moderation-db:
         condition: service_healthy
@@ -255,6 +257,7 @@ services:
       Services__CommunityServiceUrl: http://community-service:8080
       Services__PostServiceUrl: http://post-service:8080
       Services__TimeoutSeconds: 4
+      Services__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
     depends_on:
       feed-cache:
         condition: service_healthy
@@ -270,7 +273,8 @@ services:
     environment:
       ASPNETCORE_URLS: http://+:8080
       CommunityService__BaseUrl: http://community-service:8080
-      CommunityService__SkipMembershipCheck: "true"
+      CommunityService__SkipMembershipCheck: "false"
+      CommunityService__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
     ports:
       - "5006:8080"
     networks:

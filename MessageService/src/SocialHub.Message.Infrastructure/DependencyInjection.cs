@@ -30,6 +30,12 @@ public static class DependencyInjection
             {
                 client.BaseAddress = new Uri(baseUrl);
             }
+
+            var internalToken = configuration["NotificationService:InternalToken"];
+            if (!string.IsNullOrWhiteSpace(internalToken))
+            {
+                client.DefaultRequestHeaders.Add("X-Internal-Token", internalToken);
+            }
         });
 
         return services;

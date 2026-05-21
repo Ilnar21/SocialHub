@@ -4,4 +4,5 @@ public sealed class CommunityAccessOptions
 {
     public string BaseUrl { get; set; } = "http://community-service:8080";
     public bool SkipMembershipCheck { get; set; } = true;
+    public string? InternalToken { get; set; }
 }

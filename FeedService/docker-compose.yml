@@ -18,6 +18,7 @@ services:
       Services__CommunityServiceUrl: http://community-service:8080
       Services__PostServiceUrl: http://post-service:8080
       Services__TimeoutSeconds: "4"
+      Services__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
     ports:
       - "5100:8080"
     depends_on:

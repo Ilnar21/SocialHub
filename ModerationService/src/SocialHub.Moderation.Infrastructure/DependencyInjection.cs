@@ -21,7 +21,11 @@ public static class DependencyInjection
 
         services.AddHttpClient("post", client => ConfigureBaseAddress(client, configuration["ExternalServices:PostBaseUrl"]));
         services.AddHttpClient("auth", client => ConfigureBaseAddress(client, configuration["ExternalServices:AuthBaseUrl"]));
-        services.AddHttpClient("notifications", client => ConfigureBaseAddress(client, configuration["ExternalServices:NotificationBaseUrl"]));
+        services.AddHttpClient("notifications", client =>
+        {
+            ConfigureBaseAddress(client, configuration["ExternalServices:NotificationBaseUrl"]);
+            AddInternalToken(client, configuration["ExternalServices:InternalToken"]);
+        });
         services.AddScoped<IExternalModerationClient, ExternalModerationClient>();
 
         return services;
@@ -32,6 +36,14 @@ public static class DependencyInjection
         if (!string.IsNullOrWhiteSpace(baseUrl))
         {
             client.BaseAddress = new Uri(baseUrl);
+        }
+    }
+
+    private static void AddInternalToken(HttpClient client, string? token)
+    {
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            client.DefaultRequestHeaders.Add("X-Internal-Token", token);
         }
     }
 }

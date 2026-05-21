@@ -30,6 +30,7 @@ services:
       ExternalServices__PostBaseUrl: ${POST_SERVICE_BASE_URL:-}
       ExternalServices__AuthBaseUrl: ${AUTH_SERVICE_BASE_URL:-}
       ExternalServices__NotificationBaseUrl: ${NOTIFICATION_SERVICE_BASE_URL:-}
+      ExternalServices__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
     ports:
       - "5003:8080"
 
