@@ -39,6 +39,11 @@ public sealed class Notification
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? ReadAtUtc { get; private set; }
 
+    public void RestoreIdentity(Guid id)
+    {
+        Id = id;
+    }
+
     public void MarkAsRead(DateTime readAtUtc)
     {
         if (IsRead)
