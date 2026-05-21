@@ -7,7 +7,6 @@ using System.Text.Json.Serialization;
 using SocialHub.Community.Api.Middleware;
 using SocialHub.Community.Api.Security;
 using SocialHub.Community.Api.Services;
-using SocialHub.Community.Api.Swagger;
 using SocialHub.Community.Application.Abstractions;
 using SocialHub.Community.Application.Services;
 using SocialHub.Community.Infrastructure;
@@ -83,7 +82,6 @@ builder.Services.AddSwaggerGen(options =>
             []
         }
     });
-    options.OperationFilter<UserHeadersOperationFilter>();
 });
 
 var app = builder.Build();
