@@ -9,10 +9,12 @@ namespace SocialHub.Notification.Api.Controllers;
 public sealed class NotificationEventsController : ControllerBase
 {
     private readonly INotificationService _notificationService;
+    private readonly ILogger<NotificationEventsController> _logger;
 
-    public NotificationEventsController(INotificationService notificationService)
+    public NotificationEventsController(INotificationService notificationService, ILogger<NotificationEventsController> logger)
     {
         _notificationService = notificationService;
+        _logger = logger;
     }
 
     [HttpPost]
@@ -21,6 +23,11 @@ public sealed class NotificationEventsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await _notificationService.CreateEventAsync(request, cancellationToken);
+        _logger.LogInformation(
+            "Notification event {EventId} accepted from {SourceService} for user {UserId}.",
+            response.Id,
+            response.SourceService,
+            response.RecipientUserId);
         return Accepted(response);
     }
 }

@@ -22,7 +22,19 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "notification-service" }));
+app.MapGet("/health", async (INotificationHealthCheck healthCheck, CancellationToken cancellationToken) =>
+{
+    var mongoAvailable = await healthCheck.IsMongoAvailableAsync(cancellationToken);
+    var status = mongoAvailable ? "ok" : "degraded";
+    var statusCode = mongoAvailable ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable;
+
+    return Results.Json(new
+    {
+        status,
+        service = "notification-service",
+        mongo = mongoAvailable ? "ok" : "unavailable"
+    }, statusCode: statusCode);
+});
 
 app.UseAuthorization();
 
