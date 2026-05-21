@@ -36,6 +36,9 @@ services:
       Smtp__Password: "${SMTP_PASSWORD:-}"
       Smtp__FromEmail: "${SMTP_FROM_EMAIL:-}"
       Smtp__FromName: "${SMTP_FROM_NAME:-SocialHub}"
+      Jwt__Issuer: "${JWT_ISSUER:-SocialHub.AuthService}"
+      Jwt__Audience: "${JWT_AUDIENCE:-SocialHub.Client}"
+      Jwt__Secret: "${JWT_SECRET:-development-secret-key-for-socialhub-integration}"
     ports:
       - "5004:8080"
 
