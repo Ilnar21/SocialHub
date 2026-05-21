@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using SocialHub.Notification.Application.Abstractions;
 using SocialHub.Notification.Infrastructure.Persistence;
+using SocialHub.Notification.Infrastructure.Processing;
 
 namespace SocialHub.Notification.Infrastructure;
 
@@ -25,6 +26,7 @@ public static class DependencyInjection
         });
         services.AddScoped<INotificationRepository, MongoNotificationRepository>();
         services.AddScoped<INotificationEventRepository, MongoNotificationEventRepository>();
+        services.AddHostedService<NotificationEventProcessor>();
         return services;
     }
 }
