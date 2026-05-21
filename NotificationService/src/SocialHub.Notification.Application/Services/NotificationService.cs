@@ -50,11 +50,11 @@ public sealed class NotificationService : INotificationService
     public async Task MarkAsReadAsync(Guid notificationId, CancellationToken cancellationToken)
     {
         var notification = await _repository.GetByIdAsync(notificationId, cancellationToken)
-            ?? throw AppException.Unauthorized("Notification was not found.");
+            ?? throw AppException.NotFound("Notification was not found.");
 
         if (notification.RecipientUserId != _currentUser.UserId)
         {
-            throw AppException.Unauthorized("Current user cannot read this notification.");
+            throw AppException.Forbidden("Current user cannot read this notification.");
         }
 
         notification.MarkAsRead(DateTime.UtcNow);

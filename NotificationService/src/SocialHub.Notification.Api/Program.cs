@@ -1,3 +1,4 @@
+using SocialHub.Notification.Api.Middleware;
 using SocialHub.Notification.Api.Services;
 using SocialHub.Notification.Application.Abstractions;
 using SocialHub.Notification.Application.Services;
@@ -16,7 +17,8 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
