@@ -24,7 +24,7 @@ public static class DependencyInjection
             return client.GetDatabase(options.DatabaseName);
         });
         services.AddScoped<INotificationRepository, MongoNotificationRepository>();
-        services.AddScoped<INotificationEventRepository, NotImplementedNotificationEventRepository>();
+        services.AddScoped<INotificationEventRepository, MongoNotificationEventRepository>();
         return services;
     }
 }
