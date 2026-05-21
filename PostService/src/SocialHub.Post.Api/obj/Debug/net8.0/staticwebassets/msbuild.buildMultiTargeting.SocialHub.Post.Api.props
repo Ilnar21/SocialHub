@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\SocialHub.Post.Api.props" />
-</Project>
