@@ -12,6 +12,7 @@ public sealed class MongoNotificationRepository : INotificationRepository
     public MongoNotificationRepository(IMongoDatabase database, IOptions<MongoOptions> options)
     {
         _notifications = database.GetCollection<NotificationDocument>(options.Value.NotificationsCollection);
+        EnsureIndexes();
     }
 
     public async Task AddAsync(NotificationEntity notification, CancellationToken cancellationToken)
@@ -50,5 +51,22 @@ public sealed class MongoNotificationRepository : INotificationRepository
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         await Task.CompletedTask;
+    }
+
+    private void EnsureIndexes()
+    {
+        var inboxIndex = Builders<NotificationDocument>.IndexKeys
+            .Ascending(x => x.RecipientUserId)
+            .Descending(x => x.CreatedAtUtc);
+
+        var unreadIndex = Builders<NotificationDocument>.IndexKeys
+            .Ascending(x => x.RecipientUserId)
+            .Ascending(x => x.IsRead);
+
+        _notifications.Indexes.CreateMany(new[]
+        {
+            new CreateIndexModel<NotificationDocument>(inboxIndex),
+            new CreateIndexModel<NotificationDocument>(unreadIndex)
+        });
     }
 }

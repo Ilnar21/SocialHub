@@ -21,6 +21,8 @@ public sealed class NotificationDocument
 
     public static NotificationDocument FromDomain(NotificationEntity notification)
     {
+        var readAt = notification.IsRead ? notification.ReadAtUtc : null;
+
         return new NotificationDocument
         {
             Id = notification.Id,
@@ -32,7 +34,7 @@ public sealed class NotificationDocument
             SourceService = notification.SourceService,
             IsRead = notification.IsRead,
             CreatedAtUtc = notification.CreatedAtUtc,
-            ReadAtUtc = notification.ReadAtUtc
+            ReadAtUtc = readAt
         };
     }
 
