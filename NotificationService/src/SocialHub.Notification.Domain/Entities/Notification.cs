@@ -1,3 +1,4 @@
+using SocialHub.Notification.Domain.Constants;
 using SocialHub.Notification.Domain.Enums;
 
 namespace SocialHub.Notification.Domain.Entities;
@@ -18,8 +19,8 @@ public sealed class Notification
         Id = Guid.NewGuid();
         RecipientUserId = recipientUserId;
         Type = type;
-        Title = Normalize(title, 160);
-        Message = Normalize(message, 2_000);
+        Title = Normalize(title, nameof(title), NotificationLimits.TitleMaxLength);
+        Message = Normalize(message, nameof(message), NotificationLimits.MessageMaxLength);
         CreatedAtUtc = createdAtUtc;
     }
 
@@ -43,12 +44,12 @@ public sealed class Notification
         ReadAtUtc = readAtUtc;
     }
 
-    private static string Normalize(string value, int maxLength)
+    private static string Normalize(string value, string parameterName, int maxLength)
     {
         var normalized = value.Trim();
         if (string.IsNullOrWhiteSpace(normalized))
         {
-            throw new ArgumentException("Value cannot be empty.");
+            throw new ArgumentException("Value cannot be empty.", parameterName);
         }
 
         return normalized.Length > maxLength ? normalized[..maxLength] : normalized;
