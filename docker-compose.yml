@@ -1,6 +1,23 @@
 name: socialhub
 
 services:
+  gateway:
+    image: nginx:1.27-alpine
+    depends_on:
+      - auth-service
+      - community-service
+      - feed-service
+      - message-service
+      - moderation-service
+      - notification-service
+      - post-service
+    ports:
+      - "8080:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - socialhub-network
+
   auth-db:
     image: postgres:16-alpine
     environment:
