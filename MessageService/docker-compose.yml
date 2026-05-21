@@ -1,0 +1,43 @@
+services:
+  message-db:
+    image: mongo:7
+    container_name: socialhub-message-db
+    ports:
+      - "27018:27017"
+    volumes:
+      - message_mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  message-service:
+    build:
+      context: .
+      dockerfile: src/SocialHub.Message.Api/Dockerfile
+    container_name: socialhub-message-service
+    depends_on:
+      message-db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Mongo__ConnectionString: ${MESSAGE_MONGO_CONNECTION_STRING:-mongodb://message-db:27017}
+      Mongo__DatabaseName: ${MESSAGE_MONGO_DATABASE:-socialhub_messages}
+      Mongo__DialogsCollection: ${MESSAGE_MONGO_DIALOGS_COLLECTION:-dialogs}
+      NotificationService__BaseUrl: ${NOTIFICATION_SERVICE_BASE_URL:-}
+    ports:
+      - "5002:8080"
+
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: socialhub-message-gateway-stub
+    depends_on:
+      - message-service
+    ports:
+      - "8082:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+
+volumes:
+  message_mongo_data:

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SocialHub.Message.Api\SocialHub.Message.Api.csproj" />
+    <ProjectReference Include="..\..\src\SocialHub.Message.Application\SocialHub.Message.Application.csproj" />
+    <ProjectReference Include="..\..\src\SocialHub.Message.Domain\SocialHub.Message.Domain.csproj" />
+    <ProjectReference Include="..\..\src\SocialHub.Message.Infrastructure\SocialHub.Message.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>
