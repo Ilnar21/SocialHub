@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialHub.Community.Applica
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialHub.Community.Infrastructure", "src\SocialHub.Community.Infrastructure\SocialHub.Community.Infrastructure.csproj", "{6AE9835E-5D3F-4138-98B2-34749D05D540}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialHub.Community.Application.Tests", "tests\SocialHub.Community.Application.Tests\SocialHub.Community.Application.Tests.csproj", "{99C20594-1F10-4204-B796-E9AA28D913D5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +75,18 @@ Global
 		{6AE9835E-5D3F-4138-98B2-34749D05D540}.Release|x64.Build.0 = Release|Any CPU
 		{6AE9835E-5D3F-4138-98B2-34749D05D540}.Release|x86.ActiveCfg = Release|Any CPU
 		{6AE9835E-5D3F-4138-98B2-34749D05D540}.Release|x86.Build.0 = Release|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Debug|x64.Build.0 = Debug|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Debug|x86.Build.0 = Debug|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Release|x64.ActiveCfg = Release|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Release|x64.Build.0 = Release|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Release|x86.ActiveCfg = Release|Any CPU
+		{99C20594-1F10-4204-B796-E9AA28D913D5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -80,5 +96,6 @@ Global
 		{A4B537B9-02CD-47FA-A689-D2F183F9E479} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{7BBFC38E-3858-467E-97F0-FDAD7D26988F} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{6AE9835E-5D3F-4138-98B2-34749D05D540} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{99C20594-1F10-4204-B796-E9AA28D913D5} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
