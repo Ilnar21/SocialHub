@@ -46,7 +46,7 @@ public sealed class NotificationServiceTests
         var response = await service.GetCurrentUserNotificationsAsync(CancellationToken.None);
 
         Assert.Single(response.Items);
-        Assert.Equal(UserId, response.Items[0].RecipientUserId);
+        Assert.Equal(UserId, response.Items.Single().RecipientUserId);
         Assert.Equal(1, response.UnreadCount);
     }
 
