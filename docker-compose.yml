@@ -1,0 +1,252 @@
+name: socialhub
+
+services:
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${AUTH_POSTGRES_DB:-socialhub_auth}
+      POSTGRES_USER: ${AUTH_POSTGRES_USER:-socialhub}
+      POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD:-socialhub_password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_POSTGRES_USER:-socialhub} -d ${AUTH_POSTGRES_DB:-socialhub_auth}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_postgres_data:/var/lib/postgresql/data
+    networks:
+      - socialhub-network
+
+  community-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: socialhub_community
+      POSTGRES_USER: socialhub
+      POSTGRES_PASSWORD: socialhub_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U socialhub -d socialhub_community"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5433:5432"
+    volumes:
+      - community_postgres_data:/var/lib/postgresql/data
+    networks:
+      - socialhub-network
+
+  moderation-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: socialhub_moderation
+      POSTGRES_USER: socialhub
+      POSTGRES_PASSWORD: socialhub_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U socialhub -d socialhub_moderation"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5434:5432"
+    volumes:
+      - moderation_postgres_data:/var/lib/postgresql/data
+    networks:
+      - socialhub-network
+
+  post-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: socialhub_posts
+      POSTGRES_USER: socialhub
+      POSTGRES_PASSWORD: socialhub_password
+    ports:
+      - "5435:5432"
+    volumes:
+      - post_postgres_data:/var/lib/postgresql/data
+    networks:
+      - socialhub-network
+
+  message-db:
+    image: mongo:7
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "27018:27017"
+    volumes:
+      - message_mongo_data:/data/db
+    networks:
+      - socialhub-network
+
+  notification-db:
+    image: mongo:7
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "27019:27017"
+    volumes:
+      - notification_mongo_data:/data/db
+    networks:
+      - socialhub-network
+
+  feed-cache:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "6379:6379"
+    networks:
+      - socialhub-network
+
+  auth-service:
+    build:
+      context: ./AuthService
+      dockerfile: src/SocialHub.Auth.Api/Dockerfile
+    environment:
+      POSTGRES_HOST: auth-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${AUTH_POSTGRES_DB:-socialhub_auth}
+      POSTGRES_USER: ${AUTH_POSTGRES_USER:-socialhub}
+      POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD:-socialhub_password}
+      JWT_ISSUER: ${JWT_ISSUER:-SocialHub.AuthService}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-SocialHub.Client}
+      JWT_SECRET: ${JWT_SECRET:-development-secret-key-for-socialhub-integration}
+      JWT_ACCESS_TOKEN_LIFETIME_MINUTES: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-60}
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    ports:
+      - "5000:8080"
+    networks:
+      - socialhub-network
+
+  community-service:
+    build:
+      context: ./CommunityService
+      dockerfile: src/SocialHub.Community.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ApplyMigrationsOnStartup: "true"
+      ConnectionStrings__CommunityDatabase: Host=community-db;Port=5432;Database=socialhub_community;Username=socialhub;Password=socialhub_password
+      ExternalServices__NotificationBaseUrl: http://notification-service:8080
+      ExternalServices__PostBaseUrl: http://post-service:8080
+    depends_on:
+      community-db:
+        condition: service_healthy
+    ports:
+      - "5001:8080"
+    networks:
+      - socialhub-network
+
+  message-service:
+    build:
+      context: ./MessageService
+      dockerfile: src/SocialHub.Message.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Mongo__ConnectionString: mongodb://message-db:27017
+      Mongo__DatabaseName: socialhub_messages
+      Mongo__DialogsCollection: dialogs
+      NotificationService__BaseUrl: http://notification-service:8080
+    depends_on:
+      message-db:
+        condition: service_healthy
+    ports:
+      - "5002:8080"
+    networks:
+      - socialhub-network
+
+  moderation-service:
+    build:
+      context: ./ModerationService
+      dockerfile: src/SocialHub.Moderation.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__ModerationDatabase: Host=moderation-db;Port=5432;Database=socialhub_moderation;Username=socialhub;Password=socialhub_password
+      ExternalServices__PostBaseUrl: http://post-service:8080
+      ExternalServices__AuthBaseUrl: http://auth-service:8080
+      ExternalServices__NotificationBaseUrl: http://notification-service:8080
+    depends_on:
+      moderation-db:
+        condition: service_healthy
+    ports:
+      - "5003:8080"
+    networks:
+      - socialhub-network
+
+  notification-service:
+    build:
+      context: ./NotificationService
+      dockerfile: src/SocialHub.Notification.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Mongo__ConnectionString: mongodb://notification-db:27017
+      Mongo__DatabaseName: socialhub_notifications
+      Mongo__NotificationsCollection: notifications
+      Mongo__EventsCollection: notification_events
+      NotificationProcessing__PollingIntervalSeconds: 2
+      NotificationProcessing__MaxAttempts: 5
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    ports:
+      - "5004:8080"
+    networks:
+      - socialhub-network
+
+  feed-service:
+    build:
+      context: ./FeedService
+      dockerfile: src/SocialHub.Feed.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Cache__ConnectionString: feed-cache:6379
+      Cache__KeyPrefix: feed
+      Cache__TtlSeconds: 300
+      Services__CommunityServiceUrl: http://community-service:8080
+      Services__PostServiceUrl: http://post-service:8080
+      Services__TimeoutSeconds: 4
+    depends_on:
+      feed-cache:
+        condition: service_healthy
+    ports:
+      - "5005:8080"
+    networks:
+      - socialhub-network
+
+  post-service:
+    build:
+      context: ./PostService
+      dockerfile: src/SocialHub.Post.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      CommunityService__BaseUrl: http://community-service:8080
+      CommunityService__SkipMembershipCheck: "true"
+    ports:
+      - "5006:8080"
+    networks:
+      - socialhub-network
+
+networks:
+  socialhub-network:
+    name: socialhub-network
+    driver: bridge
+
+volumes:
+  auth_postgres_data:
+  community_postgres_data:
+  moderation_postgres_data:
+  post_postgres_data:
+  message_mongo_data:
+  notification_mongo_data:
