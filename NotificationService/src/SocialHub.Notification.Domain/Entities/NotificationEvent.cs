@@ -40,6 +40,14 @@ public sealed class NotificationEvent
     public DateTime? ProcessedAtUtc { get; private set; }
     public string? LastError { get; private set; }
 
+    public void Restore(Guid id, NotificationEventStatus status, DateTime? processedAtUtc, string? lastError)
+    {
+        Id = id;
+        Status = status;
+        ProcessedAtUtc = processedAtUtc;
+        LastError = lastError;
+    }
+
     public void MarkProcessing()
     {
         Status = NotificationEventStatus.Processing;
