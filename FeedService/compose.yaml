@@ -1,0 +1,7 @@
+﻿services:
+  feedservice:
+    image: feedservice
+    build:
+      context: .
+      dockerfile: FeedService/Dockerfile
+
