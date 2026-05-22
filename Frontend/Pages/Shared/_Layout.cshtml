@@ -1,14 +1,36 @@
+@{
+    var iconAttrs = "width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"nav-icon\" aria-hidden=\"true\"";
+}
 <!doctype html>
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@ViewData["Title"] - SocialHub</title>
+    <title>@ViewData["Title"] · SocialHub</title>
+    <meta name="theme-color" content="#0d0e10" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..700,0..100,0..1;1,9..144,300..700,0..100,0..1&amp;family=Manrope:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" />
+
     <link rel="stylesheet" href="~/css/styles.css" asp-append-version="true" />
 </head>
 <body>
+    <button type="button"
+            class="sidebar-toggle"
+            data-sidebar-toggle
+            aria-label="Меню навигации">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="4" y1="6"  x2="20" y2="6" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="18" x2="20" y2="18" />
+        </svg>
+    </button>
+
     <div class="app-layout">
-        <aside class="sidebar">
+        <aside class="sidebar" data-sidebar>
             <a class="brand" href="/Feed">
                 <span class="brand-mark">SH</span>
                 <span>
@@ -16,29 +38,99 @@
                     <small>осознанная лента</small>
                 </span>
             </a>
+
             <nav class="nav" aria-label="Основная навигация">
-                <a href="/Feed">Лента</a>
-                <a href="/Communities">Сообщества</a>
-                <a href="/Posts">Посты</a>
-                <a href="/Messages">Сообщения</a>
-                <a href="/Notifications">Уведомления</a>
-                <a href="/Moderation" data-role-link="PlatformModerator">Модерация</a>
-                <a href="/Profile">Профиль</a>
+                <span class="nav-section">Лента</span>
+
+                <a href="/Feed">
+                    <svg @Html.Raw(iconAttrs)>
+                        <path d="M3 12l9-9 9 9" />
+                        <path d="M5 10v10h14V10" />
+                    </svg>
+                    Главная
+                </a>
+
+                <a href="/Communities">
+                    <svg @Html.Raw(iconAttrs)>
+                        <circle cx="9"  cy="8" r="3.2" />
+                        <circle cx="17" cy="9" r="2.6" />
+                        <path d="M3 19c.8-3 3.3-5 6-5s5.2 2 6 5" />
+                        <path d="M15 19c.6-2 2-3.4 4-3.4 1 0 1.8.3 2.5.8" />
+                    </svg>
+                    Сообщества
+                </a>
+
+                <a href="/Posts">
+                    <svg @Html.Raw(iconAttrs)>
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <line x1="7" y1="9"  x2="17" y2="9" />
+                        <line x1="7" y1="13" x2="17" y2="13" />
+                        <line x1="7" y1="17" x2="12" y2="17" />
+                    </svg>
+                    Посты
+                </a>
+
+                <span class="nav-section">Связь</span>
+
+                <a href="/Messages">
+                    <svg @Html.Raw(iconAttrs)>
+                        <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l.9-5.4A8 8 0 1 1 21 12z" />
+                    </svg>
+                    Сообщения
+                </a>
+
+                <a href="/Notifications">
+                    <svg @Html.Raw(iconAttrs)>
+                        <path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7z" />
+                        <path d="M10 20a2 2 0 0 0 4 0" />
+                    </svg>
+                    Уведомления
+                </a>
+
+                <span class="nav-section" data-role-link="PlatformModerator">Платформа</span>
+                <a href="/Moderation" data-role-link="PlatformModerator">
+                    <svg @Html.Raw(iconAttrs)>
+                        <path d="M12 3l8 3v6c0 4.5-3.4 8.4-8 9-4.6-.6-8-4.5-8-9V6l8-3z" />
+                        <path d="M9 12l2 2 4-4" />
+                    </svg>
+                    Модерация
+                </a>
+
+                <span class="nav-section">Аккаунт</span>
+                <a href="/Profile">
+                    <svg @Html.Raw(iconAttrs)>
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M4 21c1-4.4 4.4-7 8-7s7 2.6 8 7" />
+                    </svg>
+                    Профиль
+                </a>
             </nav>
+
             <section class="session-card" data-session-card>
                 <span class="avatar" data-user-avatar>U</span>
                 <div>
                     <strong data-user-name>Гость</strong>
                     <small data-user-role>Войдите в систему</small>
                 </div>
-                <button class="button secondary" type="button" data-logout>Выйти</button>
+                <button class="button secondary" type="button" data-logout>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <path d="M16 17l5-5-5-5" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    Выйти из аккаунта
+                </button>
             </section>
         </aside>
+
         <main class="main">
             @RenderBody()
         </main>
     </div>
+
     <div class="toast-root" data-toast-root></div>
+
     <script type="module" src="~/js/layout.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

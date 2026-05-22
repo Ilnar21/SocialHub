@@ -37,6 +37,33 @@ for (const link of document.querySelectorAll(".nav a")) {
   }
 }
 
+/* ---------- Mobile sidebar toggle ---------- */
+const sidebar = document.querySelector("[data-sidebar]");
+const sidebarToggle = document.querySelector("[data-sidebar-toggle]");
+
+sidebarToggle?.addEventListener("click", () => {
+  sidebar?.classList.toggle("is-open");
+});
+
+/* close on nav item click (mobile) */
+for (const link of document.querySelectorAll(".nav a")) {
+  link.addEventListener("click", () => {
+    if (window.matchMedia("(max-width: 820px)").matches) {
+      sidebar?.classList.remove("is-open");
+    }
+  });
+}
+
+/* close on outside click (mobile) */
+document.addEventListener("click", (event) => {
+  if (!sidebar?.classList.contains("is-open")) return;
+  if (!window.matchMedia("(max-width: 820px)").matches) return;
+  const target = event.target;
+  if (target instanceof Node && !sidebar.contains(target) && !sidebarToggle?.contains(target)) {
+    sidebar.classList.remove("is-open");
+  }
+});
+
 function translateRole(role) {
   if (role === "PlatformModerator") return "Модератор платформы";
   if (role === "User") return "Пользователь";

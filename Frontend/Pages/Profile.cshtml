@@ -6,19 +6,43 @@
 <header class="page-header">
     <div>
         <h1>Профиль</h1>
-        <p>Личный кабинет и данные текущей сессии.</p>
+        <p>Личный кабинет и данные текущей сессии. Изменения применяются ко всему аккаунту.</p>
     </div>
-    <button class="button secondary" data-reload-me>Обновить</button>
+    <button class="button secondary" data-reload-me>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.5 9a9 9 0 0 1 15-3.4L23 10" />
+            <path d="M20.5 15a9 9 0 0 1-15 3.4L1 14" />
+        </svg>
+        Обновить
+    </button>
 </header>
 
 <section class="split">
     <form class="panel form-grid" data-form="update-profile">
-        <h2>Данные профиля</h2>
-        <label>Имя<input name="displayName" data-profile-display-name /></label>
-        <label>Описание<textarea name="bio" data-profile-bio></textarea></label>
-        <label>Avatar URL<input name="avatarUrl" data-profile-avatar /></label>
-        <button class="button primary" type="submit">Сохранить</button>
+        <h2>Редактирование</h2>
+        <label>Отображаемое имя
+            <input name="displayName" data-profile-display-name placeholder="Иван Петров" />
+        </label>
+        <label>О себе
+            <textarea name="bio" data-profile-bio placeholder="Короткое описание для других участников"></textarea>
+        </label>
+        <label>Аватар (URL)
+            <input name="avatarUrl" data-profile-avatar placeholder="https://..." />
+        </label>
+        <button class="button primary" type="submit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+            </svg>
+            Сохранить изменения
+        </button>
     </form>
+
     <div class="panel profile-summary" data-profile-summary></div>
 </section>
 

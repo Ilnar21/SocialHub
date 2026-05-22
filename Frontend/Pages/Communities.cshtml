@@ -6,25 +6,48 @@
 <header class="page-header">
     <div>
         <h1>Сообщества</h1>
-        <p>Создавайте сообщества, вступайте в них и сразу переходите к публикациям.</p>
+        <p>Создавайте свои тематические клубы или вступайте в существующие. Лимит&nbsp;— до&nbsp;30 сообществ на пользователя.</p>
     </div>
-    <button class="button secondary subtle-action" data-load-communities>Синхронизировать</button>
+    <button class="button secondary subtle-action" data-load-communities>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.5 9a9 9 0 0 1 15-3.4L23 10" />
+            <path d="M20.5 15a9 9 0 0 1-15 3.4L1 14" />
+        </svg>
+        Обновить
+    </button>
 </header>
 
 <section class="split">
     <form class="panel form-grid" data-form="create-community">
         <h2>Новое сообщество</h2>
-        <label>Название<input name="name" placeholder="backend_daily" required /></label>
-        <label>Описание<textarea name="description" required></textarea></label>
+        <label>Название
+            <input name="name" placeholder="backend_daily" required />
+        </label>
+        <label>Описание
+            <textarea name="description" placeholder="О чём это сообщество и кому оно полезно" required></textarea>
+        </label>
         <label>Тип
             <select name="type">
-                <option value="Open">Открытое</option>
-                <option value="Closed">Закрытое</option>
+                <option value="Open">Открытое · кто угодно может вступить</option>
+                <option value="Closed">Закрытое · по приглашению</option>
             </select>
         </label>
-        <button class="button primary" type="submit">Создать</button>
+        <button class="button primary" type="submit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="12" y1="5"  x2="12" y2="19" />
+                <line x1="5"  y1="12" x2="19" y2="12" />
+            </svg>
+            Создать сообщество
+        </button>
     </form>
-    <div class="content-list" data-communities-list></div>
+
+    <div class="stack">
+        <div class="content-list" data-communities-list></div>
+    </div>
 </section>
 
 @section Scripts {

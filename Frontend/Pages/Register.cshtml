@@ -10,23 +10,61 @@
             <span class="brand-mark">SH</span>
             <span>
                 <strong>SocialHub</strong>
-                <small>новый пользователь</small>
+                <small>создание аккаунта</small>
             </span>
         </a>
-        <h1>Создайте аккаунт и настройте свою социальную среду</h1>
-        <p>После регистрации клиент автоматически выполнит вход и откроет ленту.</p>
+
+        <div>
+            <h1>Соберите свою <em>осознанную</em> социальную среду за&nbsp;минуту.</h1>
+            <p>После регистрации мы автоматически выполним вход и откроем ленту. Никаких подтверждений по SMS, никаких настойчивых подсказок «добавить друзей».</p>
+
+            <ul class="auth-bullets">
+                <li><span><strong>Шаг 1.</strong> Заполните минимальный профиль — логин, email и пароль.</span></li>
+                <li><span><strong>Шаг 2.</strong> Подпишитесь на тематические сообщества, которые вам действительно интересны.</span></li>
+                <li><span><strong>Шаг 3.</strong> Получайте ленту только из них — никаких рекомендованных постов.</span></li>
+            </ul>
+        </div>
+
+        <div class="auth-footnote">SocialHub · v0.1 research preview</div>
     </div>
+
     <form class="auth-form panel" data-form="register">
         <div class="tabs">
             <a href="/">Вход</a>
             <a class="active" href="/Register">Регистрация</a>
         </div>
-        <label>Логин<input name="username" required /></label>
-        <label>Email<input name="email" type="email" required /></label>
-        <label>Отображаемое имя<input name="displayName" required /></label>
-        <label>О себе<textarea name="bio"></textarea></label>
-        <label>Пароль<input name="password" type="password" value="Passw0rd!" required /></label>
-        <button class="button primary" type="submit">Зарегистрироваться</button>
+
+        <h2 style="border:0;padding:0;margin:4px 0 -2px;font-size:20px;">Новый аккаунт</h2>
+        <p style="margin:0 0 6px;color:var(--muted);font-size:13px;">Все поля обязательны, кроме «О себе».</p>
+
+        <label>Логин
+            <input name="username" placeholder="ivan.petrov" autocomplete="username" required />
+        </label>
+        <label>Email
+            <input name="email" type="email" placeholder="ivan@example.com" autocomplete="email" required />
+        </label>
+        <label>Отображаемое имя
+            <input name="displayName" placeholder="Иван Петров" autocomplete="name" required />
+        </label>
+        <label>О себе
+            <textarea name="bio" placeholder="Пара слов о вас — необязательно"></textarea>
+        </label>
+        <label>Пароль
+            <input name="password" type="password" value="Passw0rd!" autocomplete="new-password" required />
+        </label>
+
+        <button class="button primary" type="submit">
+            Создать аккаунт
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+            </svg>
+        </button>
+
+        <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:4px;">
+            Уже есть аккаунт? <a href="/" style="color:var(--brand);font-weight:600;">Войти</a>
+        </p>
     </form>
 </section>
 

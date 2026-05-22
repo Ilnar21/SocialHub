@@ -10,20 +10,52 @@
             <span class="brand-mark">SH</span>
             <span>
                 <strong>SocialHub</strong>
-                <small>управляемая социальная платформа</small>
+                <small>осознанная социальная среда</small>
             </span>
         </a>
-        <h1>Контент, сообщества и прозрачная модерация в одном рабочем интерфейсе</h1>
-        <p>Клиент для ключевых сценариев проекта: лента, сообщества, посты, сообщения, уведомления и модерация.</p>
+
+        <div>
+            <h1>Контент, который вы <em>выбираете</em>, а не алгоритм.</h1>
+            <p>Прозрачное ранжирование, тематические сообщества и понятная модерация. Без бесконечной прокрутки, без скрытой накрутки, без агрессивных push-уведомлений.</p>
+
+            <ul class="auth-bullets">
+                <li><span><strong>Только сообщества.</strong> Никаких личных лент и алгоритмических подсказок — публикации живут там, где их обсуждают.</span></li>
+                <li><span><strong>До&nbsp;30 сообществ.</strong> Жёсткий лимит вместо «бесконечной подписки» — лента остаётся осмысленной.</span></li>
+                <li><span><strong>100 постов в сутки.</strong> Защита от спама и фарма — пишут те, кому действительно есть что сказать.</span></li>
+            </ul>
+        </div>
+
+        <div class="auth-footnote">SocialHub · v0.1 research preview</div>
     </div>
+
     <form class="auth-form panel" data-form="login">
         <div class="tabs">
             <a class="active" href="/">Вход</a>
             <a href="/Register">Регистрация</a>
         </div>
-        <label>Логин или email<input name="usernameOrEmail" value="ivan.petrov" required /></label>
-        <label>Пароль<input name="password" type="password" value="Passw0rd!" required /></label>
-        <button class="button primary" type="submit">Войти</button>
+
+        <h2 style="border:0;padding:0;margin:4px 0 -2px;font-size:20px;">С возвращением</h2>
+        <p style="margin:0 0 6px;color:var(--muted);font-size:13px;">Войдите в аккаунт, чтобы увидеть ленту своих сообществ.</p>
+
+        <label>Логин или email
+            <input name="usernameOrEmail" value="ivan.petrov" autocomplete="username" required />
+        </label>
+        <label>Пароль
+            <input name="password" type="password" value="Passw0rd!" autocomplete="current-password" required />
+        </label>
+
+        <button class="button primary" type="submit">
+            Войти в SocialHub
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+            </svg>
+        </button>
+
+        <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:4px;">
+            Нет аккаунта? <a href="/Register" style="color:var(--brand);font-weight:600;">Создать новый</a>
+        </p>
     </form>
 </section>
 

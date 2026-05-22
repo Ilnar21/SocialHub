@@ -6,36 +6,75 @@
 <header class="page-header">
     <div>
         <h1>Модерация</h1>
-        <p>Жалобы, блокировки и журнал действий. После решения список обновляется автоматически.</p>
+        <p>Жалобы, блокировки и журнал действий. После каждого решения связанные списки обновляются автоматически.</p>
     </div>
-    <button class="button secondary subtle-action" data-load-moderation>Синхронизировать</button>
+    <button class="button secondary subtle-action" data-load-moderation>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.5 9a9 9 0 0 1 15-3.4L23 10" />
+            <path d="M20.5 15a9 9 0 0 1-15 3.4L1 14" />
+        </svg>
+        Обновить
+    </button>
 </header>
 
 <section class="split">
     <div class="stack">
         <form class="panel form-grid" data-form="create-report">
             <h2>Создать жалобу</h2>
-            <label>Тип объекта<input name="targetType" value="POST" required /></label>
-            <label>ID объекта<input name="targetId" required /></label>
-            <label>Причина<input name="reason" value="Спам" required /></label>
-            <label>Комментарий<textarea name="comment"></textarea></label>
-            <button class="button primary" type="submit">Отправить</button>
+            <label>Тип объекта
+                <input name="targetType" value="POST" required />
+            </label>
+            <label>ID объекта
+                <input name="targetId" placeholder="UUID или короткий ID" required />
+            </label>
+            <label>Причина
+                <input name="reason" value="Спам" required />
+            </label>
+            <label>Комментарий
+                <textarea name="comment" placeholder="Контекст для следующего модератора"></textarea>
+            </label>
+            <button class="button primary" type="submit">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 22V4a2 2 0 0 1 2-2h11l5 5v3H8l-2 2v10z" />
+                    <line x1="4" y1="22" x2="4" y2="15" />
+                </svg>
+                Отправить жалобу
+            </button>
         </form>
+
         <form class="panel form-grid" data-form="block-user">
-            <h2>Блокировка</h2>
-            <label>Пользователь<select name="userId" data-user-select></select></label>
-            <label>Дней<input name="durationDays" type="number" value="7" min="1" /></label>
-            <label>Причина<input name="reason" value="Повторный спам" /></label>
-            <button class="button danger" type="submit">Заблокировать</button>
+            <h2>Заблокировать пользователя</h2>
+            <label>Пользователь
+                <select name="userId" data-user-select></select>
+            </label>
+            <label>Длительность (дней)
+                <input name="durationDays" type="number" value="7" min="1" />
+            </label>
+            <label>Причина
+                <input name="reason" value="Повторный спам" />
+            </label>
+            <button class="button danger" type="submit">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                </svg>
+                Заблокировать
+            </button>
         </form>
     </div>
+
     <div class="stack">
         <div class="panel">
-            <h2>Жалобы</h2>
+            <h2>Открытые жалобы</h2>
             <div class="content-list" data-reports-list></div>
         </div>
         <div class="panel">
-            <h2>Аудит</h2>
+            <h2>Журнал аудита</h2>
             <div class="content-list" data-audit-list></div>
         </div>
     </div>
