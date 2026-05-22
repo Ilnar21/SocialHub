@@ -4,14 +4,12 @@ import { toast } from "../core/toast.js";
 
 const list = document.querySelector("[data-feed-list]");
 
-document.querySelector("[data-refresh-feed]")?.addEventListener("click", async () => {
-  try {
+document.querySelector("[data-refresh-feed]")?.addEventListener("click", async (event) => {
+  await runWithButton(event.currentTarget, "Обновляем...", async () => {
     await api("/feed/refresh", toJson("POST", {}));
-    toast("Лента обновлена");
+    toast("Лента синхронизирована");
     await loadFeed();
-  } catch (error) {
-    toast(error.message, "error");
-  }
+  });
 });
 
 loadFeed();
@@ -50,7 +48,7 @@ function renderPost(post) {
 function bindReportButtons() {
   for (const button of document.querySelectorAll("[data-report-post]")) {
     button.addEventListener("click", async () => {
-      try {
+      await runWithButton(button, "Отправляем...", async () => {
         await api("/api/reports", toJson("POST", {
           targetType: "POST",
           targetId: button.dataset.reportPost,
@@ -58,9 +56,21 @@ function bindReportButtons() {
           comment: "Жалоба из ленты"
         }));
         toast("Жалоба отправлена");
-      } catch (error) {
-        toast(error.message, "error");
-      }
+      });
     });
+  }
+}
+
+async function runWithButton(button, pendingText, action) {
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = pendingText;
+  try {
+    await action();
+  } catch (error) {
+    toast(error.message, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
   }
 }

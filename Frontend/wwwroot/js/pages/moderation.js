@@ -16,34 +16,37 @@ if (!isPlatformModerator()) {
       <a class="button secondary" href="/Feed">Вернуться в ленту</a>
     </section>`;
 } else {
-  document.querySelector("[data-load-moderation]")?.addEventListener("click", loadModeration);
+  document.querySelector("[data-load-moderation]")?.addEventListener("click", async (event) => {
+    await runWithButton(event.currentTarget, "Обновляем...", loadModeration);
+  });
+
   document.querySelector('[data-form="create-report"]')?.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
 
-    try {
-      await api("/api/reports", toJson("POST", formData(event.currentTarget)));
-      event.currentTarget.reset();
+    await runWithButton(button, "Отправляем...", async () => {
+      await api("/api/reports", toJson("POST", formData(form)));
+      form.reset();
       toast("Жалоба создана");
       await loadReports();
-    } catch (error) {
-      toast(error.message, "error");
-    }
+    });
   });
 
   document.querySelector('[data-form="block-user"]')?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const data = formData(event.currentTarget);
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    const data = formData(form);
 
-    try {
+    await runWithButton(button, "Блокируем...", async () => {
       await api(`/api/users/${data.userId}/blocks`, toJson("POST", {
         durationDays: Number(data.durationDays),
         reason: data.reason
       }));
       toast("Пользователь заблокирован");
       await loadAudit();
-    } catch (error) {
-      toast(error.message, "error");
-    }
+    });
   });
 
   await loadUsers();
@@ -61,7 +64,7 @@ async function loadUsers() {
       .map((user) => `<option value="${user.id}">${escapeHtml(user.profile?.displayName || user.username)}</option>`)
       .join("");
   } catch (error) {
-    userSelect.innerHTML = `<option>${escapeHtml(error.message)}</option>`;
+    userSelect.innerHTML = `<option value="">${escapeHtml(error.message)}</option>`;
   }
 }
 
@@ -71,7 +74,7 @@ async function loadReports() {
     const reports = await api("/api/reports?status=NEW");
     reportsList.innerHTML = reports.length ? reports.map(renderReport).join("") : empty("Новых жалоб нет.");
     for (const button of document.querySelectorAll("[data-delete-reported-post]")) {
-      button.addEventListener("click", () => resolveReport(button.dataset.deleteReportedPost));
+      button.addEventListener("click", () => resolveReport(button));
     }
   } catch (error) {
     reportsList.innerHTML = empty(error.message);
@@ -88,14 +91,14 @@ async function loadAudit() {
   }
 }
 
-async function resolveReport(reportId) {
-  try {
-    await api(`/api/reports/${reportId}/resolve/delete-post`, toJson("POST", { comment: "Удалено через панель модерации" }));
+async function resolveReport(button) {
+  await runWithButton(button, "Решаем...", async () => {
+    await api(`/api/reports/${button.dataset.deleteReportedPost}/resolve/delete-post`, toJson("POST", {
+      comment: "Удалено через панель модерации"
+    }));
     toast("Жалоба обработана");
     await loadModeration();
-  } catch (error) {
-    toast(error.message, "error");
-  }
+  });
 }
 
 function renderReport(report) {
@@ -129,4 +132,18 @@ function renderAudit(entry) {
         <span>${formatDate(entry.createdAtUtc)}</span>
       </div>
     </article>`;
+}
+
+async function runWithButton(button, pendingText, action) {
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = pendingText;
+  try {
+    await action();
+  } catch (error) {
+    toast(error.message, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
 }
