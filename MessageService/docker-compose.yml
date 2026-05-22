@@ -26,7 +26,7 @@ services:
       Mongo__DatabaseName: ${MESSAGE_MONGO_DATABASE:-socialhub_messages}
       Mongo__DialogsCollection: ${MESSAGE_MONGO_DIALOGS_COLLECTION:-dialogs}
       NotificationService__BaseUrl: ${NOTIFICATION_SERVICE_BASE_URL:-}
-      NotificationService__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
+      NotificationService__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
     ports:
       - "5002:8080"
 

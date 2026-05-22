@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     container_name: socialhub-moderation-db
     environment:
-      POSTGRES_DB: socialhub_moderation
-      POSTGRES_USER: socialhub
-      POSTGRES_PASSWORD: socialhub_password
+      POSTGRES_DB: ${MODERATION_POSTGRES_DB:-socialhub_moderation}
+      POSTGRES_USER: ${MODERATION_POSTGRES_USER:-socialhub}
+      POSTGRES_PASSWORD: ${MODERATION_POSTGRES_PASSWORD:-local_moderation_password}
     ports:
       - "5434:5432"
     volumes:
       - moderation_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U socialhub -d socialhub_moderation"]
+      test: ["CMD-SHELL", "pg_isready -U ${MODERATION_POSTGRES_USER:-socialhub} -d ${MODERATION_POSTGRES_DB:-socialhub_moderation}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,11 +26,11 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__ModerationDatabase: ${MODERATION_POSTGRES_CONNECTION_STRING:-Host=moderation-db;Port=5432;Database=socialhub_moderation;Username=socialhub;Password=socialhub_password}
+      ConnectionStrings__ModerationDatabase: ${MODERATION_POSTGRES_CONNECTION_STRING:-Host=moderation-db;Port=5432;Database=socialhub_moderation;Username=socialhub;Password=local_moderation_password}
       ExternalServices__PostBaseUrl: ${POST_SERVICE_BASE_URL:-}
       ExternalServices__AuthBaseUrl: ${AUTH_SERVICE_BASE_URL:-}
       ExternalServices__NotificationBaseUrl: ${NOTIFICATION_SERVICE_BASE_URL:-}
-      ExternalServices__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
+      ExternalServices__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
     ports:
       - "5003:8080"
 
