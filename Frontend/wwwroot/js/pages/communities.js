@@ -7,16 +7,16 @@ const list = document.querySelector("[data-communities-list]");
 document.querySelector("[data-load-communities]")?.addEventListener("click", loadCommunities);
 document.querySelector('[data-form="create-community"]')?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const data = formData(event.currentTarget);
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const data = formData(form);
 
-  try {
+  await runWithButton(button, "Создаем...", async () => {
     await api("/api/communities", toJson("POST", data));
-    event.currentTarget.reset();
+    form.reset();
     toast("Сообщество создано");
     await loadCommunities();
-  } catch (error) {
-    toast(error.message, "error");
-  }
+  });
 });
 
 loadCommunities();
@@ -54,21 +54,33 @@ function renderCommunity(community) {
 
 function bindActions() {
   for (const button of document.querySelectorAll("[data-join]")) {
-    button.addEventListener("click", () => runCommunityAction(button.dataset.join, "POST"));
+    button.addEventListener("click", () => runCommunityAction(button, button.dataset.join, "POST"));
   }
 
   for (const button of document.querySelectorAll("[data-leave]")) {
-    button.addEventListener("click", () => runCommunityAction(button.dataset.leave, "DELETE"));
+    button.addEventListener("click", () => runCommunityAction(button, button.dataset.leave, "DELETE"));
   }
 }
 
-async function runCommunityAction(id, method) {
-  try {
+async function runCommunityAction(button, id, method) {
+  await runWithButton(button, method === "POST" ? "Вступаем..." : "Выходим...", async () => {
     const path = method === "POST" ? `/api/communities/${id}/join` : `/api/communities/${id}/membership`;
     await api(path, { method });
     toast(method === "POST" ? "Вы вступили в сообщество" : "Вы покинули сообщество");
     await loadCommunities();
+  });
+}
+
+async function runWithButton(button, pendingText, action) {
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = pendingText;
+  try {
+    await action();
   } catch (error) {
     toast(error.message, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
   }
 }

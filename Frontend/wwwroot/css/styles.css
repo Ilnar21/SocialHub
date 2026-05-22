@@ -205,6 +205,11 @@ p {
   transform: translateY(-1px);
 }
 
+.active-card {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(23, 116, 92, .12);
+}
+
 .card p {
   margin: 10px 0;
   color: #2d3834;
@@ -256,6 +261,12 @@ p {
   transform: translateY(-1px);
 }
 
+.button:disabled {
+  cursor: wait;
+  opacity: .68;
+  transform: none;
+}
+
 .button.primary {
   border-color: var(--brand);
   color: white;
@@ -274,6 +285,10 @@ p {
   border-color: rgba(180, 35, 24, .28);
   color: var(--danger);
   background: #fff7f6;
+}
+
+.subtle-action {
+  opacity: .78;
 }
 
 label {
@@ -456,6 +471,48 @@ textarea {
 
 .profile-summary {
   min-height: 180px;
+}
+
+.post-card {
+  display: grid;
+  gap: 8px;
+}
+
+.comments {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.comments-title {
+  align-items: center;
+}
+
+.comment-list {
+  display: grid;
+  gap: 8px;
+}
+
+.comment {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.comment p {
+  margin: 5px 0;
+}
+
+.comment small {
+  color: var(--muted);
+}
+
+.comment-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
 }
 
 .toast-root {
