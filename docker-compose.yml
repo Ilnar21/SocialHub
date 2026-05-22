@@ -4,6 +4,7 @@ services:
   gateway:
     image: nginx:1.27-alpine
     depends_on:
+      - frontend
       - auth-service
       - community-service
       - feed-service
@@ -15,6 +16,15 @@ services:
       - "8080:80"
     volumes:
       - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - socialhub-network
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:8080"
     networks:
       - socialhub-network
 
