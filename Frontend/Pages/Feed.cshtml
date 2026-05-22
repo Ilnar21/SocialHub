@@ -6,12 +6,20 @@
 <header class="page-header">
     <div>
         <h1>Лента</h1>
-        <p>Посты из подписанных сообществ, отсортированные по популярности.</p>
+        <p>Посты из подписанных сообществ. Откройте карточку, чтобы посмотреть публикацию подробнее.</p>
     </div>
     <button class="button secondary subtle-action" data-refresh-feed>Синхронизировать</button>
 </header>
 
-<section class="content-list" data-feed-list></section>
+<section class="feed-layout">
+    <div class="content-list" data-feed-list></div>
+    <aside class="panel post-detail-panel" data-post-detail>
+        <div class="empty">
+            <h2>Выберите пост</h2>
+            <p>Подробности, жалоба и комментарии появятся здесь.</p>
+        </div>
+    </aside>
+</section>
 
 @section Scripts {
     <script type="module" src="~/js/pages/feed.js" asp-append-version="true"></script>
