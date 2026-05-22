@@ -1,43 +1,54 @@
 import { api, toJson } from "../core/api.js";
 import { empty, escapeHtml, formData, formatDate, shortId } from "../core/dom.js";
+import { isPlatformModerator } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
 const userSelect = document.querySelector("[data-user-select]");
 const reportsList = document.querySelector("[data-reports-list]");
 const auditList = document.querySelector("[data-audit-list]");
 
-document.querySelector("[data-load-moderation]")?.addEventListener("click", loadModeration);
-document.querySelector('[data-form="create-report"]')?.addEventListener("submit", async (event) => {
-  event.preventDefault();
+if (!isPlatformModerator()) {
+  document.querySelector(".page-header p").textContent = "Этот раздел доступен только модераторам платформы.";
+  document.querySelector(".split").innerHTML = `
+    <section class="panel empty">
+      <h2>Доступ запрещен</h2>
+      <p>Для просмотра жалоб, блокировок и аудита нужна роль модератора платформы.</p>
+      <a class="button secondary" href="/Feed">Вернуться в ленту</a>
+    </section>`;
+} else {
+  document.querySelector("[data-load-moderation]")?.addEventListener("click", loadModeration);
+  document.querySelector('[data-form="create-report"]')?.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-  try {
-    await api("/api/reports", toJson("POST", formData(event.currentTarget)));
-    event.currentTarget.reset();
-    toast("Жалоба создана");
-    await loadReports();
-  } catch (error) {
-    toast(error.message, "error");
-  }
-});
+    try {
+      await api("/api/reports", toJson("POST", formData(event.currentTarget)));
+      event.currentTarget.reset();
+      toast("Жалоба создана");
+      await loadReports();
+    } catch (error) {
+      toast(error.message, "error");
+    }
+  });
 
-document.querySelector('[data-form="block-user"]')?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const data = formData(event.currentTarget);
+  document.querySelector('[data-form="block-user"]')?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = formData(event.currentTarget);
 
-  try {
-    await api(`/api/users/${data.userId}/blocks`, toJson("POST", {
-      durationDays: Number(data.durationDays),
-      reason: data.reason
-    }));
-    toast("Пользователь заблокирован");
-    await loadAudit();
-  } catch (error) {
-    toast(error.message, "error");
-  }
-});
+    try {
+      await api(`/api/users/${data.userId}/blocks`, toJson("POST", {
+        durationDays: Number(data.durationDays),
+        reason: data.reason
+      }));
+      toast("Пользователь заблокирован");
+      await loadAudit();
+    } catch (error) {
+      toast(error.message, "error");
+    }
+  });
 
-await loadUsers();
-await loadModeration();
+  await loadUsers();
+  await loadModeration();
+}
 
 async function loadModeration() {
   await Promise.all([loadReports(), loadAudit()]);

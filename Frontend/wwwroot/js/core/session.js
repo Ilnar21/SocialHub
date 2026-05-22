@@ -15,6 +15,14 @@ export function clearSession() {
   localStorage.removeItem("socialhub.user");
 }
 
+export function hasRole(role) {
+  return getSession().user?.role === role;
+}
+
+export function isPlatformModerator() {
+  return hasRole("PlatformModerator");
+}
+
 function readJson(key) {
   try {
     return JSON.parse(localStorage.getItem(key) || "null");
