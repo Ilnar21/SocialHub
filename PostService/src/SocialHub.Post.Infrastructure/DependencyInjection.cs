@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using MongoDB.Driver;
+using Amazon.Runtime;
+using Amazon.S3;
 using Npgsql;
 using SocialHub.Post.Application.Abstractions;
 using SocialHub.Post.Infrastructure.Community;
@@ -27,19 +28,14 @@ public static class DependencyInjection
                 ?? configuration.GetConnectionString("Postgres")
                 ?? throw new InvalidOperationException("ConnectionStrings__Postgres is required.");
         });
-        services.Configure<MongoOptions>(options =>
+        services.Configure<MinioOptions>(options =>
         {
-            configuration.GetSection(MongoOptions.SectionName).Bind(options);
+            configuration.GetSection(MinioOptions.SectionName).Bind(options);
 
-            options.ConnectionString = FirstConfigured(
-                configuration["MONGO_CONNECTION_STRING"],
-                options.ConnectionString);
-            options.DatabaseName = FirstConfigured(
-                configuration["MONGO_DATABASE"],
-                options.DatabaseName);
-            options.PostContentsCollectionName = FirstConfigured(
-                configuration["MONGO_POST_CONTENTS_COLLECTION"],
-                options.PostContentsCollectionName);
+            options.Endpoint = FirstConfigured(configuration["MINIO_ENDPOINT"], options.Endpoint);
+            options.AccessKey = FirstConfigured(configuration["MINIO_ACCESS_KEY"], options.AccessKey);
+            options.SecretKey = FirstConfigured(configuration["MINIO_SECRET_KEY"], options.SecretKey);
+            options.BucketName = FirstConfigured(configuration["MINIO_BUCKET"], options.BucketName);
         });
 
         services.AddSingleton(sp =>
@@ -47,15 +43,24 @@ public static class DependencyInjection
             var options = sp.GetRequiredService<IOptions<PostgresOptions>>().Value;
             return NpgsqlDataSource.Create(options.ConnectionString);
         });
-        services.AddSingleton<IMongoClient>(sp =>
+        services.AddSingleton<IAmazonS3>(sp =>
         {
-            var options = sp.GetRequiredService<IOptions<MongoOptions>>().Value;
-            return new MongoClient(options.ConnectionString);
+            var options = sp.GetRequiredService<IOptions<MinioOptions>>().Value;
+            var credentials = new BasicAWSCredentials(options.AccessKey, options.SecretKey);
+            var config = new AmazonS3Config
+            {
+                ServiceURL = options.Endpoint,
+                ForcePathStyle = true,
+                UseHttp = options.Endpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            };
+
+            return new AmazonS3Client(credentials, config);
         });
 
         services.AddHostedService<PostgresDatabaseInitializer>();
+        services.AddHostedService<MinioBucketInitializer>();
         services.AddSingleton<IPostMetadataRepository, PostgresPostMetadataRepository>();
-        services.AddSingleton<IPostContentRepository, MongoPostContentRepository>();
+        services.AddSingleton<IPostContentRepository, MinioPostContentRepository>();
         services.AddHttpClient<ICommunityAccessClient, CommunityAccessClient>(client =>
         {
             client.BaseAddress = new Uri(communityOptions.BaseUrl);
