@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - SocialHub</title>
+    <link rel="stylesheet" href="~/css/styles.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <a class="brand" href="/Feed">
+                <span class="brand-mark">SH</span>
+                <span>
+                    <strong>SocialHub</strong>
+                    <small>осознанная лента</small>
+                </span>
+            </a>
+            <nav class="nav">
+                <a href="/Feed">Лента</a>
+                <a href="/Communities">Сообщества</a>
+                <a href="/Posts">Посты</a>
+                <a href="/Messages">Сообщения</a>
+                <a href="/Notifications">Уведомления</a>
+                <a href="/Moderation">Модерация</a>
+                <a href="/Profile">Профиль</a>
+            </nav>
+            <section class="session-card" data-session-card>
+                <strong data-user-name>Гость</strong>
+                <small data-user-role>Войдите в систему</small>
+                <button class="button secondary" type="button" data-logout>Выйти</button>
+            </section>
+        </aside>
+        <main class="main">
+            @RenderBody()
+        </main>
+    </div>
+    <div class="toast-root" data-toast-root></div>
+    <script type="module" src="~/js/layout.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
