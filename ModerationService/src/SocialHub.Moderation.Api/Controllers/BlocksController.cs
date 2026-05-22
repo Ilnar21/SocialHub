@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialHub.Moderation.Application.Abstractions;
 using SocialHub.Moderation.Application.Models.Blocks;
@@ -5,6 +6,7 @@ using SocialHub.Moderation.Application.Models.Blocks;
 namespace SocialHub.Moderation.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/users")]
 public sealed class BlocksController : ControllerBase
 {

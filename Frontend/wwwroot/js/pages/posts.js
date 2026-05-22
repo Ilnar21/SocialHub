@@ -130,7 +130,17 @@ function bindPostActions() {
     button.addEventListener("click", async () => {
       await runWithButton(button, "Удаляем...", async () => {
         const postId = button.dataset.deletePost;
-        await api(`/api/posts/${postId}/moderation-delete`, toJson("POST", { reason: "Удалено модератором через frontend" }));
+        const report = await api("/api/reports", toJson("POST", {
+          targetType: "POST",
+          targetId: postId,
+          reason: "Post deletion",
+          comment: "Created by frontend moderator action"
+        }));
+
+        await api(`/api/reports/${report.id}/resolve/delete-post`, toJson("POST", {
+          comment: "Deleted by frontend moderator action"
+        }));
+
         hidePost(postId);
         toast("Пост скрыт из списка");
         await loadPosts();

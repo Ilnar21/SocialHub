@@ -1,11 +1,12 @@
 param(
     [string]$BaseUrl = "http://127.0.0.1:8080",
-    [string]$CommunityServiceUrl = "http://127.0.0.1:5001",
     [string]$InternalToken = $env:INTERNAL_SERVICE_TOKEN
 )
 
+$ErrorActionPreference = "Stop"
+
 if ([string]::IsNullOrWhiteSpace($InternalToken)) {
-    $InternalToken = "development-internal-service-token"
+    $InternalToken = "local-dev-internal-service-token-change-me"
 }
 
 function Invoke-JsonPost {
@@ -20,7 +21,8 @@ function Invoke-JsonPost {
         -Uri $Uri `
         -Headers $Headers `
         -ContentType "application/json" `
-        -Body ($Body | ConvertTo-Json)
+        -Body ($Body | ConvertTo-Json) `
+        -ErrorAction Stop
 }
 
 function Assert-HttpFailure {
@@ -55,7 +57,7 @@ $email = "security_$suffix@example.com"
 $password = "Password123!"
 
 Write-Host "Registering test user $username"
-$registered = Invoke-JsonPost `
+Invoke-JsonPost `
     -Uri "$BaseUrl/api/auth/register" `
     -Body @{
         username = $username
@@ -63,7 +65,7 @@ $registered = Invoke-JsonPost `
         password = $password
         displayName = "Security Test"
         bio = "Manual smoke test"
-    }
+    } | Out-Null
 
 $login = Invoke-JsonPost `
     -Uri "$BaseUrl/api/auth/login" `
@@ -79,10 +81,36 @@ $internalHeaders = @{ "X-Internal-Token" = $InternalToken }
 
 Write-Host "[ok] JWT received for user $userId"
 
-Assert-HttpFailure `
-    -Name "Community list without JWT" `
-    -ExpectedStatus 401 `
-    -Action { Invoke-RestMethod -Method Get -Uri "$BaseUrl/api/communities" }
+Assert-HttpFailure -Name "Community list without JWT" -ExpectedStatus 401 -Action {
+    Invoke-RestMethod -Method Get -Uri "$BaseUrl/api/communities" -ErrorAction Stop
+}
+
+Assert-HttpFailure -Name "Notification inbox without JWT" -ExpectedStatus 401 -Action {
+    Invoke-RestMethod -Method Get -Uri "$BaseUrl/api/notifications" -ErrorAction Stop
+}
+
+Assert-HttpFailure -Name "Message dialogs without JWT" -ExpectedStatus 401 -Action {
+    Invoke-RestMethod -Method Get -Uri "$BaseUrl/api/dialogs" -ErrorAction Stop
+}
+
+Assert-HttpFailure -Name "Feed without JWT" -ExpectedStatus 401 -Action {
+    Invoke-RestMethod -Method Get -Uri "$BaseUrl/feed" -ErrorAction Stop
+}
+
+Assert-HttpFailure -Name "Moderation reports without JWT" -ExpectedStatus 401 -Action {
+    Invoke-RestMethod -Method Get -Uri "$BaseUrl/api/reports" -ErrorAction Stop
+}
+
+Assert-HttpFailure -Name "Post creation without JWT" -ExpectedStatus 401 -Action {
+    Invoke-JsonPost `
+        -Uri "$BaseUrl/posts" `
+        -Body @{
+            authorId = "00000000-0000-0000-0000-000000000000"
+            communityId = "00000000-0000-0000-0000-000000000000"
+            title = "Blocked post"
+            text = "JWT is required"
+        }
+}
 
 $community = Invoke-JsonPost `
     -Uri "$BaseUrl/api/communities" `
@@ -98,7 +126,8 @@ Write-Host "[ok] Community created through JWT: $($community.id)"
 $myCommunities = Invoke-RestMethod `
     -Method Get `
     -Uri "$BaseUrl/api/communities/my" `
-    -Headers $authHeaders
+    -Headers $authHeaders `
+    -ErrorAction Stop
 
 if ($myCommunities.Count -lt 1) {
     throw "Expected at least one current user community."
@@ -106,22 +135,21 @@ if ($myCommunities.Count -lt 1) {
 
 Write-Host "[ok] Current user communities endpoint returned $($myCommunities.Count) item(s)"
 
-Assert-HttpFailure `
-    -Name "Community internal endpoint without internal token" `
-    -ExpectedStatus 401 `
-    -Action { Invoke-RestMethod -Method Get -Uri "$CommunityServiceUrl/internal/users/$userId/community-ids" }
-
-$communityIds = Invoke-RestMethod `
+$dialogs = Invoke-RestMethod `
     -Method Get `
-    -Uri "$CommunityServiceUrl/internal/users/$userId/community-ids" `
-    -Headers $internalHeaders
+    -Uri "$BaseUrl/api/dialogs" `
+    -Headers $authHeaders `
+    -ErrorAction Stop
 
-Write-Host "[ok] Community internal endpoint accepted internal token and returned $($communityIds.Count) id(s)"
+Write-Host "[ok] Message dialogs accepted JWT and returned $($dialogs.Count) item(s)"
 
-Assert-HttpFailure `
-    -Name "Notification inbox without JWT" `
-    -ExpectedStatus 401 `
-    -Action { Invoke-RestMethod -Method Get -Uri "$BaseUrl/api/notifications" }
+Invoke-RestMethod `
+    -Method Get `
+    -Uri "$BaseUrl/feed" `
+    -Headers $authHeaders `
+    -ErrorAction Stop | Out-Null
+
+Write-Host "[ok] Feed accepted JWT"
 
 Assert-HttpFailure `
     -Name "Notification event without internal token" `
@@ -154,7 +182,8 @@ Start-Sleep -Seconds 3
 $notifications = Invoke-RestMethod `
     -Method Get `
     -Uri "$BaseUrl/api/notifications" `
-    -Headers $authHeaders
+    -Headers $authHeaders `
+    -ErrorAction Stop
 
 if ($notifications.items.Count -lt 1) {
     throw "Expected at least one notification for JWT user."

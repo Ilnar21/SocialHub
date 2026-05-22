@@ -11,8 +11,6 @@ export async function api(path, options = {}) {
   };
 
   if (session.token) headers.Authorization = `Bearer ${session.token}`;
-  if (session.user?.id) headers["X-User-Id"] = session.user.id;
-  if (session.user?.role) headers["X-User-Role"] = session.user.role;
 
   const response = await fetch(`${apiBase}${path}`, { ...options, headers });
   if (response.status === 204) return null;

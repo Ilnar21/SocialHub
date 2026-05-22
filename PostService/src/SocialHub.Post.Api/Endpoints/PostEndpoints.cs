@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SocialHub.Post.Api.Security;
 using SocialHub.Post.Application.Posts;
 
 namespace SocialHub.Post.Api.Endpoints;
@@ -16,12 +17,14 @@ public static class PostEndpoints
 
         app.MapPost("/posts", async (
             CreatePostRequest request,
+            HttpContext httpContext,
             PostService postService,
             CancellationToken cancellationToken) =>
         {
-            var result = await postService.CreateAsync(request, cancellationToken);
+            var authorId = CurrentUser.GetRequiredUserId(httpContext.User);
+            var result = await postService.CreateAsync(request with { AuthorId = authorId }, cancellationToken);
             return ToHttpResult(result, result.Value?.Id);
-        });
+        }).RequireAuthorization();
 
         app.MapPost("/api/posts/from-suggested", async (
             PublishSuggestedPostRequest request,
@@ -35,7 +38,7 @@ public static class PostEndpoints
             return !result.Succeeded || result.Value is null
                 ? Results.Ok(new PostPublicationResult(false, null, result.Error))
                 : Results.Ok(new PostPublicationResult(true, result.Value.Id, null));
-        });
+        }).AddEndpointFilter<InternalTokenFilter>();
 
         app.MapPost("/internal/posts/by-communities", async (
             PostsByCommunitiesRequest request,
@@ -55,7 +58,7 @@ public static class PostEndpoints
                     .OrderByDescending(post => post.CreatedAt)
                     .Take(Math.Clamp(request.Limit, 1, 100))
                     .ToArray());
-        });
+        }).AddEndpointFilter<InternalTokenFilter>();
 
         app.MapGet("/posts/{postId:guid}", async (
             Guid postId,
@@ -78,22 +81,26 @@ public static class PostEndpoints
         app.MapPut("/posts/{postId:guid}", async (
             Guid postId,
             UpdatePostRequest request,
+            HttpContext httpContext,
             PostService postService,
             CancellationToken cancellationToken) =>
         {
-            var result = await postService.UpdateAsync(postId, request, cancellationToken);
+            var actorId = CurrentUser.GetRequiredUserId(httpContext.User);
+            var result = await postService.UpdateAsync(postId, request with { ActorId = actorId }, cancellationToken);
             return ToHttpResult(result);
-        });
+        }).RequireAuthorization();
 
         app.MapDelete("/posts/{postId:guid}", async (
             Guid postId,
             [FromBody] DeletePostRequest request,
+            HttpContext httpContext,
             PostService postService,
             CancellationToken cancellationToken) =>
         {
-            var result = await postService.DeleteAsync(postId, request, cancellationToken);
+            var actorId = CurrentUser.GetRequiredUserId(httpContext.User);
+            var result = await postService.DeleteAsync(postId, request with { ActorId = actorId }, cancellationToken);
             return ToHttpResult(result);
-        });
+        }).RequireAuthorization();
 
         app.MapPost("/api/posts/{postId:guid}/moderation-delete", (
             Guid postId,
@@ -105,7 +112,7 @@ public static class PostEndpoints
                 request.Reason,
                 moderationAccepted = true
             });
-        });
+        }).AddEndpointFilter<InternalTokenFilter>();
 
         return app;
     }

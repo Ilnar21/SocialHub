@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace SocialHub.Feed.Api.Middleware;
 
@@ -11,8 +13,6 @@ namespace SocialHub.Feed.Api.Middleware;
 public sealed class RequestLoggingMiddleware
 {
     private const string CorrelationHeader = "X-Correlation-Id";
-    private const string UserHeader = "X-User-Id";
-
     private readonly RequestDelegate _next;
     private readonly ILogger<RequestLoggingMiddleware> _logger;
 
@@ -27,9 +27,9 @@ public sealed class RequestLoggingMiddleware
         var correlationId = ResolveCorrelationId(context);
         context.Response.Headers[CorrelationHeader] = correlationId;
 
-        var userId = context.Request.Headers.TryGetValue(UserHeader, out var raw) && !string.IsNullOrWhiteSpace(raw)
-            ? raw.ToString()
-            : "anonymous";
+        var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? context.User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            ?? "anonymous";
 
         using var scope = _logger.BeginScope(new Dictionary<string, object>
         {

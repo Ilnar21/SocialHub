@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.17" />
     <ProjectReference Include="..\SocialHub.Post.Application\SocialHub.Post.Application.csproj" />
     <ProjectReference Include="..\SocialHub.Post.Infrastructure\SocialHub.Post.Infrastructure.csproj" />
     <ProjectReference Include="..\SocialHub.Post.Domain\SocialHub.Post.Domain.csproj" />

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialHub.Moderation.Application.Abstractions;
 using SocialHub.Moderation.Application.Models.Reports;
@@ -5,6 +6,7 @@ using SocialHub.Moderation.Application.Models.Reports;
 namespace SocialHub.Moderation.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/reports")]
 public sealed class ReportsController : ControllerBase
 {

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialHub.Feed.Application.Abstractions;
 using SocialHub.Feed.Application.Models.Feed;
@@ -10,6 +11,7 @@ namespace SocialHub.Feed.Api.Controllers;
 /// Health-check вынесен в отдельный HealthController.
 /// </summary>
 [ApiController]
+[Authorize]
 [Route("feed")]
 public sealed class FeedController : ControllerBase
 {
@@ -36,7 +38,7 @@ public sealed class FeedController : ControllerBase
     {
         if (!_userContext.IsAuthenticated || _userContext.UserId is not { } userId)
         {
-            return Unauthorized(new { error = "X-User-Id header is required" });
+            return Unauthorized(new { error = "A valid JWT bearer token is required" });
         }
 
         var feed = await _feedService.GetFeedAsync(userId, page, limit, ct);
@@ -55,7 +57,7 @@ public sealed class FeedController : ControllerBase
     {
         if (!_userContext.IsAuthenticated || _userContext.UserId is not { } userId)
         {
-            return Unauthorized(new { error = "X-User-Id header is required" });
+            return Unauthorized(new { error = "A valid JWT bearer token is required" });
         }
 
         await _feedService.RefreshAsync(userId, ct);
@@ -69,6 +71,7 @@ public sealed class FeedController : ControllerBase
     /// Позже сюда же можно подписать Kafka-consumer на топик feed.cache.invalidate.
     /// </summary>
     [HttpPost("invalidate")]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     public async Task<IActionResult> Invalidate(
         [FromBody] InvalidateFeedRequest request,
