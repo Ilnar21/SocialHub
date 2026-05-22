@@ -1,0 +1,32 @@
+@page "/Messages"
+@{
+    ViewData["Title"] = "Сообщения";
+}
+
+<header class="page-header">
+    <div>
+        <h1>Сообщения</h1>
+        <p>Диалоги доступны только участникам переписки.</p>
+    </div>
+    <button class="button secondary" data-load-dialogs>Обновить</button>
+</header>
+
+<section class="split">
+    <div class="stack">
+        <form class="panel form-grid" data-form="send-message">
+            <h2>Новое сообщение</h2>
+            <label>Получатель<select name="recipientUserId" data-user-select></select></label>
+            <label>Текст<textarea name="text" maxlength="4000" required></textarea></label>
+            <button class="button primary" type="submit">Отправить</button>
+        </form>
+        <div class="content-list" data-dialogs-list></div>
+    </div>
+    <div class="panel">
+        <h2>История</h2>
+        <div class="messages" data-messages-list></div>
+    </div>
+</section>
+
+@section Scripts {
+    <script type="module" src="~/js/pages/messages.js" asp-append-version="true"></script>
+}

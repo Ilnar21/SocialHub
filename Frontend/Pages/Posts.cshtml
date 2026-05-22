@@ -1,0 +1,27 @@
+@page "/Posts"
+@{
+    ViewData["Title"] = "Посты";
+}
+
+<header class="page-header">
+    <div>
+        <h1>Посты</h1>
+        <p>Публикации доступны только внутри сообществ.</p>
+    </div>
+    <button class="button secondary" data-load-posts>Загрузить</button>
+</header>
+
+<section class="split">
+    <form class="panel form-grid" data-form="create-post">
+        <h2>Создать пост</h2>
+        <label>Сообщество<select name="communityId" data-community-select></select></label>
+        <label>Заголовок<input name="title" required /></label>
+        <label>Текст<textarea name="text" required></textarea></label>
+        <button class="button primary" type="submit">Опубликовать</button>
+    </form>
+    <div class="content-list" data-posts-list></div>
+</section>
+
+@section Scripts {
+    <script type="module" src="~/js/pages/posts.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,46 @@
+@page "/Moderation"
+@{
+    ViewData["Title"] = "Модерация";
+}
+
+<header class="page-header">
+    <div>
+        <h1>Модерация</h1>
+        <p>Жалобы, блокировки и журнал действий.</p>
+    </div>
+    <button class="button secondary" data-load-moderation>Обновить</button>
+</header>
+
+<section class="split">
+    <div class="stack">
+        <form class="panel form-grid" data-form="create-report">
+            <h2>Создать жалобу</h2>
+            <label>Тип объекта<input name="targetType" value="POST" required /></label>
+            <label>ID объекта<input name="targetId" required /></label>
+            <label>Причина<input name="reason" value="Спам" required /></label>
+            <label>Комментарий<textarea name="comment"></textarea></label>
+            <button class="button primary" type="submit">Отправить</button>
+        </form>
+        <form class="panel form-grid" data-form="block-user">
+            <h2>Блокировка</h2>
+            <label>Пользователь<select name="userId" data-user-select></select></label>
+            <label>Дней<input name="durationDays" type="number" value="7" min="1" /></label>
+            <label>Причина<input name="reason" value="Повторный спам" /></label>
+            <button class="button danger" type="submit">Заблокировать</button>
+        </form>
+    </div>
+    <div class="stack">
+        <div class="panel">
+            <h2>Жалобы</h2>
+            <div class="content-list" data-reports-list></div>
+        </div>
+        <div class="panel">
+            <h2>Аудит</h2>
+            <div class="content-list" data-audit-list></div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script type="module" src="~/js/pages/moderation.js" asp-append-version="true"></script>
+}

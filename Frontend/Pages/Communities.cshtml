@@ -1,0 +1,32 @@
+@page "/Communities"
+@{
+    ViewData["Title"] = "Сообщества";
+}
+
+<header class="page-header">
+    <div>
+        <h1>Сообщества</h1>
+        <p>Создание, вступление, выход и быстрый переход к публикациям.</p>
+    </div>
+    <button class="button secondary" data-load-communities>Обновить</button>
+</header>
+
+<section class="split">
+    <form class="panel form-grid" data-form="create-community">
+        <h2>Новое сообщество</h2>
+        <label>Название<input name="name" placeholder="backend_daily" required /></label>
+        <label>Описание<textarea name="description" required></textarea></label>
+        <label>Тип
+            <select name="type">
+                <option value="Open">Открытое</option>
+                <option value="Closed">Закрытое</option>
+            </select>
+        </label>
+        <button class="button primary" type="submit">Создать</button>
+    </form>
+    <div class="content-list" data-communities-list></div>
+</section>
+
+@section Scripts {
+    <script type="module" src="~/js/pages/communities.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,35 @@
+@page "/Register"
+@{
+    ViewData["Title"] = "Регистрация";
+    Layout = "_AuthLayout";
+}
+
+<section class="auth-hero">
+    <div>
+        <a class="brand auth-brand" href="/">
+            <span class="brand-mark">SH</span>
+            <span>
+                <strong>SocialHub</strong>
+                <small>новый пользователь</small>
+            </span>
+        </a>
+        <h1>Создайте аккаунт и настройте свою социальную среду</h1>
+        <p>После регистрации клиент автоматически выполнит вход и откроет ленту.</p>
+    </div>
+    <form class="auth-form panel" data-form="register">
+        <div class="tabs">
+            <a href="/">Вход</a>
+            <a class="active" href="/Register">Регистрация</a>
+        </div>
+        <label>Логин<input name="username" required /></label>
+        <label>Email<input name="email" type="email" required /></label>
+        <label>Отображаемое имя<input name="displayName" required /></label>
+        <label>О себе<textarea name="bio"></textarea></label>
+        <label>Пароль<input name="password" type="password" value="Passw0rd!" required /></label>
+        <button class="button primary" type="submit">Зарегистрироваться</button>
+    </form>
+</section>
+
+@section Scripts {
+    <script type="module" src="~/js/pages/auth.js" asp-append-version="true"></script>
+}

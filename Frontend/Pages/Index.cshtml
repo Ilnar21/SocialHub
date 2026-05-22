@@ -1,0 +1,32 @@
+@page "/"
+@{
+    ViewData["Title"] = "Вход";
+    Layout = "_AuthLayout";
+}
+
+<section class="auth-hero">
+    <div>
+        <a class="brand auth-brand" href="/">
+            <span class="brand-mark">SH</span>
+            <span>
+                <strong>SocialHub</strong>
+                <small>управляемая социальная платформа</small>
+            </span>
+        </a>
+        <h1>Контент, сообщества и прозрачная модерация в одном рабочем интерфейсе</h1>
+        <p>Клиент для ключевых сценариев проекта: лента, сообщества, посты, сообщения, уведомления и модерация.</p>
+    </div>
+    <form class="auth-form panel" data-form="login">
+        <div class="tabs">
+            <a class="active" href="/">Вход</a>
+            <a href="/Register">Регистрация</a>
+        </div>
+        <label>Логин или email<input name="usernameOrEmail" value="ivan.petrov" required /></label>
+        <label>Пароль<input name="password" type="password" value="Passw0rd!" required /></label>
+        <button class="button primary" type="submit">Войти</button>
+    </form>
+</section>
+
+@section Scripts {
+    <script type="module" src="~/js/pages/auth.js" asp-append-version="true"></script>
+}

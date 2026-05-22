@@ -1,0 +1,18 @@
+@page "/Feed"
+@{
+    ViewData["Title"] = "Лента";
+}
+
+<header class="page-header">
+    <div>
+        <h1>Лента</h1>
+        <p>Посты из подписанных сообществ, отсортированные по популярности.</p>
+    </div>
+    <button class="button secondary" data-refresh-feed>Обновить</button>
+</header>
+
+<section class="content-list" data-feed-list></section>
+
+@section Scripts {
+    <script type="module" src="~/js/pages/feed.js" asp-append-version="true"></script>
+}

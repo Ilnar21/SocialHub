@@ -1,0 +1,18 @@
+@page "/Notifications"
+@{
+    ViewData["Title"] = "Уведомления";
+}
+
+<header class="page-header">
+    <div>
+        <h1>Уведомления</h1>
+        <p>События публикаций, модерации и личных сообщений.</p>
+    </div>
+    <button class="button secondary" data-load-notifications>Обновить</button>
+</header>
+
+<section class="content-list" data-notifications-list></section>
+
+@section Scripts {
+    <script type="module" src="~/js/pages/notifications.js" asp-append-version="true"></script>
+}
