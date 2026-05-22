@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     container_name: socialhub-community-db
     environment:
-      POSTGRES_DB: socialhub_community
-      POSTGRES_USER: socialhub
-      POSTGRES_PASSWORD: socialhub_password
+      POSTGRES_DB: ${COMMUNITY_POSTGRES_DB:-socialhub_community}
+      POSTGRES_USER: ${COMMUNITY_POSTGRES_USER:-socialhub}
+      POSTGRES_PASSWORD: ${COMMUNITY_POSTGRES_PASSWORD:-local_community_password}
     ports:
       - "5433:5432"
     volumes:
       - community_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U socialhub -d socialhub_community"]
+      test: ["CMD-SHELL", "pg_isready -U ${COMMUNITY_POSTGRES_USER:-socialhub} -d ${COMMUNITY_POSTGRES_DB:-socialhub_community}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,18 +26,18 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__CommunityDatabase: Host=community-db;Port=5432;Database=socialhub_community;Username=socialhub;Password=socialhub_password
+      ConnectionStrings__CommunityDatabase: Host=community-db;Port=5432;Database=${COMMUNITY_POSTGRES_DB:-socialhub_community};Username=${COMMUNITY_POSTGRES_USER:-socialhub};Password=${COMMUNITY_POSTGRES_PASSWORD:-local_community_password}
       ApplyMigrationsOnStartup: "true"
       ExternalServices__NotificationBaseUrl: ""
       ExternalServices__PostBaseUrl: ""
-      ExternalServices__InternalToken: "${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}"
+      ExternalServices__InternalToken: "${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}"
       ExternalServices__TimeoutSeconds: "${EXTERNAL_SERVICE_TIMEOUT_SECONDS:-4}"
       Jwt__Issuer: "${JWT_ISSUER:-SocialHub.AuthService}"
       Jwt__Audience: "${JWT_AUDIENCE:-SocialHub.Client}"
-      Jwt__Secret: "${JWT_SECRET:-development-secret-key-for-socialhub-integration}"
+      Jwt__Secret: "${JWT_SECRET:-local-dev-jwt-secret-change-me-please-32-bytes}"
       DevAuth__EnableHeaderFallback: "${DEV_AUTH_ENABLE_HEADER_FALLBACK:-false}"
       InternalAuth__RequireInternalToken: "${INTERNAL_AUTH_REQUIRE_TOKEN:-true}"
-      InternalAuth__Token: "${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}"
+      InternalAuth__Token: "${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}"
     ports:
       - "5001:8080"
 

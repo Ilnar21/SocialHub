@@ -33,7 +33,7 @@ services:
     environment:
       POSTGRES_DB: ${AUTH_POSTGRES_DB:-socialhub_auth}
       POSTGRES_USER: ${AUTH_POSTGRES_USER:-socialhub}
-      POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD:-socialhub_password}
+      POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD:-local_auth_password}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${AUTH_POSTGRES_USER:-socialhub} -d ${AUTH_POSTGRES_DB:-socialhub_auth}"]
       interval: 5s
@@ -49,11 +49,11 @@ services:
   community-db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: socialhub_community
-      POSTGRES_USER: socialhub
-      POSTGRES_PASSWORD: socialhub_password
+      POSTGRES_DB: ${COMMUNITY_POSTGRES_DB:-socialhub_community}
+      POSTGRES_USER: ${COMMUNITY_POSTGRES_USER:-socialhub}
+      POSTGRES_PASSWORD: ${COMMUNITY_POSTGRES_PASSWORD:-local_community_password}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U socialhub -d socialhub_community"]
+      test: ["CMD-SHELL", "pg_isready -U ${COMMUNITY_POSTGRES_USER:-socialhub} -d ${COMMUNITY_POSTGRES_DB:-socialhub_community}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -67,11 +67,11 @@ services:
   moderation-db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: socialhub_moderation
-      POSTGRES_USER: socialhub
-      POSTGRES_PASSWORD: socialhub_password
+      POSTGRES_DB: ${MODERATION_POSTGRES_DB:-socialhub_moderation}
+      POSTGRES_USER: ${MODERATION_POSTGRES_USER:-socialhub}
+      POSTGRES_PASSWORD: ${MODERATION_POSTGRES_PASSWORD:-local_moderation_password}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U socialhub -d socialhub_moderation"]
+      test: ["CMD-SHELL", "pg_isready -U ${MODERATION_POSTGRES_USER:-socialhub} -d ${MODERATION_POSTGRES_DB:-socialhub_moderation}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -85,13 +85,37 @@ services:
   post-db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: socialhub_posts
-      POSTGRES_USER: socialhub
-      POSTGRES_PASSWORD: socialhub_password
+      POSTGRES_DB: ${POST_POSTGRES_DB:-socialhub_posts}
+      POSTGRES_USER: ${POST_POSTGRES_USER:-socialhub}
+      POSTGRES_PASSWORD: ${POST_POSTGRES_PASSWORD:-local_post_password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POST_POSTGRES_USER:-socialhub} -d ${POST_POSTGRES_DB:-socialhub_posts}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     ports:
       - "5435:5432"
     volumes:
       - post_postgres_data:/var/lib/postgresql/data
+    networks:
+      - socialhub-network
+
+  post-object-storage:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${POST_MINIO_ROOT_USER:-local_minio_user}
+      MINIO_ROOT_PASSWORD: ${POST_MINIO_ROOT_PASSWORD:-local_minio_password}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/ready || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "${POST_MINIO_PORT:-9000}:9000"
+      - "${POST_MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - post_minio_data:/data
     networks:
       - socialhub-network
 
@@ -145,10 +169,10 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${AUTH_POSTGRES_DB:-socialhub_auth}
       POSTGRES_USER: ${AUTH_POSTGRES_USER:-socialhub}
-      POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD:-socialhub_password}
+      POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD:-local_auth_password}
       JWT_ISSUER: ${JWT_ISSUER:-SocialHub.AuthService}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-SocialHub.Client}
-      JWT_SECRET: ${JWT_SECRET:-development-secret-key-for-socialhub-integration}
+      JWT_SECRET: ${JWT_SECRET:-local-dev-jwt-secret-change-me-please-32-bytes}
       JWT_ACCESS_TOKEN_LIFETIME_MINUTES: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-60}
     depends_on:
       auth-db:
@@ -165,17 +189,17 @@ services:
     environment:
       ASPNETCORE_URLS: http://+:8080
       ApplyMigrationsOnStartup: "true"
-      ConnectionStrings__CommunityDatabase: Host=community-db;Port=5432;Database=socialhub_community;Username=socialhub;Password=socialhub_password
+      ConnectionStrings__CommunityDatabase: Host=community-db;Port=5432;Database=${COMMUNITY_POSTGRES_DB:-socialhub_community};Username=${COMMUNITY_POSTGRES_USER:-socialhub};Password=${COMMUNITY_POSTGRES_PASSWORD:-local_community_password}
       ExternalServices__NotificationBaseUrl: http://notification-service:8080
       ExternalServices__PostBaseUrl: http://post-service:8080
-      ExternalServices__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
+      ExternalServices__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
       ExternalServices__TimeoutSeconds: ${EXTERNAL_SERVICE_TIMEOUT_SECONDS:-4}
       Jwt__Issuer: ${JWT_ISSUER:-SocialHub.AuthService}
       Jwt__Audience: ${JWT_AUDIENCE:-SocialHub.Client}
-      Jwt__Secret: ${JWT_SECRET:-development-secret-key-for-socialhub-integration}
+      Jwt__Secret: ${JWT_SECRET:-local-dev-jwt-secret-change-me-please-32-bytes}
       DevAuth__EnableHeaderFallback: ${DEV_AUTH_ENABLE_HEADER_FALLBACK:-false}
       InternalAuth__RequireInternalToken: ${INTERNAL_AUTH_REQUIRE_TOKEN:-true}
-      InternalAuth__Token: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
+      InternalAuth__Token: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
     depends_on:
       community-db:
         condition: service_healthy
@@ -194,7 +218,7 @@ services:
       Mongo__DatabaseName: socialhub_messages
       Mongo__DialogsCollection: dialogs
       NotificationService__BaseUrl: http://notification-service:8080
-      NotificationService__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
+      NotificationService__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
     depends_on:
       message-db:
         condition: service_healthy
@@ -209,11 +233,11 @@ services:
       dockerfile: src/SocialHub.Moderation.Api/Dockerfile
     environment:
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__ModerationDatabase: Host=moderation-db;Port=5432;Database=socialhub_moderation;Username=socialhub;Password=socialhub_password
+      ConnectionStrings__ModerationDatabase: Host=moderation-db;Port=5432;Database=${MODERATION_POSTGRES_DB:-socialhub_moderation};Username=${MODERATION_POSTGRES_USER:-socialhub};Password=${MODERATION_POSTGRES_PASSWORD:-local_moderation_password}
       ExternalServices__PostBaseUrl: http://post-service:8080
       ExternalServices__AuthBaseUrl: http://auth-service:8080
       ExternalServices__NotificationBaseUrl: http://notification-service:8080
-      ExternalServices__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
+      ExternalServices__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
     depends_on:
       moderation-db:
         condition: service_healthy
@@ -244,7 +268,7 @@ services:
       Smtp__FromName: ${SMTP_FROM_NAME:-SocialHub}
       Jwt__Issuer: ${JWT_ISSUER:-SocialHub.AuthService}
       Jwt__Audience: ${JWT_AUDIENCE:-SocialHub.Client}
-      Jwt__Secret: ${JWT_SECRET:-development-secret-key-for-socialhub-integration}
+      Jwt__Secret: ${JWT_SECRET:-local-dev-jwt-secret-change-me-please-32-bytes}
     depends_on:
       notification-db:
         condition: service_healthy
@@ -265,7 +289,7 @@ services:
       Services__CommunityServiceUrl: http://community-service:8080
       Services__PostServiceUrl: http://post-service:8080
       Services__TimeoutSeconds: 4
-      Services__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
+      Services__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
     depends_on:
       feed-cache:
         condition: service_healthy
@@ -282,7 +306,17 @@ services:
       ASPNETCORE_URLS: http://+:8080
       CommunityService__BaseUrl: http://community-service:8080
       CommunityService__SkipMembershipCheck: "false"
-      CommunityService__InternalToken: ${INTERNAL_SERVICE_TOKEN:-development-internal-service-token}
+      CommunityService__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
+      ConnectionStrings__Postgres: Host=post-db;Port=5432;Database=${POST_POSTGRES_DB:-socialhub_posts};Username=${POST_POSTGRES_USER:-socialhub};Password=${POST_POSTGRES_PASSWORD:-local_post_password}
+      Minio__Endpoint: http://post-object-storage:9000
+      Minio__AccessKey: ${POST_MINIO_ROOT_USER:-local_minio_user}
+      Minio__SecretKey: ${POST_MINIO_ROOT_PASSWORD:-local_minio_password}
+      Minio__BucketName: ${POST_MINIO_BUCKET:-post-contents}
+    depends_on:
+      post-db:
+        condition: service_healthy
+      post-object-storage:
+        condition: service_healthy
     ports:
       - "5006:8080"
     networks:
@@ -298,5 +332,6 @@ volumes:
   community_postgres_data:
   moderation_postgres_data:
   post_postgres_data:
+  post_minio_data:
   message_mongo_data:
   notification_mongo_data:
