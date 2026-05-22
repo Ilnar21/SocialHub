@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
+using Npgsql;
 using SocialHub.Post.Application.Abstractions;
 using SocialHub.Post.Infrastructure.Community;
 using SocialHub.Post.Infrastructure.Persistence;
@@ -18,8 +21,41 @@ public static class DependencyInjection
 
         services.AddSingleton(communityOptions);
         services.AddSingleton<IClock, SystemClock>();
-        services.AddSingleton<IPostMetadataRepository, InMemoryPostMetadataRepository>();
-        services.AddSingleton<IPostContentRepository, InMemoryPostContentRepository>();
+        services.Configure<PostgresOptions>(options =>
+        {
+            options.ConnectionString = configuration["POSTGRES_CONNECTION_STRING"]
+                ?? configuration.GetConnectionString("Postgres")
+                ?? throw new InvalidOperationException("ConnectionStrings__Postgres is required.");
+        });
+        services.Configure<MongoOptions>(options =>
+        {
+            configuration.GetSection(MongoOptions.SectionName).Bind(options);
+
+            options.ConnectionString = FirstConfigured(
+                configuration["MONGO_CONNECTION_STRING"],
+                options.ConnectionString);
+            options.DatabaseName = FirstConfigured(
+                configuration["MONGO_DATABASE"],
+                options.DatabaseName);
+            options.PostContentsCollectionName = FirstConfigured(
+                configuration["MONGO_POST_CONTENTS_COLLECTION"],
+                options.PostContentsCollectionName);
+        });
+
+        services.AddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<PostgresOptions>>().Value;
+            return NpgsqlDataSource.Create(options.ConnectionString);
+        });
+        services.AddSingleton<IMongoClient>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<MongoOptions>>().Value;
+            return new MongoClient(options.ConnectionString);
+        });
+
+        services.AddHostedService<PostgresDatabaseInitializer>();
+        services.AddSingleton<IPostMetadataRepository, PostgresPostMetadataRepository>();
+        services.AddSingleton<IPostContentRepository, MongoPostContentRepository>();
         services.AddHttpClient<ICommunityAccessClient, CommunityAccessClient>(client =>
         {
             client.BaseAddress = new Uri(communityOptions.BaseUrl);
@@ -30,5 +66,12 @@ public static class DependencyInjection
         });
 
         return services;
+    }
+
+    private static string FirstConfigured(string? preferred, string currentValue)
+    {
+        return !string.IsNullOrWhiteSpace(preferred)
+            ? preferred
+            : currentValue;
     }
 }

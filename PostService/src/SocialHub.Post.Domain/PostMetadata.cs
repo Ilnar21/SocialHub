@@ -11,19 +11,34 @@ public sealed class PostMetadata
     public DateTimeOffset? UpdatedAt { get; private set; }
     public DateTimeOffset? DeletedAt { get; private set; }
 
+    public PostMetadata(
+        Guid id,
+        Guid authorId,
+        Guid communityId,
+        string title,
+        PostStatus status,
+        DateTimeOffset createdAt,
+        DateTimeOffset? updatedAt,
+        DateTimeOffset? deletedAt)
+    {
+        Id = id;
+        AuthorId = authorId;
+        CommunityId = communityId;
+        Title = title;
+        Status = status;
+        CreatedAt = createdAt;
+        UpdatedAt = updatedAt;
+        DeletedAt = deletedAt;
+    }
+
     private PostMetadata(
         Guid id,
         Guid authorId,
         Guid communityId,
         string title,
         DateTimeOffset createdAt)
+        : this(id, authorId, communityId, title, PostStatus.Published, createdAt, null, null)
     {
-        Id = id;
-        AuthorId = authorId;
-        CommunityId = communityId;
-        Title = title;
-        Status = PostStatus.Published;
-        CreatedAt = createdAt;
     }
 
     public static PostMetadata Create(Guid authorId, Guid communityId, string title, DateTimeOffset now)
