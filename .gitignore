@@ -17,6 +17,7 @@
 .env
 .env.local
 *.Development.local.json
+.dotnet-home/
 
 # OS files
 .DS_Store
