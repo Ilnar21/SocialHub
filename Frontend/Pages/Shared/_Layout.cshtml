@@ -16,7 +16,7 @@
                     <small>осознанная лента</small>
                 </span>
             </a>
-            <nav class="nav">
+            <nav class="nav" aria-label="Основная навигация">
                 <a href="/Feed">Лента</a>
                 <a href="/Communities">Сообщества</a>
                 <a href="/Posts">Посты</a>
@@ -26,8 +26,11 @@
                 <a href="/Profile">Профиль</a>
             </nav>
             <section class="session-card" data-session-card>
-                <strong data-user-name>Гость</strong>
-                <small data-user-role>Войдите в систему</small>
+                <span class="avatar" data-user-avatar>U</span>
+                <div>
+                    <strong data-user-name>Гость</strong>
+                    <small data-user-role>Войдите в систему</small>
+                </div>
                 <button class="button secondary" type="button" data-logout>Выйти</button>
             </section>
         </aside>
