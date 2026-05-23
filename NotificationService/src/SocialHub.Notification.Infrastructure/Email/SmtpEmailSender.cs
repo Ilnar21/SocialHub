@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SocialHub.Notification.Application.Abstractions;
@@ -45,7 +46,10 @@ public sealed class SmtpEmailSender : IEmailSender
         {
             From = new MailAddress(_options.FromEmail, _options.FromName),
             Subject = message.Subject,
-            Body = message.Body
+            SubjectEncoding = Encoding.UTF8,
+            Body = message.Body,
+            BodyEncoding = Encoding.UTF8,
+            HeadersEncoding = Encoding.UTF8
         };
         mailMessage.To.Add(message.RecipientEmail);
 
