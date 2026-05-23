@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
+using Prometheus;
 using SocialHub.Feed.Api.Middleware;
 using SocialHub.Feed.Api.Security;
 using SocialHub.Feed.Api.Services;
@@ -62,6 +63,7 @@ var app = builder.Build();
 
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseHttpMetrics();
 
 if (app.Environment.IsDevelopment())
 {
@@ -72,6 +74,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapMetrics();
 
 app.Run();
 

@@ -26,6 +26,24 @@ services:
     networks:
       - socialhub-network
 
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    depends_on:
+      - frontend
+      - auth-service
+      - community-service
+      - feed-service
+      - message-service
+      - moderation-service
+      - notification-service
+      - post-service
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - socialhub-network
+
   auth-db:
     image: postgres:16-alpine
     environment:

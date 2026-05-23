@@ -8,6 +8,7 @@ using SocialHub.Auth.Api.Presentation.Endpoints;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
+using Prometheus;
 using System.Text;
 
 DotEnv.Load();
@@ -97,6 +98,8 @@ await DatabaseInitializer.InitializeAsync(app.Services);
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseHttpMetrics();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -104,5 +107,6 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "AuthServi
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapAuditEndpoints();
+app.MapMetrics();
 
 app.Run();

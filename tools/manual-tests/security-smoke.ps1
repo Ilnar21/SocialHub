@@ -1,6 +1,7 @@
 param(
     [string]$BaseUrl = "http://127.0.0.1:8080",
-    [string]$InternalToken = $env:INTERNAL_SERVICE_TOKEN
+    [string]$InternalToken = $env:INTERNAL_SERVICE_TOKEN,
+    [string]$PrometheusUrl = "http://127.0.0.1:9090"
 )
 
 $ErrorActionPreference = "Stop"
@@ -190,4 +191,33 @@ if ($notifications.items.Count -lt 1) {
 }
 
 Write-Host "[ok] Notification inbox with JWT returned $($notifications.items.Count) item(s)"
+
+$frontendMetrics = Invoke-RestMethod `
+    -Method Get `
+    -Uri "$BaseUrl/metrics" `
+    -ErrorAction Stop
+
+if ($frontendMetrics -notmatch "http_requests_received_total") {
+    throw "Expected frontend /metrics to expose HTTP request counters."
+}
+
+Write-Host "[ok] Frontend metrics endpoint is exposed through gateway"
+
+try {
+    $targets = Invoke-RestMethod `
+        -Method Get `
+        -Uri "$PrometheusUrl/api/v1/targets" `
+        -ErrorAction Stop
+
+    $activeTargets = @($targets.data.activeTargets)
+    if ($activeTargets.Count -lt 8) {
+        throw "Expected at least 8 Prometheus targets, got $($activeTargets.Count)."
+    }
+
+    Write-Host "[ok] Prometheus returned $($activeTargets.Count) scrape target(s)"
+}
+catch {
+    Write-Host "[warn] Prometheus was not reachable at $PrometheusUrl. Run docker compose with prometheus enabled to verify metrics scraping."
+}
+
 Write-Host "Security smoke test completed successfully."

@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text.Json.Serialization;
+using Prometheus;
 using SocialHub.Post.Api.Configuration;
 using SocialHub.Post.Api.Endpoints;
 using SocialHub.Post.Api.Security;
@@ -49,8 +50,10 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.UseHttpMetrics();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapPostEndpoints();
+app.MapMetrics();
 
 app.Run();

@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Prometheus;
 using SocialHub.Message.Api.Middleware;
 using SocialHub.Message.Api.Security;
 using SocialHub.Message.Api.Services;
@@ -48,6 +49,7 @@ var app = builder.Build();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseHttpMetrics();
 
 app.MapGet("/health", async (IMessageStorageHealthCheck storage, CancellationToken cancellationToken) =>
 {
@@ -64,5 +66,6 @@ app.MapGet("/health", async (IMessageStorageHealthCheck storage, CancellationTok
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapMetrics();
 
 app.Run();
