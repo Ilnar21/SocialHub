@@ -284,6 +284,7 @@ services:
       Cache__KeyPrefix: feed
       Cache__TtlSeconds: 300
       Services__CommunityServiceUrl: http://community-service:8080
+      Services__CommunityGrpcUrl: http://community-service:8081
       Services__PostServiceUrl: http://post-service:8080
       Services__TimeoutSeconds: 4
       Services__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
@@ -304,6 +305,7 @@ services:
     environment:
       ASPNETCORE_URLS: http://+:8080
       CommunityService__BaseUrl: http://community-service:8080
+      CommunityService__GrpcUrl: http://community-service:8081
       CommunityService__SkipMembershipCheck: "false"
       CommunityService__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
       ConnectionStrings__Postgres: Host=post-db;Port=5432;Database=${POST_POSTGRES_DB:-socialhub_posts};Username=${POST_POSTGRES_USER:-socialhub};Password=${POST_POSTGRES_PASSWORD:-local_post_password}

@@ -3,7 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Amazon.Runtime;
 using Amazon.S3;
+using Grpc.Net.Client;
 using Npgsql;
+using SocialHub.Community.Contracts;
 using SocialHub.Post.Application.Abstractions;
 using SocialHub.Post.Infrastructure.Community;
 using SocialHub.Post.Infrastructure.Persistence;
@@ -21,6 +23,10 @@ public static class DependencyInjection
             .Get<CommunityAccessOptions>() ?? new CommunityAccessOptions();
 
         services.AddSingleton(communityOptions);
+        AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+        services.AddSingleton(_ => GrpcChannel.ForAddress(communityOptions.GrpcUrl));
+        services.AddSingleton(sp =>
+            new CommunityInternal.CommunityInternalClient(sp.GetRequiredService<GrpcChannel>()));
         services.AddSingleton<IClock, SystemClock>();
         services.Configure<PostgresOptions>(options =>
         {

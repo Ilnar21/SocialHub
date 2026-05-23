@@ -1,6 +1,9 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using Grpc.Core;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using SocialHub.Community.Contracts;
 using SocialHub.Feed.Application.Abstractions;
 
 namespace SocialHub.Feed.Infrastructure.External;
@@ -17,15 +20,54 @@ public sealed class CommunityServiceClient : ICommunityServiceClient
     private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _http;
+    private readonly CommunityInternal.CommunityInternalClient _grpc;
+    private readonly ExternalServiceOptions _options;
     private readonly ILogger<CommunityServiceClient> _logger;
 
-    public CommunityServiceClient(HttpClient http, ILogger<CommunityServiceClient> logger)
+    public CommunityServiceClient(
+        HttpClient http,
+        CommunityInternal.CommunityInternalClient grpc,
+        IOptions<ExternalServiceOptions> options,
+        ILogger<CommunityServiceClient> logger)
     {
         _http = http;
+        _grpc = grpc;
+        _options = options.Value;
         _logger = logger;
     }
 
     public async Task<IReadOnlyList<Guid>> GetUserCommunityIdsAsync(Guid userId, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _grpc.GetUserCommunityIdsAsync(
+                new GetUserCommunityIdsRequest { UserId = userId.ToString("D") },
+                BuildGrpcMetadata(),
+                cancellationToken: ct);
+
+            var ids = response.CommunityIds
+                .Select(id => Guid.TryParse(id, out var parsed) ? parsed : Guid.Empty)
+                .Where(id => id != Guid.Empty)
+                .ToArray();
+
+            _logger.LogInformation(
+                "Community gRPC returned {Count} community ids for user {UserId}",
+                ids.Length, userId);
+
+            return ids;
+        }
+        catch (Exception ex) when (ex is RpcException or HttpRequestException or TaskCanceledException)
+        {
+            _logger.LogWarning(
+                ex,
+                "Community gRPC failed for user {UserId}. Falling back to REST.",
+                userId);
+
+            return await GetUserCommunityIdsByRestAsync(userId, ct);
+        }
+    }
+
+    private async Task<IReadOnlyList<Guid>> GetUserCommunityIdsByRestAsync(Guid userId, CancellationToken ct)
     {
         try
         {
@@ -48,5 +90,16 @@ public sealed class CommunityServiceClient : ICommunityServiceClient
             _logger.LogError(ex, "Failed to fetch communities for user {UserId}", userId);
             return Array.Empty<Guid>();
         }
+    }
+
+    private Metadata BuildGrpcMetadata()
+    {
+        var metadata = new Metadata();
+        if (!string.IsNullOrWhiteSpace(_options.InternalToken))
+        {
+            metadata.Add("x-internal-token", _options.InternalToken);
+        }
+
+        return metadata;
     }
 }

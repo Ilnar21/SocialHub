@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option csharp_namespace = "SocialHub.Community.Contracts";
+
+package socialhub.community.v1;
+
+service CommunityInternal {
+  rpc GetUserCommunityIds (GetUserCommunityIdsRequest) returns (GetUserCommunityIdsReply);
+  rpc CheckMembership (CheckMembershipRequest) returns (CheckMembershipReply);
+}
+
+message GetUserCommunityIdsRequest {
+  string user_id = 1;
+}
+
+message GetUserCommunityIdsReply {
+  repeated string community_ids = 1;
+}
+
+message CheckMembershipRequest {
+  string community_id = 1;
+  string user_id = 2;
+}
+
+message CheckMembershipReply {
+  bool is_member = 1;
+}

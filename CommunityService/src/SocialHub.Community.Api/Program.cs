@@ -1,9 +1,11 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Prometheus;
+using SocialHub.Community.Api.Grpc;
 using System.Text.Json.Serialization;
 using SocialHub.Community.Api.Middleware;
 using SocialHub.Community.Api.Security;
@@ -15,7 +17,20 @@ using SocialHub.Community.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(8080, listenOptions =>
+    {
+        listenOptions.Protocols = HttpProtocols.Http1;
+    });
+    options.ListenAnyIP(8081, listenOptions =>
+    {
+        listenOptions.Protocols = HttpProtocols.Http2;
+    });
+});
+
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddGrpc();
 builder.Services.Configure<DevAuthOptions>(builder.Configuration.GetSection(DevAuthOptions.SectionName));
 builder.Services.Configure<InternalAuthOptions>(builder.Configuration.GetSection(InternalAuthOptions.SectionName));
 builder.Services.AddScoped<InternalTokenFilter>();
@@ -116,6 +131,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapMetrics();
+app.MapGrpcService<InternalCommunityGrpcService>();
 
 if (app.Configuration.GetValue("ApplyMigrationsOnStartup", false))
 {

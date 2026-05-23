@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Grpc.Net.Client;
 using Polly;
 using Polly.Extensions.Http;
+using SocialHub.Community.Contracts;
 using SocialHub.Feed.Application.Abstractions;
 using SocialHub.Feed.Application.Ranking;
 using SocialHub.Feed.Application.Services;
@@ -42,6 +44,15 @@ public static class DependencyInjection
 
         // --- Application services ---
         services.AddScoped<IFeedService, ApplicationFeedService>();
+
+        AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+        services.AddSingleton(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<ExternalServiceOptions>>().Value;
+            return GrpcChannel.ForAddress(opts.CommunityGrpcUrl);
+        });
+        services.AddSingleton(sp =>
+            new CommunityInternal.CommunityInternalClient(sp.GetRequiredService<GrpcChannel>()));
 
         // --- HTTP-клиенты соседних сервисов ---
         services.AddHttpClient<ICommunityServiceClient, CommunityServiceClient>((sp, client) =>
