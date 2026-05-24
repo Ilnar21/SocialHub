@@ -65,6 +65,8 @@
 /* ---------- 2. Resets ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 html {
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
