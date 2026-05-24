@@ -15,6 +15,11 @@ public sealed class UserRepository(AuthDbContext dbContext) : IUserRepository
     public Task<UserAccount?> FindByIdAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Users.FirstOrDefaultAsync(user => user.Id == id, cancellationToken);
 
+    public Task<UserAccount?> FindByUsernameAsync(string username, CancellationToken cancellationToken) =>
+        dbContext.Users.AsNoTracking().FirstOrDefaultAsync(
+            user => user.Username.ToLower() == username.ToLower(),
+            cancellationToken);
+
     public Task<UserAccount?> FindByUsernameOrEmailAsync(string usernameOrEmail, CancellationToken cancellationToken) =>
         dbContext.Users.FirstOrDefaultAsync(
             user => user.Username.ToLower() == usernameOrEmail.ToLower()

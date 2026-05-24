@@ -275,6 +275,10 @@ public sealed class AuthUserServiceTests
         public Task<UserAccount?> FindByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(Users.FirstOrDefault(user => user.Id == id));
 
+        public Task<UserAccount?> FindByUsernameAsync(string username, CancellationToken cancellationToken) =>
+            Task.FromResult(Users.FirstOrDefault(user =>
+                user.Username.Equals(username, StringComparison.OrdinalIgnoreCase)));
+
         public Task<UserAccount?> FindByUsernameOrEmailAsync(string usernameOrEmail, CancellationToken cancellationToken) =>
             Task.FromResult(Users.FirstOrDefault(user =>
                 user.Username.Equals(usernameOrEmail, StringComparison.OrdinalIgnoreCase)

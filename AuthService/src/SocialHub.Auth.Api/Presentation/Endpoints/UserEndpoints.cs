@@ -32,6 +32,18 @@ public static class UserEndpoints
                 : Results.Ok(user.ToResponse());
         });
 
+        users.MapGet("/by-username/{username}", async (string username, IUserRepository repository, CancellationToken cancellationToken) =>
+        {
+            var normalized = username.Trim();
+            var user = string.IsNullOrWhiteSpace(normalized)
+                ? null
+                : await repository.FindByUsernameAsync(normalized, cancellationToken);
+
+            return user is null
+                ? Results.NotFound(new ErrorResponse("user_not_found", "User was not found."))
+                : Results.Ok(user.ToResponse());
+        });
+
         users.MapPut("/{id:guid}/profile", async (
             Guid id,
             UpdateProfileRequest request,
