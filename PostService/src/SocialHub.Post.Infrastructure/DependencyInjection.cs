@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using SocialHub.Post.Application.Abstractions;
 using SocialHub.Post.Infrastructure.Community;
+using SocialHub.Post.Infrastructure.Observability;
 using SocialHub.Post.Infrastructure.Persistence;
 
 namespace SocialHub.Post.Infrastructure;
@@ -62,6 +63,7 @@ public static class DependencyInjection
         services.AddSingleton<IPostContentRepository, PostgresPostContentRepository>();
         services.AddSingleton<IPostMediaRepository, PostgresPostMediaRepository>();
         services.AddSingleton<IPostMediaStorage, MinioPostMediaStorage>();
+        services.AddTransient<CorrelationIdDelegatingHandler>();
         services.AddHttpClient<ICommunityAccessClient, CommunityAccessClient>(client =>
         {
             client.BaseAddress = new Uri(communityOptions.BaseUrl);
@@ -69,7 +71,8 @@ public static class DependencyInjection
             {
                 client.DefaultRequestHeaders.Add("X-Internal-Token", communityOptions.InternalToken);
             }
-        });
+        })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
 
         return services;
     }

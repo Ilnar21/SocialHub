@@ -17,6 +17,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\SocialHub.Feed.Application\SocialHub.Feed.Application.csproj" />
     </ItemGroup>
 

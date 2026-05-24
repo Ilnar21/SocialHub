@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 using SocialHub.Message.Application.Abstractions;
 using SocialHub.Message.Infrastructure.External;
+using SocialHub.Message.Infrastructure.Observability;
 using SocialHub.Message.Infrastructure.Persistence;
 
 namespace SocialHub.Message.Infrastructure;
@@ -22,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<IDialogRepository, MongoDialogRepository>();
         services.AddScoped<IMessageStorageHealthCheck, MongoHealthCheck>();
         services.AddHostedService<MongoIndexInitializer>();
+        services.AddTransient<CorrelationIdDelegatingHandler>();
 
         services.AddHttpClient<INotificationClient, NotificationClient>(client =>
         {
@@ -36,7 +38,8 @@ public static class DependencyInjection
             {
                 client.DefaultRequestHeaders.Add("X-Internal-Token", internalToken);
             }
-        });
+        })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
 
         return services;
     }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using SocialHub.Moderation.Application.Abstractions;
 using SocialHub.Moderation.Infrastructure.External;
+using SocialHub.Moderation.Infrastructure.Observability;
 using SocialHub.Moderation.Infrastructure.Persistence;
 
 namespace SocialHub.Moderation.Infrastructure;
@@ -18,22 +19,26 @@ public static class DependencyInjection
         services.AddScoped<IModerationRepository, PostgresModerationRepository>();
         services.AddScoped<IModerationStorageHealthCheck, PostgresHealthCheck>();
         services.AddHostedService<DatabaseInitializer>();
+        services.AddTransient<CorrelationIdDelegatingHandler>();
 
         services.AddHttpClient("post", client =>
         {
             ConfigureBaseAddress(client, configuration["ExternalServices:PostBaseUrl"]);
             AddInternalToken(client, configuration["ExternalServices:InternalToken"]);
-        });
+        })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
         services.AddHttpClient("auth", client =>
         {
             ConfigureBaseAddress(client, configuration["ExternalServices:AuthBaseUrl"]);
             AddInternalToken(client, configuration["ExternalServices:InternalToken"]);
-        });
+        })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
         services.AddHttpClient("notifications", client =>
         {
             ConfigureBaseAddress(client, configuration["ExternalServices:NotificationBaseUrl"]);
             AddInternalToken(client, configuration["ExternalServices:InternalToken"]);
-        });
+        })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
         services.AddScoped<IExternalModerationClient, ExternalModerationClient>();
 
         return services;

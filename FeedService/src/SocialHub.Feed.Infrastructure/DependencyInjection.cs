@@ -8,6 +8,7 @@ using SocialHub.Feed.Application.Ranking;
 using SocialHub.Feed.Application.Services;
 using SocialHub.Feed.Infrastructure.Cache;
 using SocialHub.Feed.Infrastructure.External;
+using SocialHub.Feed.Infrastructure.Observability;
 using StackExchange.Redis;
 using ApplicationFeedService = SocialHub.Feed.Application.Services.FeedService;
 
@@ -42,6 +43,7 @@ public static class DependencyInjection
 
         // --- Application services ---
         services.AddScoped<IFeedService, ApplicationFeedService>();
+        services.AddTransient<CorrelationIdDelegatingHandler>();
 
         // --- HTTP-клиенты соседних сервисов ---
         services.AddHttpClient<ICommunityServiceClient, CommunityServiceClient>((sp, client) =>
@@ -51,6 +53,7 @@ public static class DependencyInjection
                 client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
                 AddInternalToken(client, opts.InternalToken);
             })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
             .AddPolicyHandler(GetRetryPolicy());
 
         services.AddHttpClient<IPostServiceClient, PostServiceClient>((sp, client) =>
@@ -60,6 +63,7 @@ public static class DependencyInjection
                 client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
                 AddInternalToken(client, opts.InternalToken);
             })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
             .AddPolicyHandler(GetRetryPolicy());
 
         return services;

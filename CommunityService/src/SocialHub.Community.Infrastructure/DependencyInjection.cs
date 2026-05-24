@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SocialHub.Community.Application.Abstractions;
 using SocialHub.Community.Infrastructure.External;
+using SocialHub.Community.Infrastructure.Observability;
 using SocialHub.Community.Infrastructure.Persistence;
 
 namespace SocialHub.Community.Infrastructure;
@@ -18,6 +19,7 @@ public static class DependencyInjection
             options.UseNpgsql(configuration.GetConnectionString("CommunityDatabase")));
 
         services.AddScoped<ICommunityRepository, CommunityRepository>();
+        services.AddTransient<CorrelationIdDelegatingHandler>();
 
         services.AddHttpClient<INotificationClient, NotificationClient>((serviceProvider, client) =>
         {
@@ -28,7 +30,8 @@ public static class DependencyInjection
             }
 
             ConfigureExternalClient(client, options);
-        });
+        })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
 
         services.AddHttpClient<IPostServiceClient, PostServiceClient>((serviceProvider, client) =>
         {
@@ -39,7 +42,8 @@ public static class DependencyInjection
             }
 
             ConfigureExternalClient(client, options);
-        });
+        })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
 
         return services;
     }
