@@ -1,0 +1,19 @@
+@page "/PostDetails"
+@{
+    ViewData["Title"] = "Пост";
+}
+
+<header class="page-header compact-header">
+    <div>
+        <a class="button secondary" href="/Feed">Назад к ленте</a>
+    </div>
+</header>
+
+<section class="post-page-layout">
+    <main class="post-page-main" data-post-page></main>
+    <aside class="community-sidebar" data-community-sidebar></aside>
+</section>
+
+@section Scripts {
+    <script type="module" src="~/js/pages/post-details.js" asp-append-version="true"></script>
+}
