@@ -123,7 +123,7 @@ public sealed class CommunityService : ICommunityService
 
     public async Task<List<MemberResponse>> GetMembersAsync(Guid communityId, CancellationToken cancellationToken)
     {
-        await GetRequiredCommunityAsync(communityId, cancellationToken);
+        await EnsureCurrentUserOwnsCommunityAsync(communityId, cancellationToken);
         var members = await _repository.GetMembersAsync(communityId, cancellationToken);
         return members
             .OrderBy(m => m.Role)

@@ -125,6 +125,22 @@ public sealed class CommunityServiceTests
         Assert.False(await service.IsOwnerAsync(community.Id, UserId, CancellationToken.None));
     }
 
+    [Fact]
+    public async Task GetMembersAsync_AllowsOnlyCommunityOwner()
+    {
+        var repository = new FakeCommunityRepository();
+        var community = repository.AddSeedCommunity("Owned", OwnerId, UserId);
+        var memberService = CreateService(repository, currentUserId: UserId);
+        var ownerService = CreateService(repository, currentUserId: OwnerId);
+
+        var exception = await Assert.ThrowsAsync<AppException>(() =>
+            memberService.GetMembersAsync(community.Id, CancellationToken.None));
+        var members = await ownerService.GetMembersAsync(community.Id, CancellationToken.None);
+
+        Assert.Equal(403, exception.StatusCode);
+        Assert.Equal(2, members.Count);
+    }
+
     private static CommunityAppService CreateService(
         FakeCommunityRepository repository,
         FakeNotificationClient? notificationClient = null,
