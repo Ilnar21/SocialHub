@@ -93,17 +93,45 @@ public sealed class CommunityServiceTests
             CancellationToken.None);
 
         Assert.Equal(SuggestedPostStatus.Pending, response.Status);
-        Assert.Equal(2, notificationClient.Requests.Count);
+        Assert.Single(notificationClient.Requests);
         Assert.All(notificationClient.Requests, request => Assert.Equal("SuggestedPostCreated", request.Type));
+    }
+
+    [Fact]
+    public async Task GetSuggestedPostsAsync_AllowsOnlyCommunityOwner()
+    {
+        var repository = new FakeCommunityRepository();
+        var community = repository.AddSeedCommunity("Moderated", OwnerId, UserId);
+        var admin = community.AddMember(AdminId, DateTime.UtcNow);
+        admin.ChangeRole(CommunityMemberRole.Admin);
+        repository.SuggestedPosts.Add(new SuggestedPost(community.Id, UserId, "Draft", "Text", DateTime.UtcNow));
+        var service = CreateService(repository, currentUserId: AdminId);
+
+        var exception = await Assert.ThrowsAsync<AppException>(() =>
+            service.GetSuggestedPostsAsync(community.Id, SuggestedPostStatus.Pending, CancellationToken.None));
+
+        Assert.Equal(403, exception.StatusCode);
+    }
+
+    [Fact]
+    public async Task IsOwnerAsync_ReturnsTrueOnlyForOwnerRole()
+    {
+        var repository = new FakeCommunityRepository();
+        var community = repository.AddSeedCommunity("Owned", OwnerId, UserId);
+        var service = CreateService(repository);
+
+        Assert.True(await service.IsOwnerAsync(community.Id, OwnerId, CancellationToken.None));
+        Assert.False(await service.IsOwnerAsync(community.Id, UserId, CancellationToken.None));
     }
 
     private static CommunityAppService CreateService(
         FakeCommunityRepository repository,
-        FakeNotificationClient? notificationClient = null)
+        FakeNotificationClient? notificationClient = null,
+        Guid? currentUserId = null)
     {
         return new CommunityAppService(
             repository,
-            new FakeCurrentUserContext(UserId),
+            new FakeCurrentUserContext(currentUserId ?? UserId),
             notificationClient ?? new FakeNotificationClient(),
             new FakePostServiceClient());
     }

@@ -133,6 +133,12 @@ public sealed class CommunityService : ICommunityService
         return await _repository.IsMemberAsync(communityId, userId, cancellationToken);
     }
 
+    public async Task<bool> IsOwnerAsync(Guid communityId, Guid userId, CancellationToken cancellationToken)
+    {
+        var member = await _repository.GetMemberAsync(communityId, userId, cancellationToken);
+        return member?.Role == CommunityMemberRole.Owner;
+    }
+
     public async Task<List<Guid>> GetCommunityIdsByUserAsync(Guid userId, CancellationToken cancellationToken)
     {
         return await _repository.GetCommunityIdsByUserAsync(userId, cancellationToken);
@@ -195,7 +201,7 @@ public sealed class CommunityService : ICommunityService
         await _repository.SaveChangesAsync(cancellationToken);
 
         var administrators = await _repository.GetMembersAsync(communityId, cancellationToken);
-        foreach (var admin in administrators.Where(m => m.Role is CommunityMemberRole.Owner or CommunityMemberRole.Admin))
+        foreach (var admin in administrators.Where(m => m.Role == CommunityMemberRole.Owner))
         {
             await _notificationClient.NotifyAsync(
                 new InternalNotificationRequest(
@@ -213,7 +219,7 @@ public sealed class CommunityService : ICommunityService
 
     public async Task<List<SuggestedPostResponse>> GetSuggestedPostsAsync(Guid communityId, SuggestedPostStatus? status, CancellationToken cancellationToken)
     {
-        await EnsureCurrentUserCanAdminCommunityAsync(communityId, cancellationToken);
+        await EnsureCurrentUserOwnsCommunityAsync(communityId, cancellationToken);
         var posts = await _repository.GetSuggestedPostsAsync(communityId, status, cancellationToken);
         return posts
             .OrderByDescending(p => p.CreatedAtUtc)
@@ -223,7 +229,7 @@ public sealed class CommunityService : ICommunityService
 
     public async Task<SuggestedPostResponse> ApproveSuggestedPostAsync(Guid communityId, Guid suggestedPostId, CancellationToken cancellationToken)
     {
-        await EnsureCurrentUserCanAdminCommunityAsync(communityId, cancellationToken);
+        await EnsureCurrentUserOwnsCommunityAsync(communityId, cancellationToken);
         var suggestedPost = await GetRequiredSuggestedPostAsync(communityId, suggestedPostId, cancellationToken);
 
         PostPublicationResult publicationResult;
@@ -267,7 +273,7 @@ public sealed class CommunityService : ICommunityService
 
     public async Task<SuggestedPostResponse> RejectSuggestedPostAsync(Guid communityId, Guid suggestedPostId, RejectSuggestedPostRequest request, CancellationToken cancellationToken)
     {
-        await EnsureCurrentUserCanAdminCommunityAsync(communityId, cancellationToken);
+        await EnsureCurrentUserOwnsCommunityAsync(communityId, cancellationToken);
         var suggestedPost = await GetRequiredSuggestedPostAsync(communityId, suggestedPostId, cancellationToken);
 
         suggestedPost.Reject(_currentUser.UserId, request.Comment, DateTime.UtcNow);
@@ -312,6 +318,16 @@ public sealed class CommunityService : ICommunityService
         if (member.Role is not (CommunityMemberRole.Owner or CommunityMemberRole.Admin))
         {
             throw AppException.Forbidden("Insufficient community permissions.");
+        }
+    }
+
+    private async Task EnsureCurrentUserOwnsCommunityAsync(Guid communityId, CancellationToken cancellationToken)
+    {
+        await GetRequiredCommunityAsync(communityId, cancellationToken);
+        var member = await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
+        if (member.Role != CommunityMemberRole.Owner)
+        {
+            throw AppException.Forbidden("Only community owner can review suggested posts.");
         }
     }
 

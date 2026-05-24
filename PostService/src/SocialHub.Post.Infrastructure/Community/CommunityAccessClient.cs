@@ -33,4 +33,24 @@ public sealed class CommunityAccessClient : ICommunityAccessClient
             _ => response.IsSuccessStatusCode
         };
     }
+
+    public async Task<bool> IsOwnerAsync(Guid userId, Guid communityId, CancellationToken cancellationToken)
+    {
+        if (_options.SkipMembershipCheck)
+        {
+            return true;
+        }
+
+        var response = await _httpClient.GetAsync(
+            $"/communities/{communityId}/owners/{userId}",
+            cancellationToken);
+
+        return response.StatusCode switch
+        {
+            HttpStatusCode.OK => true,
+            HttpStatusCode.NotFound => false,
+            HttpStatusCode.Forbidden => false,
+            _ => response.IsSuccessStatusCode
+        };
+    }
 }

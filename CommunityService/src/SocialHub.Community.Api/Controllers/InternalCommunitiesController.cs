@@ -30,4 +30,12 @@ public sealed class InternalCommunitiesController : ControllerBase
         var isMember = await _communityService.IsMemberAsync(communityId, userId, cancellationToken);
         return isMember ? Ok(new { communityId, userId, isMember = true }) : NotFound();
     }
+
+    [HttpGet("internal/communities/{communityId:guid}/owners/{userId:guid}")]
+    [HttpGet("communities/{communityId:guid}/owners/{userId:guid}")]
+    public async Task<IActionResult> CheckOwnership(Guid communityId, Guid userId, CancellationToken cancellationToken)
+    {
+        var isOwner = await _communityService.IsOwnerAsync(communityId, userId, cancellationToken);
+        return isOwner ? Ok(new { communityId, userId, isOwner = true }) : NotFound();
+    }
 }

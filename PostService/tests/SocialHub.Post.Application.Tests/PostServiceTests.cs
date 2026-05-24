@@ -10,7 +10,7 @@ public sealed class PostServiceTests
     [Fact]
     public async Task Create_rejects_author_outside_community()
     {
-        var service = CreateService(isMember: false);
+        var service = CreateService(isMember: false, isOwner: false);
 
         var result = await service.CreateAsync(
             new CreatePostRequest(Guid.NewGuid(), Guid.NewGuid(), "Title", "Text"),
@@ -18,6 +18,33 @@ public sealed class PostServiceTests
 
         Assert.False(result.Succeeded);
         Assert.Equal(403, result.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_rejects_member_who_is_not_community_owner()
+    {
+        var service = CreateService(isMember: true, isOwner: false);
+
+        var result = await service.CreateAsync(
+            new CreatePostRequest(Guid.NewGuid(), Guid.NewGuid(), "Title", "Text"),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(403, result.StatusCode);
+        Assert.Equal("Only community owner can publish posts directly.", result.Error);
+    }
+
+    [Fact]
+    public async Task CreateApprovedSuggested_allows_member_after_owner_review()
+    {
+        var service = CreateService(isMember: true, isOwner: false);
+
+        var result = await service.CreateApprovedSuggestedAsync(
+            new CreatePostRequest(Guid.NewGuid(), Guid.NewGuid(), "Title", "Text"),
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(201, result.StatusCode);
     }
 
     [Fact]
@@ -226,6 +253,7 @@ public sealed class PostServiceTests
 
     private static PostService CreateService(
         bool isMember = true,
+        bool isOwner = true,
         InMemoryMetadataRepository? metadata = null,
         InMemoryContentRepository? content = null,
         InMemoryMediaRepository? media = null,
@@ -235,7 +263,7 @@ public sealed class PostServiceTests
             content ?? new InMemoryContentRepository(),
             media ?? new InMemoryMediaRepository(),
             storage ?? new FakeMediaStorage(),
-            new FakeCommunityAccessClient(isMember),
+            new FakeCommunityAccessClient(isMember, isOwner),
             new FixedClock());
 
     private sealed record SeededPost(
@@ -311,10 +339,13 @@ public sealed class PostServiceTests
         }
     }
 
-    private sealed class FakeCommunityAccessClient(bool isMember) : ICommunityAccessClient
+    private sealed class FakeCommunityAccessClient(bool isMember, bool isOwner) : ICommunityAccessClient
     {
         public Task<bool> IsMemberAsync(Guid userId, Guid communityId, CancellationToken cancellationToken) =>
             Task.FromResult(isMember);
+
+        public Task<bool> IsOwnerAsync(Guid userId, Guid communityId, CancellationToken cancellationToken) =>
+            Task.FromResult(isOwner);
     }
 
     private sealed class FixedClock : IClock

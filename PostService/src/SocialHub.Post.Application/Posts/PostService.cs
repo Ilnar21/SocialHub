@@ -36,14 +36,37 @@ public sealed class PostService
         CreatePostRequest request,
         CancellationToken cancellationToken)
     {
+        return await CreateCoreAsync(request, requireCommunityOwner: true, cancellationToken);
+    }
+
+    public async Task<OperationResult<PostResponse>> CreateApprovedSuggestedAsync(
+        CreatePostRequest request,
+        CancellationToken cancellationToken)
+    {
+        return await CreateCoreAsync(request, requireCommunityOwner: false, cancellationToken);
+    }
+
+    private async Task<OperationResult<PostResponse>> CreateCoreAsync(
+        CreatePostRequest request,
+        bool requireCommunityOwner,
+        CancellationToken cancellationToken)
+    {
         if (request.CommunityId == Guid.Empty)
         {
             return OperationResult<PostResponse>.Fail("Publications are available only inside communities.", 400);
         }
 
-        if (!await _communityAccessClient.IsMemberAsync(request.AuthorId, request.CommunityId, cancellationToken))
+        var hasCommunityAccess = requireCommunityOwner
+            ? await _communityAccessClient.IsOwnerAsync(request.AuthorId, request.CommunityId, cancellationToken)
+            : await _communityAccessClient.IsMemberAsync(request.AuthorId, request.CommunityId, cancellationToken);
+
+        if (!hasCommunityAccess)
         {
-            return OperationResult<PostResponse>.Fail("Author is not a member of the community.", 403);
+            var message = requireCommunityOwner
+                ? "Only community owner can publish posts directly."
+                : "Author is not a member of the community.";
+
+            return OperationResult<PostResponse>.Fail(message, 403);
         }
 
         var since = _clock.UtcNow.AddHours(-24);

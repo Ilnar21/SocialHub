@@ -115,7 +115,7 @@ app.MapPost("/api/posts/from-suggested", async (
         return Results.Unauthorized();
     }
 
-    var result = await postService.CreateAsync(
+    var result = await postService.CreateApprovedSuggestedAsync(
         new CreatePostRequest(request.AuthorUserId, request.CommunityId, request.Title, request.Text),
         cancellationToken);
 
