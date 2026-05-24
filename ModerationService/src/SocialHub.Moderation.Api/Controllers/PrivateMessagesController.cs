@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace SocialHub.Moderation.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/private-messages")]
 public sealed class PrivateMessagesController : ControllerBase
 {

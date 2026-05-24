@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialHub.Message.Application.Abstractions;
 using SocialHub.Message.Application.Models.Dialogs;
@@ -5,6 +6,7 @@ using SocialHub.Message.Application.Models.Dialogs;
 namespace SocialHub.Message.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/dialogs")]
 public sealed class DialogsController : ControllerBase
 {

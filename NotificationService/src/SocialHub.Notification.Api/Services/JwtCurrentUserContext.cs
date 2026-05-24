@@ -1,23 +1,17 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using Microsoft.Extensions.Options;
 using SocialHub.Notification.Application.Abstractions;
 using SocialHub.Notification.Application.Exceptions;
-using SocialHub.Notification.Api.Security;
 
 namespace SocialHub.Notification.Api.Services;
 
-public sealed class HeaderCurrentUserContext : ICurrentUserContext
+public sealed class JwtCurrentUserContext : ICurrentUserContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly DevAuthOptions _devAuthOptions;
 
-    public HeaderCurrentUserContext(
-        IHttpContextAccessor httpContextAccessor,
-        IOptions<DevAuthOptions> devAuthOptions)
+    public JwtCurrentUserContext(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor;
-        _devAuthOptions = devAuthOptions.Value;
     }
 
     public Guid UserId
@@ -33,13 +27,6 @@ public sealed class HeaderCurrentUserContext : ICurrentUserContext
             if (Guid.TryParse(claimValue, out var jwtUserId))
             {
                 return jwtUserId;
-            }
-
-            if (_devAuthOptions.EnableHeaderFallback
-                && context.Request.Headers.TryGetValue("X-User-Id", out var value)
-                && Guid.TryParse(value.FirstOrDefault(), out var headerUserId))
-            {
-                return headerUserId;
             }
 
             throw AppException.Unauthorized("A valid JWT bearer token is required.");

@@ -15,10 +15,9 @@ using SocialHub.Community.Infrastructure.Persistence;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.Configure<DevAuthOptions>(builder.Configuration.GetSection(DevAuthOptions.SectionName));
 builder.Services.Configure<InternalAuthOptions>(builder.Configuration.GetSection(InternalAuthOptions.SectionName));
 builder.Services.AddScoped<InternalTokenFilter>();
-builder.Services.AddScoped<ICurrentUserContext, HeaderCurrentUserContext>();
+builder.Services.AddScoped<ICurrentUserContext, JwtCurrentUserContext>();
 builder.Services.AddScoped<ICommunityService, CommunityService>();
 builder.Services.AddInfrastructure(builder.Configuration);
 

@@ -1,8 +1,7 @@
 namespace SocialHub.Feed.Application.Abstractions;
 
 /// <summary>
-/// Контекст текущего пользователя, извлекаемый из заголовков, проставленных API Gateway.
-/// Конкретная реализация живёт в Api-слое (HeaderCurrentUserContext).
+/// Current authenticated user context resolved in the API layer from JWT claims.
 /// </summary>
 public interface ICurrentUserContext
 {

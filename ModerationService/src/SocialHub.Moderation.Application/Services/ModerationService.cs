@@ -144,6 +144,8 @@ public sealed class ModerationService : IModerationService
     {
         var role = _currentUser.PlatformRole;
         if (role is null || (!role.Equals("PLATFORM_MODERATOR", StringComparison.OrdinalIgnoreCase)
+            && !role.Equals("PLATFORMMODERATOR", StringComparison.OrdinalIgnoreCase)
+            && !role.Equals("PlatformModerator", StringComparison.OrdinalIgnoreCase)
             && !role.Equals("MODERATOR", StringComparison.OrdinalIgnoreCase)))
         {
             throw AppException.Forbidden("Platform moderator role is required.");

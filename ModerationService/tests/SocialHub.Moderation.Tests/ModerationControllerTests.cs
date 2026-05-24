@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
 using SocialHub.Moderation.Api.Controllers;
@@ -42,6 +43,27 @@ public sealed class ModerationControllerTests
         Assert.That(((ObjectResult)result).StatusCode, Is.EqualTo(403));
     }
 
+    [Test]
+    public void ReportsController_requires_jwt_and_moderator_role_for_review_actions()
+    {
+        AssertHasAuthorizeAttribute<ReportsController>();
+        AssertMethodRequiresRole<ReportsController>(nameof(ReportsController.GetReports), "PlatformModerator");
+        AssertMethodRequiresRole<ReportsController>(nameof(ReportsController.DeleteReportedPost), "PlatformModerator");
+    }
+
+    [Test]
+    public void Moderator_only_controllers_require_platform_moderator_role()
+    {
+        AssertHasAuthorizeAttribute<BlocksController>("PlatformModerator");
+        AssertHasAuthorizeAttribute<AuditController>("PlatformModerator");
+    }
+
+    [Test]
+    public void PrivateMessagesController_requires_jwt_authorization()
+    {
+        AssertHasAuthorizeAttribute<PrivateMessagesController>();
+    }
+
     private sealed class FakeModerationService : IModerationService
     {
         public Task<ReportResponse> CreateReportAsync(CreateReportRequest request, CancellationToken cancellationToken)
@@ -78,5 +100,23 @@ public sealed class ModerationControllerTests
         {
             return new ReportResponse(Guid.NewGuid(), "ivan.petrov", "POST", "post-1", "Спам", null, status, null, null, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
         }
+    }
+
+    private static void AssertHasAuthorizeAttribute<TController>(string? expectedRole = null)
+    {
+        var authorize = Attribute.GetCustomAttribute(typeof(TController), typeof(AuthorizeAttribute)) as AuthorizeAttribute;
+
+        Assert.That(authorize, Is.Not.Null);
+        Assert.That(authorize!.Roles, Is.EqualTo(expectedRole));
+    }
+
+    private static void AssertMethodRequiresRole<TController>(string methodName, string expectedRole)
+    {
+        var method = typeof(TController).GetMethod(methodName)
+            ?? throw new InvalidOperationException($"Method {methodName} was not found.");
+        var authorize = Attribute.GetCustomAttribute(method, typeof(AuthorizeAttribute)) as AuthorizeAttribute;
+
+        Assert.That(authorize, Is.Not.Null);
+        Assert.That(authorize!.Roles, Is.EqualTo(expectedRole));
     }
 }

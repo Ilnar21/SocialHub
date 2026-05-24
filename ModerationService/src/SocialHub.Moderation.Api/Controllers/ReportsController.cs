@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialHub.Moderation.Application.Abstractions;
 using SocialHub.Moderation.Application.Models.Reports;
@@ -5,6 +6,7 @@ using SocialHub.Moderation.Application.Models.Reports;
 namespace SocialHub.Moderation.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/reports")]
 public sealed class ReportsController : ControllerBase
 {
@@ -23,12 +25,14 @@ public sealed class ReportsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "PlatformModerator")]
     public async Task<ActionResult<IReadOnlyCollection<ReportResponse>>> GetReports([FromQuery] string? status, CancellationToken cancellationToken)
     {
         return Ok(await _moderationService.GetReportsAsync(status, cancellationToken));
     }
 
     [HttpPost("{reportId:guid}/resolve/delete-post")]
+    [Authorize(Roles = "PlatformModerator")]
     public async Task<ActionResult<ReportResponse>> DeleteReportedPost(
         Guid reportId,
         ResolveReportRequest request,

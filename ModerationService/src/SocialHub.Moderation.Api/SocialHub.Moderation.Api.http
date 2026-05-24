@@ -1,6 +1,7 @@
 @host = http://localhost:5003
 @ivan = 11111111-1111-1111-1111-111111111111
-@moderator = 33333333-3333-3333-3333-333333333333
+@userToken = paste-user-jwt-here
+@moderatorToken = paste-platform-moderator-jwt-here
 @post = 44444444-4444-4444-4444-444444444444
 
 GET {{host}}/health
@@ -8,7 +9,7 @@ GET {{host}}/health
 ###
 
 POST {{host}}/api/reports
-X-User-Id: {{ivan}}
+Authorization: Bearer {{userToken}}
 Content-Type: application/json
 
 {
@@ -21,14 +22,12 @@ Content-Type: application/json
 ###
 
 GET {{host}}/api/reports?status=NEW
-X-User-Id: {{moderator}}
-X-User-Role: PLATFORM_MODERATOR
+Authorization: Bearer {{moderatorToken}}
 
 ###
 
 POST {{host}}/api/users/{{ivan}}/blocks
-X-User-Id: {{moderator}}
-X-User-Role: PLATFORM_MODERATOR
+Authorization: Bearer {{moderatorToken}}
 Content-Type: application/json
 
 {

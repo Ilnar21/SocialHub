@@ -1,23 +1,17 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using Microsoft.Extensions.Options;
 using SocialHub.Community.Application.Abstractions;
 using SocialHub.Community.Application.Exceptions;
-using SocialHub.Community.Api.Security;
 
 namespace SocialHub.Community.Api.Services;
 
-public sealed class HeaderCurrentUserContext : ICurrentUserContext
+public sealed class JwtCurrentUserContext : ICurrentUserContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly DevAuthOptions _devAuthOptions;
 
-    public HeaderCurrentUserContext(
-        IHttpContextAccessor httpContextAccessor,
-        IOptions<DevAuthOptions> devAuthOptions)
+    public JwtCurrentUserContext(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor;
-        _devAuthOptions = devAuthOptions.Value;
     }
 
     public Guid UserId
@@ -35,13 +29,6 @@ public sealed class HeaderCurrentUserContext : ICurrentUserContext
                 return jwtUserId;
             }
 
-            if (_devAuthOptions.EnableHeaderFallback
-                && context.Request.Headers.TryGetValue("X-User-Id", out var value)
-                && Guid.TryParse(value.FirstOrDefault(), out var headerUserId))
-            {
-                return headerUserId;
-            }
-
             throw AppException.Unauthorized("A valid JWT bearer token is required.");
         }
     }
@@ -57,10 +44,7 @@ public sealed class HeaderCurrentUserContext : ICurrentUserContext
                 return role;
             }
 
-            return _devAuthOptions.EnableHeaderFallback
-                && context?.Request.Headers.TryGetValue("X-User-Role", out var value) == true
-                ? value.FirstOrDefault()
-                : null;
+            return null;
         }
     }
 }

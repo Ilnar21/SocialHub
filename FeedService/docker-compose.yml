@@ -19,6 +19,9 @@ services:
       Services__PostServiceUrl: http://post-service:8080
       Services__TimeoutSeconds: "4"
       Services__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
+      Jwt__Issuer: ${JWT_ISSUER:-SocialHub.AuthService}
+      Jwt__Audience: ${JWT_AUDIENCE:-SocialHub.Client}
+      Jwt__Secret: ${JWT_SECRET:-local-dev-jwt-secret-change-me-please-32-bytes}
     ports:
       - "5100:8080"
     depends_on:

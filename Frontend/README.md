@@ -1,51 +1,49 @@
 # SocialHub Frontend
 
-ASP.NET Core Razor Pages клиент для интеграционной ветки SocialHub.
+ASP.NET Core Razor Pages client for the integrated SocialHub stack.
 
-## Что внутри
+## What Is Inside
 
-- Razor Pages для входа, регистрации, ленты, сообществ, постов, сообщений, уведомлений, модерации и профиля.
-- Отдельные page-скрипты в `wwwroot/js/pages`, общие функции API/сессии/уведомлений в `wwwroot/js/core`.
-- Стили в `wwwroot/css/styles.css`.
-- Dev fallback заголовки `X-User-Id` и `X-User-Role` пока оставлены для сервисов, где они еще используются.
+- Razor Pages for login, registration, feed, communities, posts, messages, notifications, moderation and profile.
+- Page scripts live in `wwwroot/js/pages`.
+- Shared API, session and toast helpers live in `wwwroot/js/core`.
+- Styles live in `wwwroot/css/styles.css`.
 
-## Запуск
+## Run
 
-Через общий gateway:
+Through the shared gateway:
 
 ```bash
 docker compose up --build
 ```
 
-Открыть приложение: `http://localhost:8080`
+Application URL: `http://localhost:8080`
 
-Прямой адрес frontend-контейнера: `http://localhost:3000`. В этом режиме браузер отправляет API-запросы на `http://localhost:8080`.
+Direct frontend container URL: `http://localhost:3000`. In this mode browser API calls still go to `http://localhost:8080`.
 
-Локально без Docker:
+Local run without Docker:
 
 ```bash
 dotnet run --project Frontend/Frontend.csproj
 ```
 
-## Страницы
+## Pages
 
-- `/` - вход;
-- `/Register` - регистрация;
-- `/Feed` - персональная лента;
-- `/Communities` - сообщества;
-- `/Posts` - создание и просмотр постов;
-- `/Messages` - личные сообщения;
-- `/Notifications` - уведомления;
-- `/Moderation` - жалобы, блокировки, аудит;
-- `/Profile` - профиль пользователя.
+- `/` - login;
+- `/Register` - registration;
+- `/Feed` - personal feed;
+- `/Communities` - communities;
+- `/Posts` - create and view posts;
+- `/Messages` - private messages;
+- `/Notifications` - notifications;
+- `/Moderation` - reports, user blocks and audit;
+- `/Profile` - user profile.
 
-## API-контракты
+## API Contract
 
-Клиент работает через gateway и хранит JWT в `localStorage`. В запросы добавляются:
+The frontend stores the AuthService JWT in `localStorage` and sends it as:
 
 - `Authorization: Bearer <token>`;
-- `X-User-Id`;
-- `X-User-Role`;
 - `X-Correlation-Id`.
 
-`X-User-Id` и `X-User-Role` нужны только для текущего dev fallback. Позже их можно убрать после полного перехода сервисов на JWT.
+The client no longer sends `X-User-Id` or `X-User-Role`. User identity and role must come from JWT claims in backend services.

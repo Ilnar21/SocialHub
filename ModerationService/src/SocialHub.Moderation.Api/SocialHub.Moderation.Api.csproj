@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.17" />
     <ProjectReference Include="..\SocialHub.Moderation.Application\SocialHub.Moderation.Application.csproj" />
     <ProjectReference Include="..\SocialHub.Moderation.Infrastructure\SocialHub.Moderation.Infrastructure.csproj" />
   </ItemGroup>

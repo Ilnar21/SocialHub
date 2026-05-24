@@ -58,6 +58,7 @@ public static class DependencyInjection
                 var opts = sp.GetRequiredService<IOptions<ExternalServiceOptions>>().Value;
                 client.BaseAddress = new Uri(EnsureTrailingSlash(opts.PostServiceUrl));
                 client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
+                AddInternalToken(client, opts.InternalToken);
             })
             .AddPolicyHandler(GetRetryPolicy());
 

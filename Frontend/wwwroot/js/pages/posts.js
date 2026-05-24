@@ -13,13 +13,11 @@ document.querySelector('[data-form="create-post"]')?.addEventListener("submit", 
   event.preventDefault();
   const form = event.currentTarget;
   const button = form.querySelector('button[type="submit"]');
-  const session = getSession();
   const data = formData(form);
   const selectedCommunityId = data.communityId;
 
   await runWithButton(button, "Публикуем...", async () => {
     await api("/posts", toJson("POST", {
-      authorId: session.user.id,
       communityId: selectedCommunityId,
       title: data.title,
       text: data.text

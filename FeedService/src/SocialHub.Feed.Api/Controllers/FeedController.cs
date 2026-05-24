@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using SocialHub.Feed.Application.Abstractions;
 using SocialHub.Feed.Application.Models.Feed;
 using SocialHub.Feed.Domain.Constants;
@@ -27,6 +28,7 @@ public sealed class FeedController : ControllerBase
     /// Лента текущего пользователя, отсортированная по убыванию score.
     /// </summary>
     [HttpGet]
+    [Authorize]
     [ProducesResponseType(typeof(FeedResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<FeedResponse>> GetFeed(
@@ -36,7 +38,7 @@ public sealed class FeedController : ControllerBase
     {
         if (!_userContext.IsAuthenticated || _userContext.UserId is not { } userId)
         {
-            return Unauthorized(new { error = "X-User-Id header is required" });
+            return Unauthorized(new { error = "A valid JWT bearer token is required" });
         }
 
         var feed = await _feedService.GetFeedAsync(userId, page, limit, ct);
@@ -49,13 +51,14 @@ public sealed class FeedController : ControllerBase
     /// пройдёт мимо Redis и пересоберёт страницы из источников.
     /// </summary>
     [HttpPost("refresh")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Refresh(CancellationToken ct)
     {
         if (!_userContext.IsAuthenticated || _userContext.UserId is not { } userId)
         {
-            return Unauthorized(new { error = "X-User-Id header is required" });
+            return Unauthorized(new { error = "A valid JWT bearer token is required" });
         }
 
         await _feedService.RefreshAsync(userId, ct);

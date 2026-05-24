@@ -35,7 +35,6 @@ services:
       Jwt__Issuer: "${JWT_ISSUER:-SocialHub.AuthService}"
       Jwt__Audience: "${JWT_AUDIENCE:-SocialHub.Client}"
       Jwt__Secret: "${JWT_SECRET:-local-dev-jwt-secret-change-me-please-32-bytes}"
-      DevAuth__EnableHeaderFallback: "${DEV_AUTH_ENABLE_HEADER_FALLBACK:-false}"
       InternalAuth__RequireInternalToken: "${INTERNAL_AUTH_REQUIRE_TOKEN:-true}"
       InternalAuth__Token: "${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}"
     ports:

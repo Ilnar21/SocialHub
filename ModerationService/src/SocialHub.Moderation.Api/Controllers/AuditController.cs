@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialHub.Moderation.Application.Abstractions;
 using SocialHub.Moderation.Application.Models.Audit;
@@ -5,6 +6,7 @@ using SocialHub.Moderation.Application.Models.Audit;
 namespace SocialHub.Moderation.Api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "PlatformModerator")]
 [Route("api/audit")]
 public sealed class AuditController : ControllerBase
 {

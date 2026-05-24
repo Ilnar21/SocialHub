@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
 using SocialHub.Message.Api.Controllers;
@@ -37,6 +38,15 @@ public sealed class DialogsControllerTests
         var result = await controller.GetMessages("dialog_ivan_maria", null, null, CancellationToken.None);
 
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+    }
+
+    [Test]
+    public void DialogsController_requires_jwt_authorization()
+    {
+        var authorize = Attribute.GetCustomAttribute(typeof(DialogsController), typeof(AuthorizeAttribute)) as AuthorizeAttribute;
+
+        Assert.That(authorize, Is.Not.Null);
+        Assert.That(authorize!.Roles, Is.Null);
     }
 
     private sealed class FakeMessageService : IMessageService
