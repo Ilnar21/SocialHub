@@ -6,57 +6,58 @@
 <header class="page-header">
     <div>
         <h1>Сообщества</h1>
-        <p>Создавайте тематические клубы, вступайте в них и управляйте участниками. Лимит — до 30 сообществ на пользователя.</p>
+        <p>Найдите сообщество, вступите в него или создайте свое. Владельцы видят свои сообщества отдельным списком.</p>
     </div>
-    <button class="button secondary subtle-action" data-load-communities>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="23 4 23 10 17 10" />
-            <polyline points="1 20 1 14 7 14" />
-            <path d="M3.5 9a9 9 0 0 1 15-3.4L23 10" />
-            <path d="M20.5 15a9 9 0 0 1-15 3.4L1 14" />
-        </svg>
-        Обновить
-    </button>
+    <div class="actions no-margin">
+        <button class="button secondary subtle-action" data-load-communities>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="23 4 23 10 17 10" />
+                <polyline points="1 20 1 14 7 14" />
+                <path d="M3.5 9a9 9 0 0 1 15-3.4L23 10" />
+                <path d="M20.5 15a9 9 0 0 1-15 3.4L1 14" />
+            </svg>
+            Обновить
+        </button>
+        <button class="button primary" type="button" data-toggle-create-community>Создать</button>
+    </div>
 </header>
 
-<section class="split">
-    <div class="stack">
-        <form class="panel form-grid" data-form="create-community">
+<section class="communities-page">
+    <form class="panel create-community-panel form-grid" data-form="create-community" hidden>
+        <div class="row">
             <h2>Новое сообщество</h2>
-            <label>Название
-                <input name="name" placeholder="backend_daily" required />
-            </label>
-            <label>Описание
-                <textarea name="description" placeholder="О чем это сообщество и кому оно полезно" required></textarea>
-            </label>
-            <label>Тип
-                <select name="type">
-                    <option value="Open">Открытое · кто угодно может вступить</option>
-                    <option value="Closed">Закрытое · по приглашению</option>
-                </select>
-            </label>
-            <button class="button primary" type="submit">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <line x1="12" y1="5"  x2="12" y2="19" />
-                    <line x1="5"  y1="12" x2="19" y2="12" />
-                </svg>
-                Создать сообщество
-            </button>
-        </form>
-
-        <div class="panel">
-            <div class="row">
-                <h2>Все сообщества</h2>
-                <span class="badge" data-membership-counter>0 из 30</span>
-            </div>
-            <div class="content-list" data-communities-list></div>
+            <button class="button secondary" type="button" data-close-create-community>Закрыть</button>
         </div>
-    </div>
+        <label>Название
+            <input name="name" placeholder="backend_daily" required />
+        </label>
+        <label>Описание
+            <textarea name="description" placeholder="О чем это сообщество и кому оно полезно" required></textarea>
+        </label>
+        <label>Тип
+            <select name="type">
+                <option value="Open">Открытое · кто угодно может вступить</option>
+                <option value="Closed">Закрытое · по приглашению</option>
+            </select>
+        </label>
+        <button class="button primary" type="submit">Создать сообщество</button>
+    </form>
 
-    <aside class="panel post-detail-panel" data-community-detail>
-        <div class="empty">Выберите сообщество, чтобы увидеть участников, роль и предложенные посты.</div>
+    <section class="panel community-search-panel">
+        <div class="row">
+            <h2>Поиск</h2>
+            <span class="badge" data-membership-counter>0 из 30</span>
+        </div>
+        <label>Название или описание
+            <input data-community-search placeholder="Например: дизайн, игры, backend" />
+        </label>
+        <div class="content-list" data-communities-list></div>
+    </section>
+
+    <aside class="panel owned-communities-panel">
+        <h2>Мои сообщества</h2>
+        <div class="content-list" data-owned-communities-list></div>
     </aside>
 </section>
 
