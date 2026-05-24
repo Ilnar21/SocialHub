@@ -184,7 +184,6 @@ function renderSuggestionForm(community) {
 function renderMember(member, isAdmin) {
   const currentUserId = getSession().user?.id;
   const canRemove = isAdmin && member.userId !== currentUserId && member.role !== "Owner";
-  const canMessage = member.userId !== currentUserId;
 
   return `
     <article class="card">
@@ -195,10 +194,10 @@ function renderMember(member, isAdmin) {
       <div class="meta">
         <span>Вступил: ${formatDate(member.joinedAtUtc)}</span>
       </div>
-      <div class="actions">
-        ${canMessage ? `<a class="button secondary" href="/Messages?recipientUserId=${member.userId}">Написать сообщение</a>` : ""}
-        ${canRemove ? `<button class="button danger" data-remove-member="${member.userId}">Удалить из сообщества</button>` : ""}
-      </div>
+      ${canRemove ? `
+        <div class="actions">
+          <button class="button danger" data-remove-member="${member.userId}">Удалить из сообщества</button>
+        </div>` : ""}
     </article>`;
 }
 
