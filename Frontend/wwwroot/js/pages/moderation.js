@@ -96,7 +96,7 @@ function renderUser(user) {
       </div>
       <p>${escapeHtml(user.blockReason ?? "")}</p>
       <div class="meta">
-        <span>ID ${shortId(user.id)}</span>
+        <span>@${escapeHtml(user.username)}</span>
         <span>${escapeHtml(user.role)}</span>
         ${user.blockedUntil ? `<span>До ${formatDate(user.blockedUntil)}</span>` : ""}
       </div>

@@ -1,14 +1,16 @@
 import { api } from "../core/api.js";
-import { empty, escapeHtml, formatDate, shortId } from "../core/dom.js";
+import { empty, escapeHtml, formatDate } from "../core/dom.js";
 
 const root = document.querySelector("[data-public-profile]");
-const userId = new URLSearchParams(location.search).get("userId");
+const params = new URLSearchParams(location.search);
+const username = params.get("username");
+const userId = params.get("userId");
 
 document.querySelector("[data-back]")?.addEventListener("click", () => {
   history.length > 1 ? history.back() : location.href = "/Feed";
 });
 
-if (!userId) {
+if (!username && !userId) {
   root.innerHTML = empty("Пользователь не найден.");
 } else {
   await loadProfile();
@@ -18,7 +20,14 @@ async function loadProfile() {
   root.innerHTML = empty("Загружаем профиль...");
 
   try {
-    const user = await api(`/api/users/${userId}`);
+    const user = username
+      ? await api(`/api/users/by-username/${encodeURIComponent(username)}`)
+      : await api(`/api/users/${userId}`);
+
+    if (!username && user.username) {
+      history.replaceState(null, "", `/UserProfile?username=${encodeURIComponent(user.username)}`);
+    }
+
     renderProfile(user);
   } catch (error) {
     root.innerHTML = empty(error.message);
@@ -39,7 +48,6 @@ function renderProfile(user) {
         <p class="muted">@${escapeHtml(user.username)}</p>
         <p>${escapeHtml(user.profile?.bio || "Описание пока не заполнено.")}</p>
         <div class="meta">
-          <span>ID ${shortId(user.id)}</span>
           <span>${escapeHtml(user.role)}</span>
           <span>${escapeHtml(user.status)}</span>
           <span>С нами: ${formatDate(user.createdAt)}</span>

@@ -1,6 +1,6 @@
 import { api, toJson } from "../core/api.js";
-import { empty, escapeHtml, formData, formatDate, shortId } from "../core/dom.js";
-import { preloadUsers, userDisplayName } from "../core/identity.js";
+import { empty, escapeHtml, formData, formatDate } from "../core/dom.js";
+import { preloadUsers, userDisplayName, userProfileHref } from "../core/identity.js";
 import { getSession } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
@@ -24,7 +24,7 @@ async function loadPage() {
 
   try {
     post = await api(`/posts/${postId}`);
-    await preloadUsers([post.authorId]);
+    await preloadUsers([post.authorId, ...getComments(post.id).map((comment) => comment.authorId)]);
     [community, communityPosts] = await Promise.all([
       api(`/api/communities/${post.communityId}`),
       api(`/communities/${post.communityId}/posts`)
@@ -47,8 +47,8 @@ function renderPost() {
     <article class="post-page-card">
       <div class="post-card-meta">
         <span class="community-mark">${communityInitial()}</span>
-        <strong>${escapeHtml(community?.name ?? shortId(post.communityId))}</strong>
-        <a href="/UserProfile?userId=${post.authorId}">Автор: ${escapeHtml(userDisplayName(post.authorId))}</a>
+        ${renderCommunityLink()}
+        ${renderAuthorLink(post.authorId)}
         <span>${formatDate(post.createdAt)}</span>
       </div>
 
@@ -85,7 +85,7 @@ function renderCommunity() {
   communityRoot.innerHTML = `
     <section class="panel community-about">
       <div class="community-avatar">${communityInitial()}</div>
-      <h2>${escapeHtml(community?.name ?? "Сообщество")}</h2>
+      <h2>${renderCommunityLink()}</h2>
       <p>${escapeHtml(community?.description || "Описание пока не заполнено.")}</p>
       <div class="community-stats">
         <span><strong>${communityPosts.length}</strong> постов</span>
@@ -142,11 +142,15 @@ function renderMediaItem(currentPostId, item) {
 function renderComment(comment) {
   const currentUserId = getSession().user?.id;
   const canMessage = comment.authorId && comment.authorId !== currentUserId;
+  const authorName = comment.authorId ? userDisplayName(comment.authorId) : comment.author || "Пользователь";
+  const authorHref = comment.authorId ? userProfileHref(comment.authorId) : "";
 
   return `
     <article class="comment">
       <div class="row">
-        <strong>${escapeHtml(comment.author)}</strong>
+        ${authorHref
+          ? `<a class="comment-author" href="${escapeHtml(authorHref)}"><strong>${escapeHtml(authorName)}</strong></a>`
+          : `<strong>${escapeHtml(authorName)}</strong>`}
         ${canMessage ? `<a class="button secondary" href="/Messages?recipientUserId=${comment.authorId}">Написать сообщение</a>` : ""}
       </div>
       <p>${escapeHtml(comment.text)}</p>
@@ -164,11 +168,28 @@ function bindPostActions() {
     const form = event.currentTarget;
     const data = formData(form);
     addComment(form.dataset.postId, data.text);
+    await preloadUsers([getSession().user?.id]);
     form.reset();
     toast("Комментарий добавлен.");
     renderPost();
     bindPostActions();
   });
+}
+
+function renderCommunityLink() {
+  if (!community?.id) {
+    return `<strong>${escapeHtml(community?.name ?? "Сообщество")}</strong>`;
+  }
+
+  return `<a class="community-inline-link" href="/CommunityDetails?communityId=${community.id}">${escapeHtml(community.name)}</a>`;
+}
+
+function renderAuthorLink(userId) {
+  const href = userProfileHref(userId);
+  const label = `Автор: ${userDisplayName(userId)}`;
+  return href
+    ? `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`
+    : `<span>${escapeHtml(label)}</span>`;
 }
 
 function bindCommunityActions() {

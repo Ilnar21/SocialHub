@@ -1,6 +1,6 @@
 import { api, toJson } from "../core/api.js";
-import { empty, escapeHtml, formData, formatDate, shortId } from "../core/dom.js";
-import { preloadUsers, userDisplayName } from "../core/identity.js";
+import { empty, escapeHtml, formData, formatDate } from "../core/dom.js";
+import { preloadUsers, userDisplayName, userProfileHref } from "../core/identity.js";
 import { getSession, isPlatformModerator } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
@@ -90,7 +90,10 @@ async function loadPosts() {
   list.innerHTML = empty("Загружаем посты...");
   try {
     const posts = await api(`/communities/${communityId}/posts`);
-    await preloadUsers(posts.map((post) => post.authorId));
+    await preloadUsers([
+      ...posts.map((post) => post.authorId),
+      ...posts.flatMap((post) => getComments(post.id).map((comment) => comment.authorId))
+    ]);
     list.innerHTML = posts.length
       ? posts.map(renderPost).join("")
       : empty("В этом сообществе пока нет постов. Опубликуйте первый.");
@@ -116,9 +119,8 @@ function renderPost(post) {
       ${renderVoteControls(post)}
       <p>${escapeHtml(post.text ?? "")}</p>
       <div class="meta">
-        <span>ID ${shortId(post.id)}</span>
-        <span>Сообщество: ${escapeHtml(community?.name ?? shortId(post.communityId))}</span>
-        <a href="/UserProfile?userId=${post.authorId}">Автор: ${escapeHtml(userDisplayName(post.authorId))}</a>
+        <a href="/CommunityDetails?communityId=${post.communityId}">Сообщество: ${escapeHtml(community?.name ?? "Сообщество")}</a>
+        ${renderAuthorLink(post.authorId)}
         <span>${formatDate(post.createdAt)}</span>
         ${post.updatedAt ? `<span>Изменен: ${formatDate(post.updatedAt)}</span>` : ""}
       </div>
@@ -197,11 +199,15 @@ function renderEditForm(post) {
 function renderComment(comment) {
   const currentUserId = getSession().user?.id;
   const canMessage = comment.authorId && comment.authorId !== currentUserId;
+  const authorName = comment.authorId ? userDisplayName(comment.authorId) : comment.author || "Пользователь";
+  const authorHref = comment.authorId ? userProfileHref(comment.authorId) : "";
 
   return `
     <article class="comment">
       <div class="row">
-        <strong>${escapeHtml(comment.author)}</strong>
+        ${authorHref
+          ? `<a class="comment-author" href="${escapeHtml(authorHref)}"><strong>${escapeHtml(authorName)}</strong></a>`
+          : `<strong>${escapeHtml(authorName)}</strong>`}
         ${canMessage ? `<a class="button secondary" href="/Messages?recipientUserId=${comment.authorId}">Написать сообщение</a>` : ""}
       </div>
       <p>${escapeHtml(comment.text)}</p>
@@ -301,12 +307,22 @@ function readJson(key, fallback) {
 }
 
 async function votePost(button) {
+  const scrollY = window.scrollY;
   await runWithButton(button, "...", async () => {
     await api(`/posts/${button.dataset.votePost}/vote`, toJson("POST", {
       value: Number(button.dataset.voteValue)
     }));
     await loadPosts();
+    requestAnimationFrame(() => window.scrollTo(0, scrollY));
   });
+}
+
+function renderAuthorLink(userId) {
+  const href = userProfileHref(userId);
+  const label = `Автор: ${userDisplayName(userId)}`;
+  return href
+    ? `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`
+    : `<span>${escapeHtml(label)}</span>`;
 }
 
 async function filesToMedia(fileList) {

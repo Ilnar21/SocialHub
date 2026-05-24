@@ -1,5 +1,4 @@
 import { api } from "./api.js";
-import { shortId } from "./dom.js";
 
 const userCache = new Map();
 
@@ -16,5 +15,14 @@ export async function preloadUsers(userIds) {
 
 export function userDisplayName(userId) {
   const user = userCache.get(userId);
-  return user?.profile?.displayName || user?.username || `Пользователь ${shortId(userId)}`;
+  return user?.profile?.displayName || user?.username || "Пользователь";
+}
+
+export function userUsername(userId) {
+  return userCache.get(userId)?.username || "";
+}
+
+export function userProfileHref(userId) {
+  const username = userUsername(userId);
+  return username ? `/UserProfile?username=${encodeURIComponent(username)}` : "";
 }

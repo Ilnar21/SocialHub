@@ -59,7 +59,7 @@ function renderProfile(user) {
     <h2>${escapeHtml(user.profile?.displayName || user.username)}</h2>
     <p>${escapeHtml(user.profile?.bio || "Описание пока не заполнено.")}</p>
     <div class="meta">
-      <span>ID ${escapeHtml(user.id)}</span>
+      <span>@${escapeHtml(user.username)}</span>
       <span>${escapeHtml(user.email)}</span>
       <span>${escapeHtml(user.role)}</span>
       <span>${escapeHtml(user.status)}</span>

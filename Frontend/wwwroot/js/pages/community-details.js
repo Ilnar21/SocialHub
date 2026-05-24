@@ -1,6 +1,6 @@
 import { api, toJson } from "../core/api.js";
-import { empty, escapeHtml, formData, formatDate, shortId } from "../core/dom.js";
-import { preloadUsers, userDisplayName } from "../core/identity.js";
+import { empty, escapeHtml, formData, formatDate } from "../core/dom.js";
+import { preloadUsers, userDisplayName, userProfileHref } from "../core/identity.js";
 import { getSession } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
@@ -130,7 +130,7 @@ function renderPost(post) {
       <div class="post-card-meta">
         <span class="community-mark">${communityInitial()}</span>
         <strong>${escapeHtml(community.name)}</strong>
-        <a href="/UserProfile?userId=${post.authorId}">Автор: ${escapeHtml(userDisplayName(post.authorId))}</a>
+        ${renderAuthorLink(post.authorId)}
         <span>${formatDate(post.createdAt)}</span>
       </div>
       <a class="community-post-title" href="/PostDetails?postId=${post.id}">${escapeHtml(post.title)}</a>
@@ -155,7 +155,7 @@ function renderSuggestedPost(post) {
       <div class="post-card-meta">
         <span class="community-mark">${communityInitial()}</span>
         <strong>${escapeHtml(community.name)}</strong>
-        <a href="/UserProfile?userId=${post.authorUserId}">Автор: ${escapeHtml(userDisplayName(post.authorUserId))}</a>
+        ${renderAuthorLink(post.authorUserId)}
         <span>${formatDate(post.createdAtUtc)}</span>
       </div>
       <h2>${escapeHtml(post.title)}</h2>
@@ -179,7 +179,7 @@ function renderMember(member) {
 
   return `
     <article class="member-row-card">
-      <a href="/UserProfile?userId=${member.userId}">
+      <a href="${escapeHtml(userProfileHref(member.userId) || "#")}">
         <span class="community-logo">${userInitial(member.userId)}</span>
         <strong>${escapeHtml(userDisplayName(member.userId))}</strong>
       </a>
@@ -329,6 +329,14 @@ function communityInitial() {
 
 function userInitial(userId) {
   return userDisplayName(userId).trim().slice(0, 1).toUpperCase() || "U";
+}
+
+function renderAuthorLink(userId) {
+  const href = userProfileHref(userId);
+  const label = `Автор: ${userDisplayName(userId)}`;
+  return href
+    ? `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`
+    : `<span>${escapeHtml(label)}</span>`;
 }
 
 function typeLabel(type) {

@@ -1,5 +1,5 @@
 import { api, toJson } from "../core/api.js";
-import { empty, escapeHtml, formData, shortId } from "../core/dom.js";
+import { empty, escapeHtml, formData } from "../core/dom.js";
 import { toast } from "../core/toast.js";
 
 const list = document.querySelector("[data-communities-list]");
