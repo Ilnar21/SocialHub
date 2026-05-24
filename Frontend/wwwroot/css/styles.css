@@ -964,6 +964,51 @@ select {
 .comment-form input { padding: 10px 12px; }
 .comment-form .button { min-height: 38px; }
 
+.report-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid rgba(255, 86, 48, .22);
+  border-radius: var(--r-md);
+  background: rgba(255, 86, 48, .04);
+}
+
+.report-panel h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.report-panel .report-fields {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.report-panel label {
+  gap: 6px;
+  font-size: 11px;
+}
+
+.report-panel select,
+.report-panel textarea {
+  min-height: 40px;
+  padding: 9px 10px;
+}
+
+.report-panel textarea {
+  resize: vertical;
+}
+
+.report-panel .button {
+  justify-self: end;
+  min-height: 36px;
+  padding: 8px 16px;
+}
+
 /* ---------- 18. Profile ---------- */
 .profile-summary { min-height: 220px; }
 .profile-summary h2 {
@@ -1084,6 +1129,8 @@ select {
   }
   .row > h2, .row > strong { order: -1; }
   .comment-form { grid-template-columns: 1fr; }
+  .report-panel .report-fields { grid-template-columns: 1fr; }
+  .report-panel .button { justify-self: stretch; }
   .button { font-size: 12px; padding: 7px 12px; min-height: 36px; }
   .toast-root { right: 14px; bottom: 14px; left: 14px; }
   .toast { width: 100%; }

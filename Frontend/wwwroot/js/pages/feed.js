@@ -119,22 +119,6 @@ function renderPostDetail(post) {
         <span>${formatDate(post.createdAt ?? post.createdAtUtc)}</span>
       </div>
 
-      <form class="panel form-grid" data-form="report-post" data-post-id="${postId}">
-        <h2>Пожаловаться</h2>
-        <label>Причина
-          <select name="reason" required>
-            <option value="Спам">Спам</option>
-            <option value="Оскорбления">Оскорбления</option>
-            <option value="Нарушение правил">Нарушение правил</option>
-            <option value="Другое">Другое</option>
-          </select>
-        </label>
-        <label>Комментарий
-          <textarea name="comment" placeholder="Массовая реклама без смысла"></textarea>
-        </label>
-        <button class="button danger" type="submit">Отправить жалобу</button>
-      </form>
-
       <section class="comments">
         <div class="row comments-title">
           <strong>Комментарии</strong>
@@ -148,6 +132,24 @@ function renderPostDetail(post) {
           <button class="button secondary" type="submit">Отправить</button>
         </form>
       </section>
+
+      <form class="report-panel form-grid" data-form="report-post" data-post-id="${postId}">
+        <h3>Пожаловаться</h3>
+        <div class="report-fields">
+          <label>Причина
+            <select name="reason" required>
+              <option value="Спам">Спам</option>
+              <option value="Оскорбления">Оскорбления</option>
+              <option value="Нарушение правил">Нарушение правил</option>
+              <option value="Другое">Другое</option>
+            </select>
+          </label>
+          <label>Комментарий
+            <textarea name="comment" rows="2" placeholder="Кратко опишите проблему"></textarea>
+          </label>
+        </div>
+        <button class="button danger" type="submit">Отправить жалобу</button>
+      </form>
     </article>`;
 }
 
