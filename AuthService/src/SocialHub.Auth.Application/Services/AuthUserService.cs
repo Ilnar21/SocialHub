@@ -145,6 +145,39 @@ public sealed class AuthUserService(
         return ServiceResult<UserResponse>.Success(user.ToResponse());
     }
 
+    public async Task<ServiceResult<UserResponse>> SetStatusAsync(Guid userId, SetUserStatusRequest request, CancellationToken cancellationToken)
+    {
+        var user = await users.FindByIdAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return ServiceResult<UserResponse>.Failure("user_not_found", "User was not found.");
+        }
+
+        var status = request.Status.Trim().ToUpperInvariant();
+        switch (status)
+        {
+            case "ACTIVE":
+                user.Status = UserStatus.Active;
+                user.BlockReason = null;
+                user.BlockedUntil = null;
+                break;
+
+            case "BLOCKED":
+                user.Status = UserStatus.Blocked;
+                user.BlockReason = NormalizeOptional(request.Reason) ?? "Blocked by moderation.";
+                user.BlockedUntil = request.ExpiresAtUtc;
+                break;
+
+            default:
+                return ServiceResult<UserResponse>.Failure("validation_error", "Unknown user status.");
+        }
+
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return ServiceResult<UserResponse>.Success(user.ToResponse());
+    }
+
     public async Task<ServiceResult<UserResponse>> ResolvePrincipalAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
         var account = await ResolveAccountAsync(principal, cancellationToken);

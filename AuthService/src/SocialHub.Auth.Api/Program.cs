@@ -5,6 +5,7 @@ using SocialHub.Auth.Infrastructure;
 using SocialHub.Auth.Infrastructure.Persistence;
 using SocialHub.Auth.Infrastructure.Security;
 using SocialHub.Auth.Api.Presentation.Endpoints;
+using SocialHub.Auth.Api.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
@@ -24,6 +25,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
+
+builder.Services.Configure<InternalAuthOptions>(builder.Configuration.GetSection(InternalAuthOptions.SectionName));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

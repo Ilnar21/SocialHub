@@ -15,6 +15,8 @@ public sealed record UpdateProfileRequest(string? DisplayName, string? Bio, stri
 
 public sealed record BlockUserRequest(string Reason, DateTimeOffset? BlockedUntil);
 
+public sealed record SetUserStatusRequest(string Status, string? Reason, DateTimeOffset? ExpiresAtUtc);
+
 public sealed record UserResponse(
     Guid Id,
     string Username,

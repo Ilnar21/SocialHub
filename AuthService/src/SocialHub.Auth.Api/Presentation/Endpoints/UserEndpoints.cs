@@ -4,7 +4,11 @@ using SocialHub.Auth.Application.Mapping;
 using SocialHub.Auth.Application.Services;
 using SocialHub.Auth.Domain.Enums;
 using SocialHub.Auth.Api.Presentation.Http;
+using SocialHub.Auth.Api.Security;
+using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
 using System.Security.Claims;
+using System.Text;
 
 namespace SocialHub.Auth.Api.Presentation.Endpoints;
 
@@ -67,6 +71,41 @@ public static class UserEndpoints
             return result.ToHttpResult();
         }).RequireAuthorization("PlatformModeratorOnly");
 
+        users.MapPost("/{id:guid}/status", async (
+            Guid id,
+            SetUserStatusRequest request,
+            HttpContext httpContext,
+            IOptions<InternalAuthOptions> internalAuth,
+            AuthUserService service,
+            CancellationToken cancellationToken) =>
+        {
+            if (!HasValidInternalToken(httpContext, internalAuth.Value))
+            {
+                return Results.Unauthorized();
+            }
+
+            var result = await service.SetStatusAsync(id, request, cancellationToken);
+            return result.ToHttpResult();
+        });
+
         return users;
+    }
+
+    private static bool HasValidInternalToken(HttpContext httpContext, InternalAuthOptions options)
+    {
+        if (!options.RequireInternalToken)
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(options.Token)
+            || !httpContext.Request.Headers.TryGetValue("X-Internal-Token", out var providedTokens))
+        {
+            return false;
+        }
+
+        var expected = Encoding.UTF8.GetBytes(options.Token);
+        return providedTokens.Any(provided =>
+            CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(provided), expected));
     }
 }

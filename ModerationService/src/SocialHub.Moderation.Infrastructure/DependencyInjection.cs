@@ -19,8 +19,16 @@ public static class DependencyInjection
         services.AddScoped<IModerationStorageHealthCheck, PostgresHealthCheck>();
         services.AddHostedService<DatabaseInitializer>();
 
-        services.AddHttpClient("post", client => ConfigureBaseAddress(client, configuration["ExternalServices:PostBaseUrl"]));
-        services.AddHttpClient("auth", client => ConfigureBaseAddress(client, configuration["ExternalServices:AuthBaseUrl"]));
+        services.AddHttpClient("post", client =>
+        {
+            ConfigureBaseAddress(client, configuration["ExternalServices:PostBaseUrl"]);
+            AddInternalToken(client, configuration["ExternalServices:InternalToken"]);
+        });
+        services.AddHttpClient("auth", client =>
+        {
+            ConfigureBaseAddress(client, configuration["ExternalServices:AuthBaseUrl"]);
+            AddInternalToken(client, configuration["ExternalServices:InternalToken"]);
+        });
         services.AddHttpClient("notifications", client =>
         {
             ConfigureBaseAddress(client, configuration["ExternalServices:NotificationBaseUrl"]);
