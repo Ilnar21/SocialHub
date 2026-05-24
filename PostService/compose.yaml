@@ -18,11 +18,11 @@ services:
       CommunityService__BaseUrl: ${COMMUNITY_SERVICE_BASE_URL:-http://community-service:8080}
       CommunityService__SkipMembershipCheck: ${COMMUNITY_SERVICE_SKIP_MEMBERSHIP_CHECK:-true}
       CommunityService__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
-      ConnectionStrings__Postgres: Host=${POSTGRES_HOST};Port=${POSTGRES_CONTAINER_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Postgres: Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_CONTAINER_PORT:-5432};Database=${POSTGRES_DB:-socialhub_posts};Username=${POSTGRES_USER:-socialhub};Password=${POSTGRES_PASSWORD:-local_post_password}
       Minio__Endpoint: http://${MINIO_HOST:-minio}:${MINIO_API_PORT:-9000}
-      Minio__AccessKey: ${MINIO_ROOT_USER}
-      Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
-      Minio__BucketName: ${MINIO_BUCKET}
+      Minio__AccessKey: ${MINIO_ROOT_USER:-local_minio_user}
+      Minio__SecretKey: ${MINIO_ROOT_PASSWORD:-local_minio_password}
+      Minio__BucketName: ${MINIO_BUCKET:-post-contents}
     ports:
       - "${POST_SERVICE_PORT:-8082}:8080"
     depends_on:
@@ -34,16 +34,16 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-socialhub_posts}
+      POSTGRES_USER: ${POSTGRES_USER:-socialhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_post_password}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-socialhub} -d ${POSTGRES_DB:-socialhub_posts}"]
       interval: 5s
       timeout: 5s
       retries: 10
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT:-5434}:5432"
     volumes:
       - post-postgres-data:/var/lib/postgresql/data
 
@@ -51,16 +51,16 @@ services:
     image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-local_minio_user}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-local_minio_password}
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/ready || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 10
     ports:
-      - "${MINIO_PORT}:9000"
-      - "${MINIO_CONSOLE_PORT}:9001"
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - post-minio-data:/data
 

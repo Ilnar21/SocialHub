@@ -2,11 +2,25 @@ using SocialHub.Post.Domain;
 
 namespace SocialHub.Post.Application.Posts;
 
-public sealed record CreatePostRequest(Guid AuthorId, Guid CommunityId, string Title, string Text);
+public sealed record CreatePostRequest(
+    Guid AuthorId,
+    Guid CommunityId,
+    string Title,
+    string Text,
+    IReadOnlyCollection<PostMediaUploadRequest>? Media = null);
 
 public sealed record UpdatePostRequest(Guid ActorId, string? Title, string Text);
 
 public sealed record DeletePostRequest(Guid ActorId);
+
+public sealed record PostMediaUploadRequest(string FileName, string ContentType, string Base64Content);
+
+public sealed record PostMediaResponse(
+    Guid Id,
+    string FileName,
+    string ContentType,
+    long Size,
+    string ObjectKey);
 
 public sealed record PostResponse(
     Guid Id,
@@ -16,7 +30,8 @@ public sealed record PostResponse(
     string Text,
     PostStatus Status,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt);
+    DateTimeOffset? UpdatedAt,
+    IReadOnlyCollection<PostMediaResponse> Media);
 
 public sealed record OperationResult<T>(bool Succeeded, T? Value, string? Error, int StatusCode)
 {

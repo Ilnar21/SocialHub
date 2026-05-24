@@ -1,8 +1,13 @@
 using System;
+using Amazon.S3;
+using Amazon.S3.Model;
 using SocialHub.Post.Application;
 using SocialHub.Post.Application.Posts;
 using SocialHub.Post.Infrastructure;
+using SocialHub.Post.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Npgsql;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,12 +22,28 @@ builder.Services.AddPostInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
-app.MapGet("/health", () => Results.Ok(new
+app.MapGet("/health", async (
+    NpgsqlDataSource dataSource,
+    IAmazonS3 s3,
+    IOptions<MinioOptions> minioOptions,
+    CancellationToken cancellationToken) =>
 {
-    service = "SocialHub.Post.Api",
-    status = "Healthy",
-    utcNow = DateTimeOffset.UtcNow
-}));
+    var postgresHealthy = await CheckPostgresAsync(dataSource, cancellationToken);
+    var minioHealthy = await CheckMinioAsync(s3, minioOptions.Value.BucketName, cancellationToken);
+    var healthy = postgresHealthy && minioHealthy;
+
+    return Results.Json(new
+    {
+        service = "SocialHub.Post.Api",
+        status = healthy ? "Healthy" : "Degraded",
+        dependencies = new
+        {
+            postgres = postgresHealthy ? "Healthy" : "Unhealthy",
+            minio = minioHealthy ? "Healthy" : "Unhealthy"
+        },
+        utcNow = DateTimeOffset.UtcNow
+    }, statusCode: healthy ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable);
+});
 
 app.MapPost("/posts", async (
     CreatePostRequest request,
@@ -108,16 +129,14 @@ app.MapDelete("/posts/{postId:guid}", async (
     return ToHttpResult(result);
 });
 
-app.MapPost("/api/posts/{postId:guid}/moderation-delete", (
+app.MapPost("/api/posts/{postId:guid}/moderation-delete", async (
     Guid postId,
-    [FromBody] ModerationDeleteRequest request) =>
+    [FromBody] ModerationDeleteRequest request,
+    PostService postService,
+    CancellationToken cancellationToken) =>
 {
-    return Results.Accepted($"/posts/{postId}", new
-    {
-        postId,
-        request.Reason,
-        moderationAccepted = true
-    });
+    var result = await postService.DeleteByModeratorAsync(postId, cancellationToken);
+    return ToHttpResult(result);
 });
 
 app.Run();
@@ -154,6 +173,38 @@ static PostSnapshot ToSnapshot(PostResponse post)
         Likes: 0,
         Comments: 0,
         post.CreatedAt);
+}
+
+static async Task<bool> CheckPostgresAsync(NpgsqlDataSource dataSource, CancellationToken cancellationToken)
+{
+    try
+    {
+        await using var command = dataSource.CreateCommand("select 1");
+        await command.ExecuteScalarAsync(cancellationToken);
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+static async Task<bool> CheckMinioAsync(IAmazonS3 s3, string bucketName, CancellationToken cancellationToken)
+{
+    try
+    {
+        await s3.ListObjectsV2Async(new ListObjectsV2Request
+        {
+            BucketName = bucketName,
+            MaxKeys = 1
+        }, cancellationToken);
+
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
 }
 
 public sealed record PublishSuggestedPostRequest(
