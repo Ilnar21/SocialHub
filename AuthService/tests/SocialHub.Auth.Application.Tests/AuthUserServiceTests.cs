@@ -116,6 +116,7 @@ public sealed class AuthUserServiceTests
     {
         var blocked = NewUser(passwordHash: "hashed:Password123!");
         blocked.Status = UserStatus.Blocked;
+        blocked.BlockReason = "policy";
         blocked.BlockedUntil = DateTimeOffset.UtcNow.AddHours(1);
         var audit = new FakeLoginAuditRepository();
 
@@ -125,8 +126,9 @@ public sealed class AuthUserServiceTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal("account_blocked", result.ErrorCode);
+        Assert.Contains("policy", result.ErrorMessage);
         Assert.False(audit.Entries.Single().Succeeded);
-        Assert.Equal("Account is blocked", audit.Entries.Single().Reason);
+        Assert.Equal(result.ErrorMessage, audit.Entries.Single().Reason);
     }
 
     [Fact]

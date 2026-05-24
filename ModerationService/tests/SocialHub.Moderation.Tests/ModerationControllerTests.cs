@@ -33,6 +33,16 @@ public sealed class ModerationControllerTests
     }
 
     [Test]
+    public async Task UnblockUser_returns_no_content_response()
+    {
+        var controller = new BlocksController(new FakeModerationService());
+
+        var result = await controller.UnblockUser("ivan.petrov", CancellationToken.None);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
     public void PrivateMessages_endpoint_is_forbidden()
     {
         var controller = new PrivateMessagesController();
@@ -84,6 +94,11 @@ public sealed class ModerationControllerTests
         public Task<BlockResponse> BlockUserAsync(string userId, BlockUserRequest request, CancellationToken cancellationToken)
         {
             return Task.FromResult(new BlockResponse(Guid.NewGuid(), userId, "pavel.mod", request.Reason, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(request.DurationDays)));
+        }
+
+        public Task<AuditResponse> UnblockUserAsync(string userId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new AuditResponse(Guid.NewGuid(), "pavel.mod", "PLATFORM_MODERATOR", "USER_UNBLOCKED", "USER", userId, null, "User unblocked by platform moderator.", DateTimeOffset.UtcNow));
         }
 
         public Task<AuditResponse> CreateAuditAsync(CreateAuditRequest request, CancellationToken cancellationToken)

@@ -63,6 +63,20 @@ public sealed class ModerationServiceTests
     }
 
     [Test]
+    public async Task UnblockUserAsync_writes_audit_and_sets_user_active()
+    {
+        var repository = new InMemoryModerationRepository();
+        var external = new FakeExternalClient();
+        var service = CreateService(repository, "pavel.mod", "PLATFORM_MODERATOR", external);
+
+        var response = await service.UnblockUserAsync("ivan.petrov", CancellationToken.None);
+
+        Assert.That(response.Action, Is.EqualTo("USER_UNBLOCKED"));
+        Assert.That(repository.AuditLogs.Single().TargetId, Is.EqualTo("ivan.petrov"));
+        Assert.That(external.SetActiveCalls, Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task External_service_failures_are_saved_without_breaking_action()
     {
         var repository = new InMemoryModerationRepository();
@@ -179,8 +193,16 @@ public sealed class ModerationServiceTests
 
         public FakeExternalClient(bool fail = false) => _fail = fail;
 
+        public int SetActiveCalls { get; private set; }
+
         public Task<SideEffectResult> DeletePostAsync(string postId, string reason, CancellationToken cancellationToken) => Result("post", $"/api/posts/{postId}/moderation-delete");
         public Task<SideEffectResult> SetUserBlockedAsync(UserBlock block, CancellationToken cancellationToken) => Result("auth", $"/api/users/{block.BlockedUserId}/status");
+        public Task<SideEffectResult> SetUserActiveAsync(string userId, CancellationToken cancellationToken)
+        {
+            SetActiveCalls++;
+            return Result("auth", $"/api/users/{userId}/status");
+        }
+
         public Task<SideEffectResult> NotifyPostDeletedAsync(string postId, string reason, CancellationToken cancellationToken) => Result("notifications", "/api/notifications");
         public Task<SideEffectResult> NotifyUserBlockedAsync(UserBlock block, CancellationToken cancellationToken) => Result("notifications", "/api/notifications");
 
