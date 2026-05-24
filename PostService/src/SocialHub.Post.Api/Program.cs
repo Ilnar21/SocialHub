@@ -163,6 +163,18 @@ app.MapGet("/posts/{postId:guid}", async (
     return ToHttpResult(result);
 });
 
+app.MapGet("/posts/{postId:guid}/media/{mediaId:guid}", async (
+    Guid postId,
+    Guid mediaId,
+    PostService postService,
+    CancellationToken cancellationToken) =>
+{
+    var result = await postService.GetMediaAsync(postId, mediaId, cancellationToken);
+    return result.Succeeded && result.Value is not null
+        ? Results.File(result.Value.Content, result.Value.ContentType, result.Value.FileName)
+        : ToHttpResult(result);
+});
+
 app.MapGet("/communities/{communityId:guid}/posts", async (
     Guid communityId,
     PostService postService,

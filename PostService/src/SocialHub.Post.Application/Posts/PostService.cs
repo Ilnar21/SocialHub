@@ -112,6 +112,30 @@ public sealed class PostService
             : OperationResult<PostResponse>.Ok(post);
     }
 
+    public async Task<OperationResult<PostMediaDownloadResponse>> GetMediaAsync(
+        Guid postId,
+        Guid mediaId,
+        CancellationToken cancellationToken)
+    {
+        var metadata = await _metadataRepository.GetByIdAsync(postId, cancellationToken);
+        if (metadata is null || metadata.Status == PostStatus.Deleted)
+        {
+            return OperationResult<PostMediaDownloadResponse>.Fail("Post not found.", 404);
+        }
+
+        var media = await _mediaRepository.GetByIdAsync(mediaId, cancellationToken);
+        if (media is null || media.PostId != postId)
+        {
+            return OperationResult<PostMediaDownloadResponse>.Fail("Media not found.", 404);
+        }
+
+        var content = await _mediaStorage.ReadAsync(media.ObjectKey, cancellationToken);
+        return OperationResult<PostMediaDownloadResponse>.Ok(new PostMediaDownloadResponse(
+            media.FileName,
+            media.ContentType,
+            content));
+    }
+
     public async Task<IReadOnlyCollection<PostResponse>> ListByCommunityAsync(
         Guid communityId,
         CancellationToken cancellationToken)

@@ -8,4 +8,5 @@ public sealed record CommunitySummaryResponse(
     string Description,
     CommunityType Type,
     DateTime CreatedAtUtc,
-    int MembersCount);
+    int MembersCount,
+    CommunityMemberRole? CurrentUserRole = null);

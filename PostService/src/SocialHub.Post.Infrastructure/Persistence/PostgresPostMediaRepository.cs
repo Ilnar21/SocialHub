@@ -6,6 +6,33 @@ namespace SocialHub.Post.Infrastructure.Persistence;
 
 public sealed class PostgresPostMediaRepository(NpgsqlDataSource dataSource) : IPostMediaRepository
 {
+    public async Task<PostMedia?> GetByIdAsync(Guid mediaId, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            select id, post_id, object_key, file_name, content_type, size_bytes, created_at
+            from post_media
+            where id = @id
+            """;
+
+        await using var command = dataSource.CreateCommand(sql);
+        command.Parameters.AddWithValue("id", mediaId);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            return null;
+        }
+
+        return new PostMedia(
+            reader.GetGuid(0),
+            reader.GetGuid(1),
+            reader.GetString(2),
+            reader.GetString(3),
+            reader.GetString(4),
+            reader.GetInt64(5),
+            reader.GetFieldValue<DateTimeOffset>(6));
+    }
+
     public async Task<IReadOnlyCollection<PostMedia>> ListByPostIdAsync(Guid postId, CancellationToken cancellationToken)
     {
         const string sql = """

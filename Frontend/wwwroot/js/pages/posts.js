@@ -1,5 +1,6 @@
 import { api, toJson } from "../core/api.js";
 import { empty, escapeHtml, formData, formatDate, shortId } from "../core/dom.js";
+import { preloadUsers, userDisplayName } from "../core/identity.js";
 import { getSession, isPlatformModerator } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
@@ -9,6 +10,7 @@ const formHint = document.querySelector("[data-post-form-hint]");
 const list = document.querySelector("[data-posts-list]");
 
 let communities = [];
+let allMyCommunities = [];
 
 document.querySelector("[data-load-posts]")?.addEventListener("click", loadPosts);
 communitySelect?.addEventListener("change", loadPosts);
@@ -21,15 +23,17 @@ document.querySelector('[data-form="create-post"]')?.addEventListener("submit", 
   const selectedCommunityId = data.communityId;
 
   if (!selectedCommunityId) {
-    toast("Сначала вступите в сообщество.", "error");
+    toast("Прямую публикацию можно сделать только в своем сообществе.", "error");
     return;
   }
 
   await runWithButton(button, "Публикуем...", async () => {
+    const media = await filesToMedia(form.media?.files);
     await api("/posts", toJson("POST", {
       communityId: selectedCommunityId,
       title: data.title,
-      text: data.text
+      text: data.text,
+      media
     }));
 
     form.reset();
@@ -44,14 +48,17 @@ await loadPosts();
 
 async function loadCommunities() {
   try {
-    communities = await api("/api/communities/my");
+    allMyCommunities = await api("/api/communities/my");
+    communities = allMyCommunities.filter((community) => communityRole(community) === "Owner");
     const preset = new URLSearchParams(location.search).get("communityId");
 
     if (!communities.length) {
-      communitySelect.innerHTML = '<option value="">Нет сообществ для публикации</option>';
+      communitySelect.innerHTML = '<option value="">Нет сообществ, где вы владелец</option>';
       communitySelect.disabled = true;
       submitPostButton.disabled = true;
-      formHint.textContent = "Вступите в сообщество на странице «Сообщества», чтобы создать пост.";
+      formHint.textContent = allMyCommunities.length
+        ? "Вы можете предложить пост на странице «Сообщества». Прямая публикация доступна только владельцу."
+        : "Создайте свое сообщество или вступите в существующее, чтобы предложить пост владельцу.";
       return;
     }
 
@@ -83,6 +90,7 @@ async function loadPosts() {
   list.innerHTML = empty("Загружаем посты...");
   try {
     const posts = await api(`/communities/${communityId}/posts`);
+    await preloadUsers(posts.map((post) => post.authorId));
     list.innerHTML = posts.length
       ? posts.map(renderPost).join("")
       : empty("В этом сообществе пока нет постов. Опубликуйте первый.");
@@ -109,11 +117,11 @@ function renderPost(post) {
       <div class="meta">
         <span>ID ${shortId(post.id)}</span>
         <span>Сообщество: ${escapeHtml(community?.name ?? shortId(post.communityId))}</span>
-        <span>Автор ${shortId(post.authorId)}</span>
+        <span>Автор: ${escapeHtml(userDisplayName(post.authorId))}</span>
         <span>${formatDate(post.createdAt)}</span>
         ${post.updatedAt ? `<span>Изменен: ${formatDate(post.updatedAt)}</span>` : ""}
       </div>
-      ${renderMedia(post.media)}
+      ${renderMedia(post.id, post.media)}
       ${isAuthor ? renderEditForm(post) : ""}
       <section class="comments">
         <div class="row comments-title">
@@ -135,13 +143,25 @@ function renderPost(post) {
     </article>`;
 }
 
-function renderMedia(media = []) {
+function renderMedia(postId, media = []) {
   if (!media.length) return "";
 
   return `
-    <div class="meta">
-      ${media.map((item) => `<span>Медиа: ${escapeHtml(item.fileName)} · ${Math.ceil((item.size ?? 0) / 1024)} KB</span>`).join("")}
+    <div class="media-grid">
+      ${media.map((item) => renderMediaItem(postId, item)).join("")}
     </div>`;
+}
+
+function renderMediaItem(postId, item) {
+  const mediaUrl = `/posts/${postId}/media/${item.id}`;
+  if ((item.contentType || "").startsWith("image/")) {
+    return `<figure class="media-item"><img src="${mediaUrl}" alt="${escapeHtml(item.fileName)}" loading="lazy" /></figure>`;
+  }
+
+  return `
+    <a class="media-file" href="${mediaUrl}" target="_blank" rel="noreferrer">
+      ${escapeHtml(item.fileName)} · ${Math.ceil((item.size ?? 0) / 1024)} KB
+    </a>`;
 }
 
 function renderEditForm(post) {
@@ -258,6 +278,42 @@ function readJson(key, fallback) {
   } catch {
     return fallback;
   }
+}
+
+async function filesToMedia(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return [];
+  if (files.length > 10) {
+    throw new Error("В один пост можно добавить не больше 10 файлов.");
+  }
+
+  return await Promise.all(files.map(async (file) => {
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error(`Файл ${file.name} больше 10 MB.`);
+    }
+
+    return {
+      fileName: file.name,
+      contentType: file.type || "application/octet-stream",
+      base64Content: await readFileAsBase64(file)
+    };
+  }));
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      const value = String(reader.result || "");
+      resolve(value.includes(",") ? value.split(",").pop() : value);
+    });
+    reader.addEventListener("error", () => reject(new Error(`Не удалось прочитать файл ${file.name}.`)));
+    reader.readAsDataURL(file);
+  });
+}
+
+function communityRole(community) {
+  return community.currentUserRole ?? community.currentUserMembership?.role ?? community.role;
 }
 
 async function runWithButton(button, pendingText, action) {

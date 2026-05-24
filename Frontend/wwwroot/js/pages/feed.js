@@ -1,11 +1,13 @@
 import { api, toJson } from "../core/api.js";
 import { empty, escapeHtml, formatDate, formData, shortId } from "../core/dom.js";
+import { preloadUsers, userDisplayName } from "../core/identity.js";
 import { getSession } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
 const list = document.querySelector("[data-feed-list]");
 const detail = document.querySelector("[data-post-detail]");
 const feedItems = new Map();
+const communityNames = new Map();
 let selectedPostId = "";
 
 document.querySelector("[data-refresh-feed]")?.addEventListener("click", async (event) => {
@@ -21,8 +23,12 @@ loadFeed();
 async function loadFeed() {
   list.innerHTML = empty("Загружаем ленту...");
   try {
-    const response = await api("/feed?page=1&limit=20");
+    const [response] = await Promise.all([
+      api("/feed?page=1&limit=20"),
+      loadCommunityNames()
+    ]);
     const items = response.items ?? response.posts ?? [];
+    await preloadUsers(items.map((item) => item.authorId));
     feedItems.clear();
     for (const item of items) {
       feedItems.set(getPostId(item), item);
@@ -54,7 +60,8 @@ function renderFeedCard(post) {
       <p>${escapeHtml(post.previewText ?? post.text ?? "")}</p>
       <div class="meta">
         <span>Пост ${shortId(postId)}</span>
-        <span>Сообщество ${shortId(post.communityId)}</span>
+        <span>Сообщество: ${escapeHtml(communityName(post.communityId))}</span>
+        <span>Автор: ${escapeHtml(userDisplayName(post.authorId))}</span>
         <span>${formatDate(post.createdAt ?? post.createdAtUtc)}</span>
       </div>
       <div class="actions">
@@ -84,6 +91,7 @@ async function openPost(postId) {
 
   try {
     const post = await api(`/posts/${postId}`);
+    await preloadUsers([post.authorId]);
     detail.innerHTML = renderPostDetail(post);
   } catch {
     const snapshot = feedItems.get(postId);
@@ -114,10 +122,11 @@ function renderPostDetail(post) {
       <p class="post-detail-text">${escapeHtml(post.text ?? post.previewText ?? "")}</p>
       <div class="meta">
         <span>Пост ${shortId(postId)}</span>
-        <span>Сообщество ${shortId(post.communityId)}</span>
-        <span>Автор ${shortId(post.authorId)}</span>
+        <span>Сообщество: ${escapeHtml(communityName(post.communityId))}</span>
+        <span>Автор: ${escapeHtml(userDisplayName(post.authorId))}</span>
         <span>${formatDate(post.createdAt ?? post.createdAtUtc)}</span>
       </div>
+      ${renderMedia(postId, post.media)}
 
       <section class="comments">
         <div class="row comments-title">
@@ -196,6 +205,39 @@ function renderComment(comment) {
       <p>${escapeHtml(comment.text)}</p>
       <small>${formatDate(comment.createdAt)}</small>
     </article>`;
+}
+
+function renderMedia(postId, media = []) {
+  if (!media.length) return "";
+
+  return `
+    <div class="media-grid">
+      ${media.map((item) => renderMediaItem(postId, item)).join("")}
+    </div>`;
+}
+
+function renderMediaItem(postId, item) {
+  const mediaUrl = `/posts/${postId}/media/${item.id}`;
+  if ((item.contentType || "").startsWith("image/")) {
+    return `<figure class="media-item"><img src="${mediaUrl}" alt="${escapeHtml(item.fileName)}" loading="lazy" /></figure>`;
+  }
+
+  return `
+    <a class="media-file" href="${mediaUrl}" target="_blank" rel="noreferrer">
+      ${escapeHtml(item.fileName)} · ${Math.ceil((item.size ?? 0) / 1024)} KB
+    </a>`;
+}
+
+async function loadCommunityNames() {
+  if (communityNames.size) return;
+  const communities = await api("/api/communities");
+  for (const community of communities) {
+    communityNames.set(community.id, community.name);
+  }
+}
+
+function communityName(communityId) {
+  return communityNames.get(communityId) || shortId(communityId);
 }
 
 function getPostId(post) {

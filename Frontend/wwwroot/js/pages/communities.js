@@ -1,6 +1,7 @@
 import { api, toJson } from "../core/api.js";
 import { getSession } from "../core/session.js";
 import { empty, escapeHtml, formatDate, formData, shortId } from "../core/dom.js";
+import { preloadUsers, userDisplayName } from "../core/identity.js";
 import { toast } from "../core/toast.js";
 
 const list = document.querySelector("[data-communities-list]");
@@ -62,9 +63,10 @@ async function loadCommunities(options = {}) {
 function renderCommunity(community) {
   const membership = findMembership(community.id);
   const isMember = Boolean(membership);
-  const role = membership?.currentUserMembership?.role ?? membership?.role;
+  const role = membershipRole(membership);
   const canLeave = isMember && role !== "Owner";
   const isActive = selectedCommunityId === community.id;
+  const canPublishDirectly = role === "Owner";
 
   return `
     <article class="card ${isActive ? "active-card" : ""}" data-community-card="${community.id}">
@@ -83,7 +85,7 @@ function renderCommunity(community) {
         ${isMember
           ? `<button class="button secondary" data-leave="${community.id}" ${canLeave ? "" : "disabled"}>${canLeave ? "Покинуть" : "Владелец"}</button>`
           : `<button class="button primary" data-join="${community.id}">Вступить</button>`}
-        ${isMember ? `<a class="button secondary" href="/Posts?communityId=${community.id}">Создать пост</a>` : ""}
+        ${canPublishDirectly ? `<a class="button secondary" href="/Posts?communityId=${community.id}">Опубликовать пост</a>` : ""}
       </div>
     </article>`;
 }
@@ -112,11 +114,15 @@ async function openCommunity(id) {
     const members = community.currentUserMembership
       ? await api(`/api/communities/${id}/members`)
       : [];
-    const isAdmin = hasAdminRole(community.currentUserMembership?.role);
-    const suggestedPosts = isAdmin
+    const isOwner = isOwnerRole(community.currentUserMembership?.role);
+    const suggestedPosts = isOwner
       ? await api(`/api/communities/${id}/suggested-posts?status=Pending`)
       : [];
 
+    await preloadUsers([
+      ...members.map((member) => member.userId),
+      ...suggestedPosts.map((post) => post.authorUserId)
+    ]);
     detail.innerHTML = renderDetail(community, members, suggestedPosts);
     bindDetailActions(community);
   } catch (error) {
@@ -128,6 +134,7 @@ function renderDetail(community, members, suggestedPosts) {
   const membership = community.currentUserMembership;
   const isMember = Boolean(membership);
   const isAdmin = hasAdminRole(membership?.role);
+  const isOwner = isOwnerRole(membership?.role);
 
   return `
     <div class="post-detail">
@@ -156,7 +163,7 @@ function renderDetail(community, members, suggestedPosts) {
         ${members.length ? members.map((member) => renderMember(member, isAdmin)).join("") : empty("Список участников доступен после вступления.")}
       </section>
 
-      ${isAdmin ? `
+      ${isOwner ? `
         <section class="stack">
           <div class="row">
             <h2>Предложенные посты</h2>
@@ -188,7 +195,7 @@ function renderMember(member, isAdmin) {
   return `
     <article class="card">
       <div class="row">
-        <strong>Пользователь ${shortId(member.userId)}</strong>
+        <strong>${escapeHtml(userDisplayName(member.userId))}</strong>
         <span class="badge">${roleLabel(member.role)}</span>
       </div>
       <div class="meta">
@@ -210,7 +217,7 @@ function renderSuggestedPost(post) {
       </div>
       <p>${escapeHtml(post.text)}</p>
       <div class="meta">
-        <span>Автор ${shortId(post.authorUserId)}</span>
+        <span>Автор: ${escapeHtml(userDisplayName(post.authorUserId))}</span>
         <span>${formatDate(post.createdAtUtc)}</span>
       </div>
       <div class="actions">
@@ -282,6 +289,14 @@ function findMembership(communityId) {
 
 function hasAdminRole(role) {
   return role === "Owner" || role === "Admin";
+}
+
+function isOwnerRole(role) {
+  return role === "Owner";
+}
+
+function membershipRole(membership) {
+  return membership?.currentUserMembership?.role ?? membership?.currentUserRole ?? membership?.role;
 }
 
 function roleLabel(role) {

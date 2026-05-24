@@ -62,6 +62,7 @@ public sealed class CommunityServiceTests
 
         Assert.Single(response);
         Assert.Equal("Joined", response[0].Name);
+        Assert.Equal(CommunityMemberRole.Member, response[0].CurrentUserRole);
     }
 
     [Fact]

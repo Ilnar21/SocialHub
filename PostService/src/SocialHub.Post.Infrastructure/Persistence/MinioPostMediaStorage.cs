@@ -23,6 +23,15 @@ public sealed class MinioPostMediaStorage(IAmazonS3 s3, IOptions<MinioOptions> o
         return new StoredPostMedia(objectKey, upload.Content.LongLength);
     }
 
+    public async Task<byte[]> ReadAsync(string objectKey, CancellationToken cancellationToken)
+    {
+        using var response = await s3.GetObjectAsync(options.Value.BucketName, objectKey, cancellationToken);
+        await using var responseStream = response.ResponseStream;
+        using var memory = new MemoryStream();
+        await responseStream.CopyToAsync(memory, cancellationToken);
+        return memory.ToArray();
+    }
+
     private static string Sanitize(string fileName)
     {
         var name = Path.GetFileName(fileName.Trim());

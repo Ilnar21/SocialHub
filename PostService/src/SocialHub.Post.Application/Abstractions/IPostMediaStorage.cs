@@ -3,6 +3,8 @@ namespace SocialHub.Post.Application.Abstractions;
 public interface IPostMediaStorage
 {
     Task<StoredPostMedia> SaveAsync(PostMediaUpload upload, CancellationToken cancellationToken);
+
+    Task<byte[]> ReadAsync(string objectKey, CancellationToken cancellationToken);
 }
 
 public sealed record PostMediaUpload(

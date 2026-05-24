@@ -1,4 +1,5 @@
 import { clearSession, getSession, hasRole } from "./core/session.js";
+import { escapeHtml } from "./core/dom.js";
 
 const session = getSession();
 const userName = document.querySelector("[data-user-name]");
@@ -17,7 +18,10 @@ if (userName && userRole) {
 }
 
 if (userAvatar) {
-  userAvatar.textContent = displayName.trim().slice(0, 1).toUpperCase() || "U";
+  const avatarUrl = session.user?.profile?.avatarUrl;
+  userAvatar.innerHTML = avatarUrl
+    ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}" />`
+    : displayName.trim().slice(0, 1).toUpperCase() || "U";
 }
 
 for (const link of document.querySelectorAll("[data-role-link]")) {

@@ -34,17 +34,21 @@ public sealed class CommunityService : ICommunityService
         var communities = await _repository.GetCommunitiesAsync(cancellationToken);
         return communities
             .OrderBy(c => c.Name)
-            .Select(ToSummary)
+            .Select(c => ToSummary(c))
             .ToList();
     }
 
     public async Task<List<CommunitySummaryResponse>> GetCurrentUserCommunitiesAsync(CancellationToken cancellationToken)
     {
         var communities = await _repository.GetCommunitiesByUserAsync(_currentUser.UserId, cancellationToken);
-        return communities
-            .OrderBy(c => c.Name)
-            .Select(ToSummary)
-            .ToList();
+        var response = new List<CommunitySummaryResponse>();
+        foreach (var community in communities.OrderBy(c => c.Name))
+        {
+            var currentMembership = await _repository.GetMemberAsync(community.Id, _currentUser.UserId, cancellationToken);
+            response.Add(ToSummary(community, currentMembership));
+        }
+
+        return response;
     }
 
     public async Task<CommunityDetailsResponse> GetCommunityAsync(Guid communityId, CancellationToken cancellationToken)
@@ -344,7 +348,9 @@ public sealed class CommunityService : ICommunityService
             currentMembership is null ? null : ToMemberResponse(currentMembership));
     }
 
-    private static CommunitySummaryResponse ToSummary(Community.Domain.Entities.Community community)
+    private static CommunitySummaryResponse ToSummary(
+        Community.Domain.Entities.Community community,
+        CommunityMember? currentMembership = null)
     {
         return new CommunitySummaryResponse(
             community.Id,
@@ -352,7 +358,8 @@ public sealed class CommunityService : ICommunityService
             community.Description,
             community.Type,
             community.CreatedAtUtc,
-            community.Members.Count);
+            community.Members.Count,
+            currentMembership?.Role);
     }
 
     private static MemberResponse ToMemberResponse(CommunityMember member)

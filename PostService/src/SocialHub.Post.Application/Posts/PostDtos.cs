@@ -22,6 +22,11 @@ public sealed record PostMediaResponse(
     long Size,
     string ObjectKey);
 
+public sealed record PostMediaDownloadResponse(
+    string FileName,
+    string ContentType,
+    byte[] Content);
+
 public sealed record PostResponse(
     Guid Id,
     Guid AuthorId,

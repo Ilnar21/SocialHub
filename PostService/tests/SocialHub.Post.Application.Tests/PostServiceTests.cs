@@ -200,6 +200,48 @@ public sealed class PostServiceTests
     }
 
     [Fact]
+    public async Task GetMedia_returns_file_for_published_post()
+    {
+        var authorId = Guid.NewGuid();
+        var communityId = Guid.NewGuid();
+        var metadata = new InMemoryMetadataRepository();
+        var content = new InMemoryContentRepository();
+        var media = new InMemoryMediaRepository();
+        var storage = new FakeMediaStorage();
+        var published = PostMetadata.Create(authorId, communityId, "Published", DateTimeOffset.UtcNow);
+        var photo = NewMedia(published.Id, "posts/published/photo.jpg");
+        await metadata.AddAsync(published, CancellationToken.None);
+        await content.SaveAsync(new PostContent(published.Id, "Text", DateTimeOffset.UtcNow), CancellationToken.None);
+        await media.AddRangeAsync([photo], CancellationToken.None);
+        storage.Files[photo.ObjectKey] = Encoding.UTF8.GetBytes("image-bytes");
+        var service = CreateService(metadata: metadata, content: content, media: media, storage: storage);
+
+        var result = await service.GetMediaAsync(published.Id, photo.Id, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("photo.jpg", result.Value!.FileName);
+        Assert.Equal("image/jpeg", result.Value.ContentType);
+        Assert.Equal("image-bytes", Encoding.UTF8.GetString(result.Value.Content));
+    }
+
+    [Fact]
+    public async Task GetMedia_rejects_media_from_another_post()
+    {
+        var first = await SeedPostAsync(Guid.NewGuid());
+        var second = await SeedPostAsync(Guid.NewGuid());
+        var media = new InMemoryMediaRepository();
+        var storage = new FakeMediaStorage();
+        var photo = NewMedia(second.PostId, "posts/second/photo.jpg");
+        await media.AddRangeAsync([photo], CancellationToken.None);
+        var service = CreateService(metadata: first.Metadata, content: first.Content, media: media, storage: storage);
+
+        var result = await service.GetMediaAsync(first.PostId, photo.Id, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(404, result.StatusCode);
+    }
+
+    [Fact]
     public async Task Delete_marks_post_deleted_for_author_and_hides_it_from_get()
     {
         var authorId = Guid.NewGuid();
@@ -318,6 +360,9 @@ public sealed class PostServiceTests
     {
         public List<PostMedia> Items { get; } = [];
 
+        public Task<PostMedia?> GetByIdAsync(Guid mediaId, CancellationToken cancellationToken) =>
+            Task.FromResult(Items.FirstOrDefault(media => media.Id == mediaId));
+
         public Task<IReadOnlyCollection<PostMedia>> ListByPostIdAsync(Guid postId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyCollection<PostMedia>>(Items.Where(media => media.PostId == postId).ToArray());
 
@@ -331,12 +376,18 @@ public sealed class PostServiceTests
     private sealed class FakeMediaStorage : IPostMediaStorage
     {
         public List<PostMediaUpload> Uploads { get; } = [];
+        public Dictionary<string, byte[]> Files { get; } = [];
 
         public Task<StoredPostMedia> SaveAsync(PostMediaUpload upload, CancellationToken cancellationToken)
         {
             Uploads.Add(upload);
-            return Task.FromResult(new StoredPostMedia($"posts/{upload.PostId:N}/{upload.FileName}", upload.Content.LongLength));
+            var objectKey = $"posts/{upload.PostId:N}/{upload.FileName}";
+            Files[objectKey] = upload.Content;
+            return Task.FromResult(new StoredPostMedia(objectKey, upload.Content.LongLength));
         }
+
+        public Task<byte[]> ReadAsync(string objectKey, CancellationToken cancellationToken) =>
+            Task.FromResult(Files[objectKey]);
     }
 
     private sealed class FakeCommunityAccessClient(bool isMember, bool isOwner) : ICommunityAccessClient
