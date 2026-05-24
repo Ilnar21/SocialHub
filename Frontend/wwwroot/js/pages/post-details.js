@@ -48,7 +48,7 @@ function renderPost() {
       <div class="post-card-meta">
         <span class="community-mark">${communityInitial()}</span>
         <strong>${escapeHtml(community?.name ?? shortId(post.communityId))}</strong>
-        <span>Автор: ${escapeHtml(userDisplayName(post.authorId))}</span>
+        <a href="/UserProfile?userId=${post.authorId}">Автор: ${escapeHtml(userDisplayName(post.authorId))}</a>
         <span>${formatDate(post.createdAt)}</span>
       </div>
 

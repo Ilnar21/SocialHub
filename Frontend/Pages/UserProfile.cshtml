@@ -1,0 +1,16 @@
+@page "/UserProfile"
+@{
+    ViewData["Title"] = "Профиль пользователя";
+}
+
+<header class="page-header compact-header">
+    <div>
+        <button class="button secondary" type="button" data-back>Назад</button>
+    </div>
+</header>
+
+<section class="public-profile" data-public-profile></section>
+
+@section Scripts {
+    <script type="module" src="~/js/pages/user-profile.js" asp-append-version="true"></script>
+}

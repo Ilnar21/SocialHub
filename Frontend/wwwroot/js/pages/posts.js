@@ -118,7 +118,7 @@ function renderPost(post) {
       <div class="meta">
         <span>ID ${shortId(post.id)}</span>
         <span>Сообщество: ${escapeHtml(community?.name ?? shortId(post.communityId))}</span>
-        <span>Автор: ${escapeHtml(userDisplayName(post.authorId))}</span>
+        <a href="/UserProfile?userId=${post.authorId}">Автор: ${escapeHtml(userDisplayName(post.authorId))}</a>
         <span>${formatDate(post.createdAt)}</span>
         ${post.updatedAt ? `<span>Изменен: ${formatDate(post.updatedAt)}</span>` : ""}
       </div>

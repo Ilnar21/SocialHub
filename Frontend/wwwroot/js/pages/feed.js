@@ -66,7 +66,7 @@ function renderFeedPost(post) {
         <div class="post-card-meta">
           <span class="community-mark">${communityInitial(post.communityId)}</span>
           <strong>${escapeHtml(communityName(post.communityId))}</strong>
-          <span>Автор: ${escapeHtml(userDisplayName(post.authorId))}</span>
+          <a href="/UserProfile?userId=${post.authorId}">Автор: ${escapeHtml(userDisplayName(post.authorId))}</a>
           <span>${formatDate(post.createdAt ?? post.createdAtUtc)}</span>
         </div>
         <h2>${escapeHtml(post.title)}</h2>

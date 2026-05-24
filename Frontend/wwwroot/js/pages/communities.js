@@ -14,7 +14,7 @@ let myCommunities = [];
 document.querySelector("[data-load-communities]")?.addEventListener("click", () => loadCommunities());
 document.querySelector("[data-toggle-create-community]")?.addEventListener("click", () => {
   createForm.hidden = !createForm.hidden;
-  if (!createForm.hidden) createForm.name.focus();
+  if (!createForm.hidden) createForm.elements.name.focus();
 });
 document.querySelector("[data-close-create-community]")?.addEventListener("click", () => {
   createForm.hidden = true;
