@@ -11,7 +11,7 @@ let selectedPostId = "";
 document.querySelector("[data-refresh-feed]")?.addEventListener("click", async (event) => {
   await runWithButton(event.currentTarget, "Обновляем...", async () => {
     await api("/feed/refresh", toJson("POST", {}));
-    toast("Лента синхронизирована");
+    toast("Лента синхронизирована.");
     await loadFeed();
   });
 });
@@ -28,7 +28,9 @@ async function loadFeed() {
       feedItems.set(getPostId(item), item);
     }
 
-    list.innerHTML = items.length ? items.map(renderFeedCard).join("") : empty("Подпишитесь на сообщества, чтобы увидеть ленту.");
+    list.innerHTML = items.length
+      ? items.map(renderFeedCard).join("")
+      : empty("Подпишитесь на сообщества, чтобы увидеть ленту.");
     bindFeedActions();
 
     if (selectedPostId && feedItems.has(selectedPostId)) {
@@ -57,7 +59,7 @@ function renderFeedCard(post) {
       </div>
       <div class="actions">
         <button class="button secondary" data-open-post="${postId}">Открыть</button>
-        <button class="button danger" data-report-post="${postId}">Пожаловаться</button>
+        <button class="button danger" data-report-card="${postId}">Пожаловаться</button>
       </div>
     </article>`;
 }
@@ -67,9 +69,10 @@ function bindFeedActions() {
     button.addEventListener("click", () => openPost(button.dataset.openPost));
   }
 
-  for (const button of document.querySelectorAll("[data-report-post]")) {
+  for (const button of document.querySelectorAll("[data-report-card]")) {
     button.addEventListener("click", async () => {
-      await reportPost(button, button.dataset.reportPost);
+      await openPost(button.dataset.reportCard);
+      detail.querySelector("[name='reason']")?.focus();
     });
   }
 }
@@ -106,7 +109,7 @@ function renderPostDetail(post) {
     <article class="post-detail">
       <div class="row">
         <h2>${escapeHtml(post.title)}</h2>
-        <span class="badge">${escapeHtml(post.status ?? "Published")}</span>
+        <span class="badge success">${escapeHtml(post.status ?? "Published")}</span>
       </div>
       <p class="post-detail-text">${escapeHtml(post.text ?? post.previewText ?? "")}</p>
       <div class="meta">
@@ -115,9 +118,23 @@ function renderPostDetail(post) {
         <span>Автор ${shortId(post.authorId)}</span>
         <span>${formatDate(post.createdAt ?? post.createdAtUtc)}</span>
       </div>
-      <div class="actions">
-        <button class="button danger" data-detail-report="${postId}">Пожаловаться</button>
-      </div>
+
+      <form class="panel form-grid" data-form="report-post" data-post-id="${postId}">
+        <h2>Пожаловаться</h2>
+        <label>Причина
+          <select name="reason" required>
+            <option value="Спам">Спам</option>
+            <option value="Оскорбления">Оскорбления</option>
+            <option value="Нарушение правил">Нарушение правил</option>
+            <option value="Другое">Другое</option>
+          </select>
+        </label>
+        <label>Комментарий
+          <textarea name="comment" placeholder="Массовая реклама без смысла"></textarea>
+        </label>
+        <button class="button danger" type="submit">Отправить жалобу</button>
+      </form>
+
       <section class="comments">
         <div class="row comments-title">
           <strong>Комментарии</strong>
@@ -127,7 +144,7 @@ function renderPostDetail(post) {
           ${comments.length ? comments.map(renderComment).join("") : '<p class="muted">Комментариев пока нет.</p>'}
         </div>
         <form class="comment-form" data-form="feed-comment" data-post-id="${postId}">
-          <input name="text" placeholder="Добавить комментарий" required />
+          <input name="text" maxlength="1000" placeholder="Добавить комментарий" required />
           <button class="button secondary" type="submit">Отправить</button>
         </form>
       </section>
@@ -135,8 +152,22 @@ function renderPostDetail(post) {
 }
 
 function bindDetailActions() {
-  detail.querySelector("[data-detail-report]")?.addEventListener("click", async (event) => {
-    await reportPost(event.currentTarget, event.currentTarget.dataset.detailReport);
+  detail.querySelector('[data-form="report-post"]')?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    const data = formData(form);
+
+    await runWithButton(button, "Отправляем...", async () => {
+      await api("/api/reports", toJson("POST", {
+        targetType: "POST",
+        targetId: form.dataset.postId,
+        reason: data.reason,
+        comment: data.comment
+      }));
+      form.reset();
+      toast("Жалоба отправлена.");
+    });
   });
 
   detail.querySelector('[data-form="feed-comment"]')?.addEventListener("submit", async (event) => {
@@ -145,20 +176,8 @@ function bindDetailActions() {
     const data = formData(form);
     addComment(form.dataset.postId, data.text);
     form.reset();
-    toast("Комментарий добавлен");
+    toast("Комментарий добавлен.");
     await openPost(form.dataset.postId);
-  });
-}
-
-async function reportPost(button, postId) {
-  await runWithButton(button, "Отправляем...", async () => {
-    await api("/api/reports", toJson("POST", {
-      targetType: "POST",
-      targetId: postId,
-      reason: "Спам",
-      comment: "Жалоба из ленты"
-    }));
-    toast("Жалоба отправлена");
   });
 }
 
