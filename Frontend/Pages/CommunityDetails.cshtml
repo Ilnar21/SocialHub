@@ -1,0 +1,16 @@
+@page "/CommunityDetails"
+@{
+    ViewData["Title"] = "Сообщество";
+}
+
+<header class="page-header compact-header">
+    <div>
+        <a class="button secondary" href="/Communities">Назад к сообществам</a>
+    </div>
+</header>
+
+<section class="community-page" data-community-page></section>
+
+@section Scripts {
+    <script type="module" src="~/js/pages/community-details.js" asp-append-version="true"></script>
+}

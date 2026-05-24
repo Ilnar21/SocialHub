@@ -1439,6 +1439,96 @@ select {
   font-size: 18px;
 }
 
+.community-page {
+  display: grid;
+  gap: 16px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.community-hero {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.community-hero h1 {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 500;
+}
+
+.community-hero p {
+  margin: 8px 0 0;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+
+.community-hero-action {
+  justify-self: end;
+}
+
+.community-suggest-form {
+  max-width: 720px;
+}
+
+.community-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.community-center {
+  display: grid;
+  gap: 12px;
+}
+
+.community-post-card,
+.suggested-review-card {
+  display: grid;
+  gap: 12px;
+}
+
+.community-post-title {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.18;
+  font-weight: 500;
+}
+
+.community-post-title:hover {
+  color: var(--brand-hi);
+}
+
+.member-row-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 12px;
+  background: var(--surface);
+}
+
+.member-row-card > a {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.member-row-card strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .profile-summary h2 {
   font-size: 26px;
   line-height: 1.15;
@@ -1537,6 +1627,15 @@ select {
     gap: 12px;
   }
   .page-header h1 { font-size: 30px; }
+  .community-hero {
+    grid-template-columns: 1fr;
+  }
+  .community-hero-action {
+    justify-self: stretch;
+  }
+  .community-hero-action .button {
+    width: 100%;
+  }
 
   .auth-hero { grid-template-columns: 1fr; }
   .auth-hero > div:first-child {
@@ -1566,6 +1665,7 @@ select {
   .comment-form { grid-template-columns: 1fr; }
   .community-result-card { grid-template-columns: 1fr; }
   .community-result-meta { justify-content: flex-start; }
+  .member-row-card { grid-template-columns: 1fr; }
   .report-panel .report-fields { grid-template-columns: 1fr; }
   .report-panel .button { justify-self: stretch; }
   .button { font-size: 12px; padding: 7px 12px; min-height: 36px; }
