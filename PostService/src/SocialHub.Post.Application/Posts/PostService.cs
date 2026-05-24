@@ -13,6 +13,7 @@ public sealed class PostService
     private readonly IPostContentRepository _contentRepository;
     private readonly IPostMediaRepository _mediaRepository;
     private readonly IPostMediaStorage _mediaStorage;
+    private readonly IPostVoteRepository _voteRepository;
     private readonly ICommunityAccessClient _communityAccessClient;
     private readonly IClock _clock;
 
@@ -21,6 +22,7 @@ public sealed class PostService
         IPostContentRepository contentRepository,
         IPostMediaRepository mediaRepository,
         IPostMediaStorage mediaStorage,
+        IPostVoteRepository voteRepository,
         ICommunityAccessClient communityAccessClient,
         IClock clock)
     {
@@ -28,6 +30,7 @@ public sealed class PostService
         _contentRepository = contentRepository;
         _mediaRepository = mediaRepository;
         _mediaStorage = mediaStorage;
+        _voteRepository = voteRepository;
         _communityAccessClient = communityAccessClient;
         _clock = clock;
     }
@@ -92,7 +95,12 @@ public sealed class PostService
             await _contentRepository.SaveAsync(content, cancellationToken);
             await _mediaRepository.AddRangeAsync(media, cancellationToken);
 
-            return OperationResult<PostResponse>.Created(ToResponse(metadata, content, media));
+            return OperationResult<PostResponse>.Created(await ToResponseAsync(
+                metadata,
+                content,
+                media,
+                request.AuthorId,
+                cancellationToken));
         }
         catch (DomainException exception)
         {
@@ -104,9 +112,12 @@ public sealed class PostService
         }
     }
 
-    public async Task<OperationResult<PostResponse>> GetAsync(Guid postId, CancellationToken cancellationToken)
+    public async Task<OperationResult<PostResponse>> GetAsync(
+        Guid postId,
+        Guid? viewerId,
+        CancellationToken cancellationToken)
     {
-        var post = await LoadPostAsync(postId, cancellationToken);
+        var post = await LoadPostAsync(postId, viewerId, cancellationToken);
         return post is null
             ? OperationResult<PostResponse>.Fail("Post not found.", 404)
             : OperationResult<PostResponse>.Ok(post);
@@ -138,6 +149,7 @@ public sealed class PostService
 
     public async Task<IReadOnlyCollection<PostResponse>> ListByCommunityAsync(
         Guid communityId,
+        Guid? viewerId,
         CancellationToken cancellationToken)
     {
         var posts = await _metadataRepository.ListByCommunityAsync(communityId, cancellationToken);
@@ -145,7 +157,7 @@ public sealed class PostService
 
         foreach (var metadata in posts.Where(post => post.Status == PostStatus.Published))
         {
-            var post = await LoadPostAsync(metadata.Id, cancellationToken);
+            var post = await LoadPostAsync(metadata.Id, viewerId, cancellationToken);
             if (post is not null)
             {
                 result.Add(post);
@@ -188,7 +200,12 @@ public sealed class PostService
             await _contentRepository.UpdateAsync(content, cancellationToken);
 
             var media = await _mediaRepository.ListByPostIdAsync(postId, cancellationToken);
-            return OperationResult<PostResponse>.Ok(ToResponse(metadata, content, media));
+            return OperationResult<PostResponse>.Ok(await ToResponseAsync(
+                metadata,
+                content,
+                media,
+                request.ActorId,
+                cancellationToken));
         }
         catch (DomainException exception)
         {
@@ -215,7 +232,12 @@ public sealed class PostService
             await _metadataRepository.UpdateAsync(metadata, cancellationToken);
 
             var media = await _mediaRepository.ListByPostIdAsync(postId, cancellationToken);
-            return OperationResult<PostResponse>.Ok(ToResponse(metadata, content, media));
+            return OperationResult<PostResponse>.Ok(await ToResponseAsync(
+                metadata,
+                content,
+                media,
+                request.ActorId,
+                cancellationToken));
         }
         catch (DomainException exception)
         {
@@ -239,10 +261,54 @@ public sealed class PostService
         await _metadataRepository.UpdateAsync(metadata, cancellationToken);
 
         var media = await _mediaRepository.ListByPostIdAsync(postId, cancellationToken);
-        return OperationResult<PostResponse>.Ok(ToResponse(metadata, content, media));
+        return OperationResult<PostResponse>.Ok(await ToResponseAsync(
+            metadata,
+            content,
+            media,
+            viewerId: null,
+            cancellationToken));
     }
 
-    private async Task<PostResponse?> LoadPostAsync(Guid postId, CancellationToken cancellationToken)
+    public async Task<OperationResult<PostVoteResponse>> VoteAsync(
+        Guid postId,
+        VotePostRequest request,
+        Guid viewerId,
+        CancellationToken cancellationToken)
+    {
+        if (request.Value is not (-1 or 0 or 1))
+        {
+            return OperationResult<PostVoteResponse>.Fail("Vote value must be -1, 0 or 1.", 400);
+        }
+
+        var metadata = await _metadataRepository.GetByIdAsync(postId, cancellationToken);
+        if (metadata is null || metadata.Status == PostStatus.Deleted)
+        {
+            return OperationResult<PostVoteResponse>.Fail("Post not found.", 404);
+        }
+
+        if (request.Value == 0)
+        {
+            await _voteRepository.ClearVoteAsync(postId, viewerId, cancellationToken);
+        }
+        else
+        {
+            await _voteRepository.SetVoteAsync(postId, viewerId, request.Value, _clock.UtcNow, cancellationToken);
+        }
+
+        var totals = await _voteRepository.GetTotalsAsync(postId, cancellationToken);
+        var viewerVote = await _voteRepository.GetUserVoteAsync(postId, viewerId, cancellationToken);
+        return OperationResult<PostVoteResponse>.Ok(new PostVoteResponse(
+            postId,
+            totals.Upvotes,
+            totals.Downvotes,
+            totals.Score,
+            viewerVote));
+    }
+
+    private async Task<PostResponse?> LoadPostAsync(
+        Guid postId,
+        Guid? viewerId,
+        CancellationToken cancellationToken)
     {
         var metadata = await _metadataRepository.GetByIdAsync(postId, cancellationToken);
         if (metadata is null || metadata.Status == PostStatus.Deleted)
@@ -257,7 +323,7 @@ public sealed class PostService
         }
 
         var media = await _mediaRepository.ListByPostIdAsync(postId, cancellationToken);
-        return ToResponse(metadata, content, media);
+        return await ToResponseAsync(metadata, content, media, viewerId, cancellationToken);
     }
 
     private async Task<IReadOnlyCollection<PostMedia>> SaveMediaAsync(
@@ -317,11 +383,18 @@ public sealed class PostService
         return media;
     }
 
-    private static PostResponse ToResponse(
+    private async Task<PostResponse> ToResponseAsync(
         PostMetadata metadata,
         PostContent content,
-        IReadOnlyCollection<PostMedia> media)
+        IReadOnlyCollection<PostMedia> media,
+        Guid? viewerId,
+        CancellationToken cancellationToken)
     {
+        var totals = await _voteRepository.GetTotalsAsync(metadata.Id, cancellationToken);
+        var viewerVote = viewerId.HasValue
+            ? await _voteRepository.GetUserVoteAsync(metadata.Id, viewerId.Value, cancellationToken)
+            : 0;
+
         return new PostResponse(
             metadata.Id,
             metadata.AuthorId,
@@ -331,6 +404,10 @@ public sealed class PostService
             metadata.Status,
             metadata.CreatedAt,
             metadata.UpdatedAt,
+            totals.Upvotes,
+            totals.Downvotes,
+            totals.Score,
+            viewerVote,
             media.Select(ToResponse).ToArray());
     }
 

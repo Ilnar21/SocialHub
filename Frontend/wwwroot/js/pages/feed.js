@@ -55,8 +55,9 @@ function renderFeedCard(post) {
     <article class="card feed-card${active}">
       <div class="row">
         <button class="link-title" type="button" data-open-post="${postId}">${escapeHtml(post.title)}</button>
-        <span class="badge">score ${post.score ?? post.likes ?? 0}</span>
+        <span class="badge">score ${displayVoteScore(post)}</span>
       </div>
+      ${renderFeedVoteControls(post)}
       <p>${escapeHtml(post.previewText ?? post.text ?? "")}</p>
       <div class="meta">
         <span>Пост ${shortId(postId)}</span>
@@ -81,6 +82,10 @@ function bindFeedActions() {
       await openPost(button.dataset.reportCard);
       detail.querySelector("[name='reason']")?.focus();
     });
+  }
+
+  for (const button of document.querySelectorAll("[data-vote-post]")) {
+    button.addEventListener("click", () => votePost(button));
   }
 }
 
@@ -119,6 +124,7 @@ function renderPostDetail(post) {
         <h2>${escapeHtml(post.title)}</h2>
         <span class="badge success">${escapeHtml(post.status ?? "Published")}</span>
       </div>
+      ${renderPostVoteControls(post)}
       <p class="post-detail-text">${escapeHtml(post.text ?? post.previewText ?? "")}</p>
       <div class="meta">
         <span>Пост ${shortId(postId)}</span>
@@ -163,6 +169,10 @@ function renderPostDetail(post) {
 }
 
 function bindDetailActions() {
+  for (const button of detail.querySelectorAll("[data-vote-post]")) {
+    button.addEventListener("click", () => votePost(button));
+  }
+
   detail.querySelector('[data-form="report-post"]')?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -207,6 +217,46 @@ function renderComment(comment) {
     </article>`;
 }
 
+function renderFeedVoteControls(post) {
+  const postId = getPostId(post);
+  return `
+    <div class="vote-bar compact" aria-label="Оценка поста">
+      <button class="vote-button" type="button" data-vote-post="${postId}" data-vote-value="1" title="Поднять пост">▲</button>
+      <strong>${displayVoteScore(post)}</strong>
+      <button class="vote-button" type="button" data-vote-post="${postId}" data-vote-value="-1" title="Опустить пост">▼</button>
+    </div>`;
+}
+
+function renderPostVoteControls(post) {
+  const postId = getPostId(post);
+  const upActive = post.viewerVote === 1 ? " active" : "";
+  const downActive = post.viewerVote === -1 ? " active" : "";
+  const upValue = post.viewerVote === 1 ? 0 : 1;
+  const downValue = post.viewerVote === -1 ? 0 : -1;
+
+  return `
+    <div class="vote-bar" aria-label="Оценка поста">
+      <button class="vote-button${upActive}" type="button" data-vote-post="${postId}" data-vote-value="${upValue}" title="Поднять пост">▲</button>
+      <strong>${displayVoteScore(post)}</strong>
+      <button class="vote-button${downActive}" type="button" data-vote-post="${postId}" data-vote-value="${downValue}" title="Опустить пост">▼</button>
+      <span>${post.upvotes ?? 0} за · ${post.downvotes ?? 0} против</span>
+    </div>`;
+}
+
+async function votePost(button) {
+  await runWithButton(button, "...", async () => {
+    await api(`/posts/${button.dataset.votePost}/vote`, toJson("POST", {
+      value: Number(button.dataset.voteValue)
+    }));
+
+    if (selectedPostId === button.dataset.votePost) {
+      await openPost(selectedPostId);
+    }
+
+    await loadFeed();
+  });
+}
+
 function renderMedia(postId, media = []) {
   if (!media.length) return "";
 
@@ -238,6 +288,10 @@ async function loadCommunityNames() {
 
 function communityName(communityId) {
   return communityNames.get(communityId) || shortId(communityId);
+}
+
+function displayVoteScore(post) {
+  return post.postId ? post.likes ?? 0 : post.score ?? 0;
 }
 
 function getPostId(post) {

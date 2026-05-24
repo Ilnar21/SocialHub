@@ -192,7 +192,7 @@ public sealed class PostServiceTests
         await media.AddRangeAsync([NewMedia(published.Id, "posts/published/photo.jpg")], CancellationToken.None);
         var service = CreateService(metadata: metadata, content: content, media: media);
 
-        var result = await service.ListByCommunityAsync(communityId, CancellationToken.None);
+        var result = await service.ListByCommunityAsync(communityId, viewerId: null, CancellationToken.None);
 
         Assert.Single(result);
         Assert.Equal(published.Id, result.Single().Id);
@@ -252,7 +252,7 @@ public sealed class PostServiceTests
             created.PostId,
             new DeletePostRequest(authorId),
             CancellationToken.None);
-        var getAfterDelete = await service.GetAsync(created.PostId, CancellationToken.None);
+        var getAfterDelete = await service.GetAsync(created.PostId, viewerId: null, CancellationToken.None);
 
         Assert.True(deleted.Succeeded);
         Assert.Equal(PostStatus.Deleted, deleted.Value!.Status);
@@ -270,6 +270,64 @@ public sealed class PostServiceTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(PostStatus.Deleted, result.Value!.Status);
+    }
+
+    [Fact]
+    public async Task VoteAsync_updates_score_and_viewer_vote()
+    {
+        var viewerId = Guid.NewGuid();
+        var created = await SeedPostAsync(Guid.NewGuid());
+        var votes = new InMemoryVoteRepository();
+        var service = CreateService(metadata: created.Metadata, content: created.Content, votes: votes);
+
+        var upvote = await service.VoteAsync(
+            created.PostId,
+            new VotePostRequest(1),
+            viewerId,
+            CancellationToken.None);
+        var downvote = await service.VoteAsync(
+            created.PostId,
+            new VotePostRequest(-1),
+            viewerId,
+            CancellationToken.None);
+
+        Assert.True(upvote.Succeeded);
+        Assert.Equal(1, upvote.Value!.Score);
+        Assert.True(downvote.Succeeded);
+        Assert.Equal(-1, downvote.Value!.Score);
+        Assert.Equal(-1, downvote.Value.ViewerVote);
+    }
+
+    [Fact]
+    public async Task VoteAsync_clears_existing_vote()
+    {
+        var viewerId = Guid.NewGuid();
+        var created = await SeedPostAsync(Guid.NewGuid());
+        var votes = new InMemoryVoteRepository();
+        var service = CreateService(metadata: created.Metadata, content: created.Content, votes: votes);
+
+        await service.VoteAsync(created.PostId, new VotePostRequest(1), viewerId, CancellationToken.None);
+        var cleared = await service.VoteAsync(created.PostId, new VotePostRequest(0), viewerId, CancellationToken.None);
+
+        Assert.True(cleared.Succeeded);
+        Assert.Equal(0, cleared.Value!.Score);
+        Assert.Equal(0, cleared.Value.ViewerVote);
+    }
+
+    [Fact]
+    public async Task VoteAsync_rejects_invalid_value()
+    {
+        var created = await SeedPostAsync(Guid.NewGuid());
+        var service = CreateService(metadata: created.Metadata, content: created.Content);
+
+        var result = await service.VoteAsync(
+            created.PostId,
+            new VotePostRequest(2),
+            Guid.NewGuid(),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(400, result.StatusCode);
     }
 
     private static PostMediaUploadRequest Media(string fileName, string contentType, string text)
@@ -299,12 +357,14 @@ public sealed class PostServiceTests
         InMemoryMetadataRepository? metadata = null,
         InMemoryContentRepository? content = null,
         InMemoryMediaRepository? media = null,
-        FakeMediaStorage? storage = null) =>
+        FakeMediaStorage? storage = null,
+        InMemoryVoteRepository? votes = null) =>
         new(
             metadata ?? new InMemoryMetadataRepository(),
             content ?? new InMemoryContentRepository(),
             media ?? new InMemoryMediaRepository(),
             storage ?? new FakeMediaStorage(),
+            votes ?? new InMemoryVoteRepository(),
             new FakeCommunityAccessClient(isMember, isOwner),
             new FixedClock());
 
@@ -388,6 +448,36 @@ public sealed class PostServiceTests
 
         public Task<byte[]> ReadAsync(string objectKey, CancellationToken cancellationToken) =>
             Task.FromResult(Files[objectKey]);
+    }
+
+    private sealed class InMemoryVoteRepository : IPostVoteRepository
+    {
+        private readonly Dictionary<(Guid PostId, Guid UserId), int> _votes = [];
+
+        public Task<PostVoteTotals> GetTotalsAsync(Guid postId, CancellationToken cancellationToken)
+        {
+            var postVotes = _votes.Where(vote => vote.Key.PostId == postId).Select(vote => vote.Value).ToArray();
+            return Task.FromResult(new PostVoteTotals(
+                postVotes.Count(value => value == 1),
+                postVotes.Count(value => value == -1)));
+        }
+
+        public Task<int> GetUserVoteAsync(Guid postId, Guid userId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_votes.TryGetValue((postId, userId), out var value) ? value : 0);
+        }
+
+        public Task SetVoteAsync(Guid postId, Guid userId, int value, DateTimeOffset now, CancellationToken cancellationToken)
+        {
+            _votes[(postId, userId)] = value;
+            return Task.CompletedTask;
+        }
+
+        public Task ClearVoteAsync(Guid postId, Guid userId, CancellationToken cancellationToken)
+        {
+            _votes.Remove((postId, userId));
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeCommunityAccessClient(bool isMember, bool isOwner) : ICommunityAccessClient

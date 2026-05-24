@@ -63,6 +63,7 @@ public static class DependencyInjection
         services.AddSingleton<IPostContentRepository, PostgresPostContentRepository>();
         services.AddSingleton<IPostMediaRepository, PostgresPostMediaRepository>();
         services.AddSingleton<IPostMediaStorage, MinioPostMediaStorage>();
+        services.AddSingleton<IPostVoteRepository, PostgresPostVoteRepository>();
         services.AddTransient<CorrelationIdDelegatingHandler>();
         services.AddHttpClient<ICommunityAccessClient, CommunityAccessClient>(client =>
         {

@@ -13,6 +13,8 @@ public sealed record UpdatePostRequest(Guid ActorId, string? Title, string Text)
 
 public sealed record DeletePostRequest(Guid ActorId);
 
+public sealed record VotePostRequest(int Value);
+
 public sealed record PostMediaUploadRequest(string FileName, string ContentType, string Base64Content);
 
 public sealed record PostMediaResponse(
@@ -36,7 +38,18 @@ public sealed record PostResponse(
     PostStatus Status,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
+    int Upvotes,
+    int Downvotes,
+    int Score,
+    int ViewerVote,
     IReadOnlyCollection<PostMediaResponse> Media);
+
+public sealed record PostVoteResponse(
+    Guid PostId,
+    int Upvotes,
+    int Downvotes,
+    int Score,
+    int ViewerVote);
 
 public sealed record OperationResult<T>(bool Succeeded, T? Value, string? Error, int StatusCode)
 {

@@ -963,6 +963,53 @@ select {
   font-size: 13px;
 }
 
+.vote-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 34px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.vote-bar.compact {
+  margin-top: 2px;
+}
+
+.vote-bar strong {
+  min-width: 24px;
+  text-align: center;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.vote-button {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.vote-button:hover,
+.vote-button.active {
+  color: var(--brand);
+  border-color: rgba(255, 90, 31, .45);
+  background: var(--brand-soft);
+}
+
 .comments {
   display: grid;
   gap: 12px;

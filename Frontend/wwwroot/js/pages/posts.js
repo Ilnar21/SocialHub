@@ -113,6 +113,7 @@ function renderPost(post) {
         <h2>${escapeHtml(post.title)}</h2>
         <span class="badge success">${escapeHtml(post.status ?? "Published")}</span>
       </div>
+      ${renderVoteControls(post)}
       <p>${escapeHtml(post.text ?? "")}</p>
       <div class="meta">
         <span>ID ${shortId(post.id)}</span>
@@ -141,6 +142,21 @@ function renderPost(post) {
         ${canModerate ? `<button class="button danger" data-delete-post="${post.id}">Удалить как модератор</button>` : ""}
       </div>
     </article>`;
+}
+
+function renderVoteControls(post) {
+  const upActive = post.viewerVote === 1 ? " active" : "";
+  const downActive = post.viewerVote === -1 ? " active" : "";
+  const upValue = post.viewerVote === 1 ? 0 : 1;
+  const downValue = post.viewerVote === -1 ? 0 : -1;
+
+  return `
+    <div class="vote-bar" aria-label="Оценка поста">
+      <button class="vote-button${upActive}" type="button" data-vote-post="${post.id}" data-vote-value="${upValue}" title="Поднять пост">▲</button>
+      <strong>${post.score ?? 0}</strong>
+      <button class="vote-button${downActive}" type="button" data-vote-post="${post.id}" data-vote-value="${downValue}" title="Опустить пост">▼</button>
+      <span>${post.upvotes ?? 0} за · ${post.downvotes ?? 0} против</span>
+    </div>`;
 }
 
 function renderMedia(postId, media = []) {
@@ -194,6 +210,10 @@ function renderComment(comment) {
 }
 
 function bindPostActions() {
+  for (const button of document.querySelectorAll("[data-vote-post]")) {
+    button.addEventListener("click", () => votePost(button));
+  }
+
   for (const form of document.querySelectorAll('[data-form="add-comment"]')) {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -278,6 +298,15 @@ function readJson(key, fallback) {
   } catch {
     return fallback;
   }
+}
+
+async function votePost(button) {
+  await runWithButton(button, "...", async () => {
+    await api(`/posts/${button.dataset.votePost}/vote`, toJson("POST", {
+      value: Number(button.dataset.voteValue)
+    }));
+    await loadPosts();
+  });
 }
 
 async function filesToMedia(fileList) {

@@ -143,7 +143,7 @@ app.MapPost("/internal/posts/by-communities", async (
 
     foreach (var communityId in request.CommunityIds.Distinct().Take(100))
     {
-        var posts = await postService.ListByCommunityAsync(communityId, cancellationToken);
+        var posts = await postService.ListByCommunityAsync(communityId, viewerId: null, cancellationToken);
         snapshots.AddRange(posts.Select(ToSnapshot));
     }
 
@@ -156,10 +156,11 @@ app.MapPost("/internal/posts/by-communities", async (
 
 app.MapGet("/posts/{postId:guid}", async (
     Guid postId,
+    ClaimsPrincipal principal,
     PostService postService,
     CancellationToken cancellationToken) =>
 {
-    var result = await postService.GetAsync(postId, cancellationToken);
+    var result = await postService.GetAsync(postId, GetUserId(principal), cancellationToken);
     return ToHttpResult(result);
 });
 
@@ -177,12 +178,30 @@ app.MapGet("/posts/{postId:guid}/media/{mediaId:guid}", async (
 
 app.MapGet("/communities/{communityId:guid}/posts", async (
     Guid communityId,
+    ClaimsPrincipal principal,
     PostService postService,
     CancellationToken cancellationToken) =>
 {
-    var posts = await postService.ListByCommunityAsync(communityId, cancellationToken);
+    var posts = await postService.ListByCommunityAsync(communityId, GetUserId(principal), cancellationToken);
     return Results.Ok(posts);
 });
+
+app.MapPost("/posts/{postId:guid}/vote", async (
+    Guid postId,
+    VotePostRequest request,
+    ClaimsPrincipal principal,
+    PostService postService,
+    CancellationToken cancellationToken) =>
+{
+    var viewerId = GetUserId(principal);
+    if (viewerId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await postService.VoteAsync(postId, request, viewerId.Value, cancellationToken);
+    return ToHttpResult(result);
+}).RequireAuthorization();
 
 app.MapPut("/posts/{postId:guid}", async (
     Guid postId,
@@ -268,7 +287,7 @@ static PostSnapshot ToSnapshot(PostResponse post)
         post.AuthorId,
         post.Title,
         previewText,
-        Likes: 0,
+        Likes: post.Score,
         Comments: 0,
         post.CreatedAt);
 }

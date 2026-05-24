@@ -35,6 +35,15 @@ public sealed class PostgresDatabaseInitializer(NpgsqlDataSource dataSource) : I
                 created_at timestamptz not null
             );
 
+            create table if not exists post_votes (
+                post_id uuid not null references post_metadata(id) on delete cascade,
+                user_id uuid not null,
+                value smallint not null check (value in (-1, 1)),
+                created_at timestamptz not null,
+                updated_at timestamptz not null,
+                primary key (post_id, user_id)
+            );
+
             create index if not exists ix_post_metadata_community_created_at
                 on post_metadata (community_id, created_at desc);
 
@@ -44,6 +53,9 @@ public sealed class PostgresDatabaseInitializer(NpgsqlDataSource dataSource) : I
 
             create index if not exists ix_post_media_post_id
                 on post_media (post_id);
+
+            create index if not exists ix_post_votes_post_id
+                on post_votes (post_id);
             """;
 
         await using var command = dataSource.CreateCommand(sql);
