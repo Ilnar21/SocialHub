@@ -6,6 +6,7 @@ import { toast } from "../core/toast.js";
 const userSelect = document.querySelector("[data-user-select]");
 const dialogsList = document.querySelector("[data-dialogs-list]");
 const messagesList = document.querySelector("[data-messages-list]");
+const sendButton = document.querySelector('[data-form="send-message"] button[type="submit"]');
 
 let activeDialogId = "";
 
@@ -16,6 +17,11 @@ document.querySelector('[data-form="send-message"]')?.addEventListener("submit",
   const button = form.querySelector('button[type="submit"]');
   const data = formData(form);
 
+  if (!data.recipientUserId) {
+    toast("Выберите получателя.", "error");
+    return;
+  }
+
   if ((data.text || "").length > 4000) {
     toast("Сообщение не должно быть длиннее 4000 символов", "error");
     return;
@@ -25,7 +31,8 @@ document.querySelector('[data-form="send-message"]')?.addEventListener("submit",
     const response = await api(`/api/dialogs/${data.recipientUserId}/messages`, toJson("POST", { text: data.text }));
     const dialogId = response.dialogId ?? response.DialogId;
     form.reset();
-    toast("Сообщение отправлено");
+    userSelect.value = data.recipientUserId;
+    toast("Сообщение отправлено.");
     await loadDialogs();
     if (dialogId) {
       await loadMessages(dialogId);
@@ -40,12 +47,25 @@ async function loadUsers() {
   const currentUserId = getSession().user?.id;
   try {
     const users = await api("/api/users/");
-    userSelect.innerHTML = users
+    const availableUsers = users
       .filter((user) => user.id !== currentUserId)
+      .filter((user) => user.status !== "Blocked" && user.status !== "BLOCKED")
+      .filter((user) => user.role !== "PlatformModerator");
+
+    userSelect.innerHTML = availableUsers
       .map((user) => `<option value="${user.id}">${escapeHtml(user.profile?.displayName || user.username)}</option>`)
       .join("");
+
+    const hasRecipients = availableUsers.length > 0;
+    userSelect.disabled = !hasRecipients;
+    sendButton.disabled = !hasRecipients;
+    if (!hasRecipients) {
+      userSelect.innerHTML = '<option value="">Нет доступных получателей</option>';
+    }
   } catch (error) {
     userSelect.innerHTML = `<option value="">${escapeHtml(error.message)}</option>`;
+    userSelect.disabled = true;
+    sendButton.disabled = true;
   }
 }
 
@@ -56,6 +76,10 @@ async function loadDialogs() {
     dialogsList.innerHTML = dialogs.length ? dialogs.map(renderDialog).join("") : empty("Диалогов пока нет.");
     for (const button of document.querySelectorAll("[data-open-dialog]")) {
       button.addEventListener("click", () => loadMessages(button.dataset.openDialog));
+    }
+
+    if (activeDialogId && dialogs.some((dialog) => (dialog.dialogId ?? dialog.id) === activeDialogId)) {
+      await loadMessages(activeDialogId);
     }
   } catch (error) {
     dialogsList.innerHTML = empty(error.message);
@@ -78,6 +102,7 @@ async function loadMessages(dialogId) {
 function renderDialog(dialog) {
   const dialogId = dialog.dialogId ?? dialog.id;
   const isActive = dialogId === activeDialogId ? " active-card" : "";
+  const participants = dialog.participantUserIds ?? [];
   return `
     <article class="card${isActive}">
       <div class="row">
@@ -86,6 +111,7 @@ function renderDialog(dialog) {
       </div>
       <p>${escapeHtml(dialog.lastMessagePreview ?? dialog.lastMessageText ?? dialog.lastMessage?.text ?? "Нет сообщений")}</p>
       <div class="meta">
+        <span>Участники: ${participants.map(shortId).join(" · ")}</span>
         <span>${formatDate(dialog.lastMessageAt ?? dialog.lastMessageAtUtc ?? dialog.updatedAtUtc)}</span>
       </div>
     </article>`;
