@@ -105,7 +105,19 @@ public static class UserEndpoints
         }
 
         var expected = Encoding.UTF8.GetBytes(options.Token);
-        return providedTokens.Any(provided =>
-            CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(provided), expected));
+        foreach (var provided in providedTokens)
+        {
+            if (string.IsNullOrEmpty(provided))
+            {
+                continue;
+            }
+
+            if (CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(provided), expected))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
