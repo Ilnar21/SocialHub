@@ -7,8 +7,11 @@ const userSelect = document.querySelector("[data-user-select]");
 const dialogsList = document.querySelector("[data-dialogs-list]");
 const messagesList = document.querySelector("[data-messages-list]");
 const sendButton = document.querySelector('[data-form="send-message"] button[type="submit"]');
+const messageText = document.querySelector('[data-form="send-message"] textarea[name="text"]');
+const presetRecipientId = new URLSearchParams(location.search).get("recipientUserId") || "";
 
 let activeDialogId = "";
+let dialogsCache = [];
 
 document.querySelector("[data-load-dialogs]")?.addEventListener("click", loadDialogs);
 document.querySelector('[data-form="send-message"]')?.addEventListener("submit", async (event) => {
@@ -61,6 +64,12 @@ async function loadUsers() {
     sendButton.disabled = !hasRecipients;
     if (!hasRecipients) {
       userSelect.innerHTML = '<option value="">Нет доступных получателей</option>';
+      return;
+    }
+
+    if (presetRecipientId && availableUsers.some((user) => user.id === presetRecipientId)) {
+      userSelect.value = presetRecipientId;
+      messageText?.focus();
     }
   } catch (error) {
     userSelect.innerHTML = `<option value="">${escapeHtml(error.message)}</option>`;
@@ -73,6 +82,7 @@ async function loadDialogs() {
   dialogsList.innerHTML = empty("Загружаем диалоги...");
   try {
     const dialogs = await api("/api/dialogs");
+    dialogsCache = dialogs;
     dialogsList.innerHTML = dialogs.length ? dialogs.map(renderDialog).join("") : empty("Диалогов пока нет.");
     for (const button of document.querySelectorAll("[data-open-dialog]")) {
       button.addEventListener("click", () => loadMessages(button.dataset.openDialog));
@@ -80,6 +90,17 @@ async function loadDialogs() {
 
     if (activeDialogId && dialogs.some((dialog) => (dialog.dialogId ?? dialog.id) === activeDialogId)) {
       await loadMessages(activeDialogId);
+      return;
+    }
+
+    if (!activeDialogId && presetRecipientId) {
+      const existingDialog = dialogs.find((dialog) => (dialog.participantUserIds ?? []).includes(presetRecipientId));
+      if (existingDialog) {
+        await loadMessages(existingDialog.dialogId ?? existingDialog.id);
+      } else {
+        messagesList.innerHTML = empty("Диалога пока нет. Напишите первое сообщение выбранному пользователю.");
+        messageText?.focus();
+      }
     }
   } catch (error) {
     dialogsList.innerHTML = empty(error.message);

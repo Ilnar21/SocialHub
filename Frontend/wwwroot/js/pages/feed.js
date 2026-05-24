@@ -182,9 +182,15 @@ function bindDetailActions() {
 }
 
 function renderComment(comment) {
+  const currentUserId = getSession().user?.id;
+  const canMessage = comment.authorId && comment.authorId !== currentUserId;
+
   return `
     <article class="comment">
-      <strong>${escapeHtml(comment.author)}</strong>
+      <div class="row">
+        <strong>${escapeHtml(comment.author)}</strong>
+        ${canMessage ? `<a class="button secondary" href="/Messages?recipientUserId=${comment.authorId}">Написать сообщение</a>` : ""}
+      </div>
       <p>${escapeHtml(comment.text)}</p>
       <small>${formatDate(comment.createdAt)}</small>
     </article>`;
@@ -209,6 +215,7 @@ function addComment(postId, text) {
   const comments = getComments(postId);
   comments.push({
     text,
+    authorId: session.user?.id,
     author: session.user?.profile?.displayName || session.user?.username || "Пользователь",
     createdAt: new Date().toISOString()
   });
