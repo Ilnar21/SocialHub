@@ -6,7 +6,7 @@
 <header class="page-header">
     <div>
         <h1>Сообщества</h1>
-        <p>Создавайте свои тематические клубы или вступайте в существующие. Лимит&nbsp;— до&nbsp;30 сообществ на пользователя.</p>
+        <p>Создавайте тематические клубы, вступайте в них и управляйте участниками. Лимит — до 30 сообществ на пользователя.</p>
     </div>
     <button class="button secondary subtle-action" data-load-communities>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -21,33 +21,43 @@
 </header>
 
 <section class="split">
-    <form class="panel form-grid" data-form="create-community">
-        <h2>Новое сообщество</h2>
-        <label>Название
-            <input name="name" placeholder="backend_daily" required />
-        </label>
-        <label>Описание
-            <textarea name="description" placeholder="О чём это сообщество и кому оно полезно" required></textarea>
-        </label>
-        <label>Тип
-            <select name="type">
-                <option value="Open">Открытое · кто угодно может вступить</option>
-                <option value="Closed">Закрытое · по приглашению</option>
-            </select>
-        </label>
-        <button class="button primary" type="submit">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="12" y1="5"  x2="12" y2="19" />
-                <line x1="5"  y1="12" x2="19" y2="12" />
-            </svg>
-            Создать сообщество
-        </button>
-    </form>
-
     <div class="stack">
-        <div class="content-list" data-communities-list></div>
+        <form class="panel form-grid" data-form="create-community">
+            <h2>Новое сообщество</h2>
+            <label>Название
+                <input name="name" placeholder="backend_daily" required />
+            </label>
+            <label>Описание
+                <textarea name="description" placeholder="О чем это сообщество и кому оно полезно" required></textarea>
+            </label>
+            <label>Тип
+                <select name="type">
+                    <option value="Open">Открытое · кто угодно может вступить</option>
+                    <option value="Closed">Закрытое · по приглашению</option>
+                </select>
+            </label>
+            <button class="button primary" type="submit">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="12" y1="5"  x2="12" y2="19" />
+                    <line x1="5"  y1="12" x2="19" y2="12" />
+                </svg>
+                Создать сообщество
+            </button>
+        </form>
+
+        <div class="panel">
+            <div class="row">
+                <h2>Все сообщества</h2>
+                <span class="badge" data-membership-counter>0 из 30</span>
+            </div>
+            <div class="content-list" data-communities-list></div>
+        </div>
     </div>
+
+    <aside class="panel post-detail-panel" data-community-detail>
+        <div class="empty">Выберите сообщество, чтобы увидеть участников, роль и предложенные посты.</div>
+    </aside>
 </section>
 
 @section Scripts {
