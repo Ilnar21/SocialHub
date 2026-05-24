@@ -30,12 +30,29 @@ document.querySelector('[data-form="register"]')?.addEventListener("submit", asy
 });
 
 async function submitLogin(form, username = null, password = null) {
-  const data = formData(form);
-  const auth = await api("/api/auth/login", toJson("POST", {
-    usernameOrEmail: username ?? data.usernameOrEmail,
-    password: password ?? data.password
-  }));
+  const button = form.querySelector('button[type="submit"]');
+  const originalText = button?.textContent;
 
-  saveSession(auth);
-  location.href = "/Feed";
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Проверяем...";
+  }
+
+  try {
+    const data = formData(form);
+    const auth = await api("/api/auth/login", toJson("POST", {
+      usernameOrEmail: username ?? data.usernameOrEmail,
+      password: password ?? data.password
+    }));
+
+    saveSession(auth);
+    location.href = "/Feed";
+  } catch (error) {
+    toast(error.message, "error");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
 }
