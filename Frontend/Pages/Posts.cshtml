@@ -6,7 +6,7 @@
 <header class="page-header">
     <div>
         <h1>Посты</h1>
-        <p>Публикации существуют только внутри сообществ. Дневной лимит&nbsp;— до&nbsp;100 постов в одно сообщество.</p>
+        <p>Публикации существуют только внутри сообществ. Дневной лимит — до 100 постов в одно сообщество.</p>
     </div>
     <button class="button secondary subtle-action" data-load-posts>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -24,20 +24,21 @@
     <form class="panel form-grid" data-form="create-post">
         <h2>Новая публикация</h2>
         <label>Сообщество
-            <select name="communityId" data-community-select></select>
+            <select name="communityId" data-community-select required></select>
         </label>
         <label>Заголовок
-            <input name="title" placeholder="Лаконичный, без CAPS" required />
+            <input name="title" maxlength="120" placeholder="Паттерны интеграции" required />
         </label>
         <label>Текст поста
-            <textarea name="text" placeholder="Поделитесь мыслью, ссылкой или вопросом — но один пост на одну идею." required></textarea>
+            <textarea name="text" maxlength="10000" placeholder="Поделитесь мыслью, ссылкой или вопросом — но один пост на одну идею." required></textarea>
         </label>
 
         <div class="meta" style="margin-top:0;">
-            <span>лимит: до 100 постов / сутки / сообщество</span>
+            <span>Правило BR-1: посты доступны только в сообществах</span>
+            <span>BR-2: до 100 постов / сутки / сообщество</span>
         </div>
 
-        <button class="button primary" type="submit">
+        <button class="button primary" type="submit" data-submit-post>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="22" y1="2" x2="11" y2="13" />
@@ -45,6 +46,7 @@
             </svg>
             Опубликовать
         </button>
+        <p class="muted" data-post-form-hint></p>
     </form>
 
     <div class="stack">
