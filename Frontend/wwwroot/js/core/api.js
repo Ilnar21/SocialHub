@@ -34,6 +34,7 @@ export async function api(path, options = {}) {
     const detail = `${payload?.detail || payload?.message || ""}`.toLowerCase();
 
     if (code === "account_blocked" || detail.includes("blocked")) {
+      const blockedMessage = payload?.detail || payload?.message || "Аккаунт заблокирован. Вход и действия в системе недоступны.";
       clearSession();
       if (!isAuthPage()) {
         setTimeout(() => {
@@ -41,7 +42,7 @@ export async function api(path, options = {}) {
         }, 500);
       }
 
-      throw new Error("Аккаунт заблокирован. Вход и действия в системе недоступны.");
+      throw new Error(blockedMessage);
     }
 
     throw new Error("Недостаточно прав для выполнения действия.");
@@ -77,7 +78,7 @@ function normalizeError(payload) {
   if (code === "invalid_credentials") return "Неверный логин или пароль";
   if (code === "duplicate_username") return "Логин уже занят";
   if (code === "duplicate_email") return "Email уже занят";
-  if (code === "account_blocked") return "Аккаунт заблокирован";
+  if (code === "account_blocked") return payload.message || payload.detail || "Аккаунт заблокирован";
 
   return payload.message || payload.detail || payload.title || payload.error || "";
 }

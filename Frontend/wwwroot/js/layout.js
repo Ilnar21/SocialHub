@@ -21,9 +21,7 @@ if (userAvatar) {
 }
 
 for (const link of document.querySelectorAll("[data-role-link]")) {
-  if (!hasRole(link.dataset.roleLink)) {
-    link.hidden = true;
-  }
+  link.hidden = !hasRole(link.dataset.roleLink);
 }
 
 document.querySelector("[data-logout]")?.addEventListener("click", () => {

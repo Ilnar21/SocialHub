@@ -94,6 +94,11 @@ public sealed class ModerationService : IModerationService
             throw AppException.BadRequest("User id, reason and positive duration are required.");
         }
 
+        if (userId.Trim().Equals(_currentUser.UserId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw AppException.BadRequest("Moderator cannot block own account.");
+        }
+
         var now = DateTimeOffset.UtcNow;
         var block = new UserBlock(
             Guid.NewGuid(),
@@ -113,6 +118,29 @@ public sealed class ModerationService : IModerationService
         await SaveFailedSideEffectsAsync(sideEffects, "USER_BLOCKED", "USER", block.BlockedUserId, cancellationToken);
 
         return ToBlockResponse(block);
+    }
+
+    public async Task<AuditResponse> UnblockUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        EnsurePlatformModerator();
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw AppException.BadRequest("User id is required.");
+        }
+
+        if (userId.Trim().Equals(_currentUser.UserId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw AppException.BadRequest("Moderator cannot change own block status.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var audit = CreateAudit("USER_UNBLOCKED", "USER", userId, "User unblocked by platform moderator.", null, "PLATFORM_MODERATOR", now);
+        var savedAudit = await _repository.AddAuditAsync(audit, cancellationToken);
+        var sideEffect = await _externalClient.SetUserActiveAsync(userId.Trim(), cancellationToken);
+        await SaveFailedSideEffectsAsync([sideEffect], "USER_UNBLOCKED", "USER", userId.Trim(), cancellationToken);
+
+        return ToAuditResponse(savedAudit);
     }
 
     public async Task<AuditResponse> CreateAuditAsync(CreateAuditRequest request, CancellationToken cancellationToken)

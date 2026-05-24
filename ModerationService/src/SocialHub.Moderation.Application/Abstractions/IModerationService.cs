@@ -10,6 +10,7 @@ public interface IModerationService
     Task<IReadOnlyCollection<ReportResponse>> GetReportsAsync(string? status, CancellationToken cancellationToken);
     Task<ReportResponse> DeleteReportedPostAsync(Guid reportId, ResolveReportRequest request, CancellationToken cancellationToken);
     Task<BlockResponse> BlockUserAsync(string userId, BlockUserRequest request, CancellationToken cancellationToken);
+    Task<AuditResponse> UnblockUserAsync(string userId, CancellationToken cancellationToken);
     Task<AuditResponse> CreateAuditAsync(CreateAuditRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<AuditResponse>> GetAuditAsync(string? actorUserId, DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken);
 }

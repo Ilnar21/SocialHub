@@ -26,4 +26,11 @@ public sealed class BlocksController : ControllerBase
         var response = await _moderationService.BlockUserAsync(userId, request, cancellationToken);
         return Created($"/api/users/{response.BlockedUserId}/blocks/{response.Id}", response);
     }
+
+    [HttpDelete("{userId}/blocks")]
+    public async Task<IActionResult> UnblockUser(string userId, CancellationToken cancellationToken)
+    {
+        await _moderationService.UnblockUserAsync(userId, cancellationToken);
+        return NoContent();
+    }
 }

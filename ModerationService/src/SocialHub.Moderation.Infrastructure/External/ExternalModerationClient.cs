@@ -24,7 +24,12 @@ public sealed class ExternalModerationClient : IExternalModerationClient
 
     public Task<SideEffectResult> SetUserBlockedAsync(UserBlock block, CancellationToken cancellationToken)
     {
-        return TryPostAsync("auth", $"/api/users/{block.BlockedUserId}/status", new { status = "BLOCKED", expiresAtUtc = block.ExpiresAtUtc }, cancellationToken);
+        return TryPostAsync("auth", $"/api/users/{block.BlockedUserId}/status", new { status = "BLOCKED", reason = block.Reason, expiresAtUtc = block.ExpiresAtUtc }, cancellationToken);
+    }
+
+    public Task<SideEffectResult> SetUserActiveAsync(string userId, CancellationToken cancellationToken)
+    {
+        return TryPostAsync("auth", $"/api/users/{userId}/status", new { status = "ACTIVE", reason = (string?)null, expiresAtUtc = (DateTimeOffset?)null }, cancellationToken);
     }
 
     public Task<SideEffectResult> NotifyPostDeletedAsync(string postId, string reason, CancellationToken cancellationToken)

@@ -68,8 +68,9 @@ public sealed class AuthUserService(
 
         if (user.Status == UserStatus.Blocked && (user.BlockedUntil is null || user.BlockedUntil > DateTimeOffset.UtcNow))
         {
-            await AddLoginAuditAsync(usernameOrEmail, user.Id, false, "Account is blocked", cancellationToken);
-            return ServiceResult<AuthResponse>.Failure("account_blocked", "Account is blocked.");
+            var blockedMessage = BuildBlockedLoginMessage(user);
+            await AddLoginAuditAsync(usernameOrEmail, user.Id, false, blockedMessage, cancellationToken);
+            return ServiceResult<AuthResponse>.Failure("account_blocked", blockedMessage);
         }
 
         if (user.Status == UserStatus.Blocked)
@@ -129,6 +130,11 @@ public sealed class AuthUserService(
         if (user is null)
         {
             return ServiceResult<UserResponse>.Failure("user_not_found", "User was not found.");
+        }
+
+        if (moderatorId == userId)
+        {
+            return ServiceResult<UserResponse>.Failure("validation_error", "Moderator cannot block own account.");
         }
 
         if (string.IsNullOrWhiteSpace(request.Reason))
@@ -247,4 +253,20 @@ public sealed class AuthUserService(
 
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string BuildBlockedLoginMessage(UserAccount user)
+    {
+        var reason = string.IsNullOrWhiteSpace(user.BlockReason)
+            ? "нарушение правил платформы"
+            : user.BlockReason.Trim();
+
+        if (user.BlockedUntil is null)
+        {
+            return $"Вы заблокированы бессрочно. Причина: {reason}.";
+        }
+
+        var remaining = user.BlockedUntil.Value - DateTimeOffset.UtcNow;
+        var days = Math.Max(1, (int)Math.Ceiling(remaining.TotalDays));
+        return $"Вы заблокированы еще на {days} дн. Причина: {reason}.";
+    }
 }

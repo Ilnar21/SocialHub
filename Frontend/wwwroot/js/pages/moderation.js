@@ -4,6 +4,7 @@ import { getSession, isPlatformModerator } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
 const userSelect = document.querySelector("[data-user-select]");
+const usersList = document.querySelector("[data-users-list]");
 const reportsList = document.querySelector("[data-reports-list]");
 const auditList = document.querySelector("[data-audit-list]");
 
@@ -43,7 +44,7 @@ if (!isPlatformModerator()) {
         reason: data.reason
       }));
       toast("Пользователь заблокирован");
-      await loadAudit();
+      await Promise.all([loadUsers(), loadAudit()]);
     });
   });
 
@@ -59,15 +60,55 @@ async function loadUsers() {
   try {
     const currentUserId = getSession().user?.id;
     const users = await api("/api/users/");
-    const blockableUsers = users.filter((user) => user.id !== currentUserId);
+    const visibleUsers = users.filter((user) => user.id !== currentUserId);
+    const blockableUsers = visibleUsers.filter((user) => !isBlocked(user));
     userSelect.innerHTML = blockableUsers.length
       ? blockableUsers
-        .map((user) => `<option value="${user.id}">${escapeHtml(user.profile?.displayName || user.username)}${user.status === "Blocked" ? " · уже заблокирован" : ""}</option>`)
+        .map((user) => `<option value="${user.id}">${escapeHtml(user.profile?.displayName || user.username)}</option>`)
         .join("")
       : `<option value="">Нет доступных пользователей</option>`;
+    userSelect.disabled = blockableUsers.length === 0;
+    usersList.innerHTML = visibleUsers.length ? visibleUsers.map(renderUser).join("") : empty("Пользователей для модерации нет.");
+    for (const button of usersList.querySelectorAll("[data-unblock-user]")) {
+      button.addEventListener("click", () => unblockUser(button));
+    }
   } catch (error) {
     userSelect.innerHTML = `<option value="">${escapeHtml(error.message)}</option>`;
+    usersList.innerHTML = empty(error.message);
   }
+}
+
+async function unblockUser(button) {
+  await runWithButton(button, "Разблокируем...", async () => {
+    await api(`/api/users/${button.dataset.unblockUser}/blocks`, { method: "DELETE" });
+    toast("Пользователь разблокирован");
+    await Promise.all([loadUsers(), loadAudit()]);
+  });
+}
+
+function renderUser(user) {
+  const blocked = isBlocked(user);
+  return `
+    <article class="card">
+      <div class="row">
+        <h2>${escapeHtml(user.profile?.displayName || user.username)}</h2>
+        <span class="badge ${blocked ? "danger" : "success"}">${blocked ? "Заблокирован" : "Активен"}</span>
+      </div>
+      <p>${escapeHtml(user.blockReason ?? "")}</p>
+      <div class="meta">
+        <span>ID ${shortId(user.id)}</span>
+        <span>${escapeHtml(user.role)}</span>
+        ${user.blockedUntil ? `<span>До ${formatDate(user.blockedUntil)}</span>` : ""}
+      </div>
+      ${blocked ? `
+        <div class="actions">
+          <button class="button secondary" data-unblock-user="${user.id}">Разблокировать</button>
+        </div>` : ""}
+    </article>`;
+}
+
+function isBlocked(user) {
+  return user.status === "Blocked" || user.status === "BLOCKED";
 }
 
 async function loadReports() {
