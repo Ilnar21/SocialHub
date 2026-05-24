@@ -1,0 +1,58 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: socialhub-auth
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - auth-service:8080
+
+  - job_name: socialhub-community
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - community-service:8080
+
+  - job_name: socialhub-message
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - message-service:8080
+
+  - job_name: socialhub-moderation
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - moderation-service:8080
+
+  - job_name: socialhub-notification
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - notification-service:8080
+
+  - job_name: socialhub-feed
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - feed-service:8080
+
+  - job_name: socialhub-post
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - post-service:8080
+
+  - job_name: socialhub-frontend
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - frontend:8080
+
+  - job_name: socialhub-gateway
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - gateway-exporter:9113
