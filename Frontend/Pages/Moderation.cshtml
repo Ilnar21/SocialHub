@@ -22,29 +22,10 @@
 
 <section class="split">
     <div class="stack">
-        <form class="panel form-grid" data-form="create-report">
-            <h2>Создать жалобу</h2>
-            <label>Тип объекта
-                <input name="targetType" value="POST" required />
-            </label>
-            <label>ID объекта
-                <input name="targetId" placeholder="UUID или короткий ID" required />
-            </label>
-            <label>Причина
-                <input name="reason" value="Спам" required />
-            </label>
-            <label>Комментарий
-                <textarea name="comment" placeholder="Контекст для следующего модератора"></textarea>
-            </label>
-            <button class="button primary" type="submit">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M4 22V4a2 2 0 0 1 2-2h11l5 5v3H8l-2 2v10z" />
-                    <line x1="4" y1="22" x2="4" y2="15" />
-                </svg>
-                Отправить жалобу
-            </button>
-        </form>
+        <section class="panel">
+            <h2>Очередь решений</h2>
+            <p class="muted">Жалобы создают пользователи из карточек постов. Здесь модератор рассматривает обращения, удаляет нарушающий контент и видит журнал действий.</p>
+        </section>
 
         <form class="panel form-grid" data-form="block-user">
             <h2>Заблокировать пользователя</h2>

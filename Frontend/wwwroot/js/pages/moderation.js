@@ -1,6 +1,6 @@
 import { api, toJson } from "../core/api.js";
 import { empty, escapeHtml, formData, formatDate, shortId } from "../core/dom.js";
-import { isPlatformModerator } from "../core/session.js";
+import { getSession, isPlatformModerator } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
 const userSelect = document.querySelector("[data-user-select]");
@@ -20,24 +20,22 @@ if (!isPlatformModerator()) {
     await runWithButton(event.currentTarget, "Обновляем...", loadModeration);
   });
 
-  document.querySelector('[data-form="create-report"]')?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const button = form.querySelector('button[type="submit"]');
-
-    await runWithButton(button, "Отправляем...", async () => {
-      await api("/api/reports", toJson("POST", formData(form)));
-      form.reset();
-      toast("Жалоба создана");
-      await loadReports();
-    });
-  });
-
   document.querySelector('[data-form="block-user"]')?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const button = form.querySelector('button[type="submit"]');
     const data = formData(form);
+    const currentUserId = getSession().user?.id;
+
+    if (!data.userId) {
+      toast("Выберите пользователя для блокировки", "error");
+      return;
+    }
+
+    if (data.userId === currentUserId) {
+      toast("Нельзя заблокировать собственный аккаунт модератора", "error");
+      return;
+    }
 
     await runWithButton(button, "Блокируем...", async () => {
       await api(`/api/users/${data.userId}/blocks`, toJson("POST", {
@@ -59,10 +57,14 @@ async function loadModeration() {
 
 async function loadUsers() {
   try {
+    const currentUserId = getSession().user?.id;
     const users = await api("/api/users/");
-    userSelect.innerHTML = users
-      .map((user) => `<option value="${user.id}">${escapeHtml(user.profile?.displayName || user.username)}</option>`)
-      .join("");
+    const blockableUsers = users.filter((user) => user.id !== currentUserId);
+    userSelect.innerHTML = blockableUsers.length
+      ? blockableUsers
+        .map((user) => `<option value="${user.id}">${escapeHtml(user.profile?.displayName || user.username)}${user.status === "Blocked" ? " · уже заблокирован" : ""}</option>`)
+        .join("")
+      : `<option value="">Нет доступных пользователей</option>`;
   } catch (error) {
     userSelect.innerHTML = `<option value="">${escapeHtml(error.message)}</option>`;
   }
