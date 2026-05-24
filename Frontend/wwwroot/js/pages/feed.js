@@ -1,6 +1,6 @@
 import { api, toJson } from "../core/api.js";
-import { empty, escapeHtml, formatDate, shortId } from "../core/dom.js";
-import { preloadUsers, userDisplayName } from "../core/identity.js";
+import { empty, escapeHtml, formatDate } from "../core/dom.js";
+import { preloadUsers, userDisplayName, userProfileHref } from "../core/identity.js";
 import { toast } from "../core/toast.js";
 
 const list = document.querySelector("[data-feed-list]");
@@ -61,18 +61,18 @@ function renderFeedPost(post) {
   const commentsCount = getComments(postId).length;
 
   return `
-    <article class="card feed-post-card" data-feed-post="${postId}">
-      <a class="post-card-link" href="/PostDetails?postId=${postId}" aria-label="Открыть пост ${escapeHtml(post.title)}">
+    <article class="card feed-post-card" data-feed-post="${postId}" data-open-post="/PostDetails?postId=${postId}">
+      <div class="post-card-link">
         <div class="post-card-meta">
           <span class="community-mark">${communityInitial(post.communityId)}</span>
-          <strong>${escapeHtml(communityName(post.communityId))}</strong>
-          <a href="/UserProfile?userId=${post.authorId}">Автор: ${escapeHtml(userDisplayName(post.authorId))}</a>
+          ${renderCommunityLink(post.communityId)}
+          ${renderAuthorLink(post.authorId)}
           <span>${formatDate(post.createdAt ?? post.createdAtUtc)}</span>
         </div>
-        <h2>${escapeHtml(post.title)}</h2>
+        <h2><a class="post-card-title" href="/PostDetails?postId=${postId}">${escapeHtml(post.title)}</a></h2>
         <p class="feed-post-text">${escapeHtml(post.text ?? post.previewText ?? "")}</p>
         ${renderMedia(postId, post.media)}
-      </a>
+      </div>
 
       <div class="post-card-footer">
         ${renderVoteControls(post)}
@@ -98,17 +98,29 @@ function renderVoteControls(post) {
 
 function bindFeedActions() {
   for (const button of document.querySelectorAll("[data-vote-post]")) {
-    button.addEventListener("click", () => votePost(button));
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      votePost(button);
+    });
+  }
+
+  for (const card of document.querySelectorAll("[data-open-post]")) {
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("a, button, input, textarea, select, label")) return;
+      location.href = card.dataset.openPost;
+    });
   }
 }
 
 async function votePost(button) {
+  const scrollY = window.scrollY;
   await runWithButton(button, "...", async () => {
     await api(`/posts/${button.dataset.votePost}/vote`, toJson("POST", {
       value: Number(button.dataset.voteValue)
     }));
     await api("/feed/refresh", toJson("POST", {}));
     await loadFeed();
+    requestAnimationFrame(() => window.scrollTo(0, scrollY));
   });
 }
 
@@ -139,11 +151,23 @@ async function loadCommunityNames() {
 }
 
 function communityName(communityId) {
-  return communityNames.get(communityId) || shortId(communityId);
+  return communityNames.get(communityId) || "Сообщество";
 }
 
 function communityInitial(communityId) {
   return communityName(communityId).trim().slice(0, 1).toUpperCase() || "C";
+}
+
+function renderCommunityLink(communityId) {
+  return `<a class="community-inline-link" href="/CommunityDetails?communityId=${communityId}">${escapeHtml(communityName(communityId))}</a>`;
+}
+
+function renderAuthorLink(userId) {
+  const href = userProfileHref(userId);
+  const label = `Автор: ${userDisplayName(userId)}`;
+  return href
+    ? `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`
+    : `<span>${escapeHtml(label)}</span>`;
 }
 
 function getPostId(post) {

@@ -1064,6 +1064,7 @@ select {
 
 .feed-post-card {
   padding: 0;
+  cursor: pointer;
 }
 
 .post-card-link {
@@ -1075,6 +1076,11 @@ select {
 
 .post-card-link:hover h2 {
   color: var(--brand-hi);
+}
+
+.post-card-title,
+.community-about h2 a {
+  color: inherit;
 }
 
 .post-card-meta {
@@ -1097,6 +1103,16 @@ select {
 
 .post-card-meta a:hover {
   color: var(--brand-hi);
+}
+
+.post-card-meta .community-inline-link {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.comment-author {
+  color: inherit;
 }
 
 .community-mark {
