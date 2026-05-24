@@ -1,3 +1,7 @@
+using System.Diagnostics;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+
 namespace SocialHub.Notification.Api.Middleware;
 
 public sealed class CorrelationIdMiddleware
@@ -29,17 +33,28 @@ public sealed class CorrelationIdMiddleware
         });
 
         _logger.LogInformation(
-            "Notification request started: {Method} {Path}.",
-            context.Request.Method,
-            context.Request.Path);
-
-        await _next(context);
-
-        _logger.LogInformation(
-            "Notification request completed: {Method} {Path} -> {StatusCode}.",
+            "Notification request started: {Method} {Path} correlationId={CorrelationId}.",
             context.Request.Method,
             context.Request.Path,
-            context.Response.StatusCode);
+            correlationId);
+
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            await _next(context);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            _logger.LogInformation(
+                "Notification request completed: {Method} {Path} -> {StatusCode} in {ElapsedMilliseconds} ms for {UserId} correlationId={CorrelationId}.",
+                context.Request.Method,
+                context.Request.Path,
+                context.Response.StatusCode,
+                stopwatch.ElapsedMilliseconds,
+                ResolveUserId(context),
+                correlationId);
+        }
     }
 
     private static string ResolveCorrelationId(HttpContext context)
@@ -51,5 +66,12 @@ public sealed class CorrelationIdMiddleware
         }
 
         return Guid.NewGuid().ToString("N");
+    }
+
+    private static string ResolveUserId(HttpContext context)
+    {
+        return context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? context.User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            ?? "anonymous";
     }
 }

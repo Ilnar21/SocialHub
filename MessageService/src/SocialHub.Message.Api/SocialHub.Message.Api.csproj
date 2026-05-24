@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.17" />
+    <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
     <ProjectReference Include="..\SocialHub.Message.Application\SocialHub.Message.Application.csproj" />
     <ProjectReference Include="..\SocialHub.Message.Infrastructure\SocialHub.Message.Infrastructure.csproj" />
   </ItemGroup>

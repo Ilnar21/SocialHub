@@ -2,16 +2,16 @@ using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
-namespace SocialHub.Community.Api.Middleware;
+namespace SocialHub.Post.Api.Middleware;
 
-public sealed class CorrelationIdMiddleware
+public sealed class RequestLoggingMiddleware
 {
     public const string HeaderName = "X-Correlation-Id";
 
     private readonly RequestDelegate _next;
-    private readonly ILogger<CorrelationIdMiddleware> _logger;
+    private readonly ILogger<RequestLoggingMiddleware> _logger;
 
-    public CorrelationIdMiddleware(RequestDelegate next, ILogger<CorrelationIdMiddleware> logger)
+    public RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggingMiddleware> logger)
     {
         _next = next;
         _logger = logger;
@@ -33,7 +33,7 @@ public sealed class CorrelationIdMiddleware
         });
 
         _logger.LogInformation(
-            "Community request started: {Method} {Path} correlationId={CorrelationId}.",
+            "Post request started: {Method} {Path} correlationId={CorrelationId}.",
             context.Request.Method,
             context.Request.Path,
             correlationId);
@@ -47,7 +47,7 @@ public sealed class CorrelationIdMiddleware
         {
             stopwatch.Stop();
             _logger.LogInformation(
-                "Community request completed: {Method} {Path} -> {StatusCode} in {ElapsedMilliseconds} ms for {UserId} correlationId={CorrelationId}.",
+                "Post request completed: {Method} {Path} -> {StatusCode} in {ElapsedMilliseconds} ms for {UserId} correlationId={CorrelationId}.",
                 context.Request.Method,
                 context.Request.Path,
                 context.Response.StatusCode,

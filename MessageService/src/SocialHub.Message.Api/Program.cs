@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Prometheus;
 using SocialHub.Message.Api.Middleware;
 using SocialHub.Message.Api.Security;
 using SocialHub.Message.Api.Services;
@@ -46,6 +47,7 @@ builder.Services.AddEndpointsApiExplorer();
 var app = builder.Build();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseHttpMetrics();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -63,5 +65,6 @@ app.MapGet("/health", async (IMessageStorageHealthCheck storage, CancellationTok
     }, statusCode: mongoHealthy ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable);
 });
 app.MapControllers();
+app.MapMetrics();
 
 app.Run();

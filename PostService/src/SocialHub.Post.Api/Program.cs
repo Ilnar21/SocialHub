@@ -15,11 +15,14 @@ using SocialHub.Post.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using Prometheus;
+using SocialHub.Post.Api.Middleware;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpContextAccessor();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -56,6 +59,8 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.UseMiddleware<RequestLoggingMiddleware>();
+app.UseHttpMetrics();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -217,6 +222,8 @@ app.MapPost("/api/posts/{postId:guid}/moderation-delete", async (
     var result = await postService.DeleteByModeratorAsync(postId, cancellationToken);
     return ToHttpResult(result);
 });
+
+app.MapMetrics();
 
 app.Run();
 

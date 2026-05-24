@@ -23,17 +23,23 @@ public sealed class RequestLoggingMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var correlationId = ResolveCorrelationId(context);
-        context.Response.Headers[CorrelationHeader] = correlationId;
-
-        var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? context.User.FindFirstValue(JwtRegisteredClaimNames.Sub)
-            ?? "anonymous";
+        context.Items[CorrelationHeader] = correlationId;
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers[CorrelationHeader] = correlationId;
+            return Task.CompletedTask;
+        });
 
         using var scope = _logger.BeginScope(new Dictionary<string, object>
         {
-            ["correlationId"] = correlationId,
-            ["userId"] = userId,
+            ["CorrelationId"] = correlationId
         });
+
+        _logger.LogInformation(
+            "Feed request started: {Method} {Path} correlationId={CorrelationId}.",
+            context.Request.Method,
+            context.Request.Path,
+            correlationId);
 
         var stopwatch = Stopwatch.StartNew();
         try
@@ -44,11 +50,13 @@ public sealed class RequestLoggingMiddleware
         {
             stopwatch.Stop();
             _logger.LogInformation(
-                "{Method} {Path} -> {Status} in {Elapsed} ms",
+                "Feed request completed: {Method} {Path} -> {StatusCode} in {ElapsedMilliseconds} ms for {UserId} correlationId={CorrelationId}.",
                 context.Request.Method,
                 context.Request.Path,
                 context.Response.StatusCode,
-                stopwatch.ElapsedMilliseconds);
+                stopwatch.ElapsedMilliseconds,
+                ResolveUserId(context),
+                correlationId);
         }
     }
 
@@ -61,5 +69,12 @@ public sealed class RequestLoggingMiddleware
         }
 
         return Guid.NewGuid().ToString("N");
+    }
+
+    private static string ResolveUserId(HttpContext context)
+    {
+        return context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? context.User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            ?? "anonymous";
     }
 }

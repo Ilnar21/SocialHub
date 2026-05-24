@@ -1,3 +1,7 @@
+using System.Diagnostics;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+
 namespace SocialHub.Moderation.Api.Middleware;
 
 public sealed class CorrelationIdMiddleware
@@ -15,16 +19,58 @@ public sealed class CorrelationIdMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var correlationId = context.Request.Headers.TryGetValue(HeaderName, out var existing)
-            && !string.IsNullOrWhiteSpace(existing.FirstOrDefault())
-                ? existing.First()!
-                : Guid.NewGuid().ToString("N");
+        var correlationId = ResolveCorrelationId(context);
 
-        context.Response.Headers[HeaderName] = correlationId;
+        context.Items[HeaderName] = correlationId;
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers[HeaderName] = correlationId;
+            return Task.CompletedTask;
+        });
 
         using (_logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId }))
         {
-            await _next(context);
+            _logger.LogInformation(
+                "Moderation request started: {Method} {Path} correlationId={CorrelationId}.",
+                context.Request.Method,
+                context.Request.Path,
+                correlationId);
+
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                await _next(context);
+            }
+            finally
+            {
+                stopwatch.Stop();
+                _logger.LogInformation(
+                    "Moderation request completed: {Method} {Path} -> {StatusCode} in {ElapsedMilliseconds} ms for {UserId} correlationId={CorrelationId}.",
+                    context.Request.Method,
+                    context.Request.Path,
+                    context.Response.StatusCode,
+                    stopwatch.ElapsedMilliseconds,
+                    ResolveUserId(context),
+                    correlationId);
+            }
         }
+    }
+
+    private static string ResolveCorrelationId(HttpContext context)
+    {
+        if (context.Request.Headers.TryGetValue(HeaderName, out var existing)
+            && !string.IsNullOrWhiteSpace(existing.FirstOrDefault()))
+        {
+            return existing.First()!;
+        }
+
+        return Guid.NewGuid().ToString("N");
+    }
+
+    private static string ResolveUserId(HttpContext context)
+    {
+        return context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? context.User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            ?? "anonymous";
     }
 }

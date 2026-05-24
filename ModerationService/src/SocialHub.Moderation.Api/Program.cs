@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Prometheus;
 using SocialHub.Moderation.Api.Middleware;
 using SocialHub.Moderation.Api.Security;
 using SocialHub.Moderation.Api.Services;
@@ -46,6 +47,7 @@ builder.Services.AddEndpointsApiExplorer();
 var app = builder.Build();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseHttpMetrics();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -63,5 +65,6 @@ app.MapGet("/health", async (IModerationStorageHealthCheck storage, Cancellation
     }, statusCode: postgresHealthy ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable);
 });
 app.MapControllers();
+app.MapMetrics();
 
 app.Run();
