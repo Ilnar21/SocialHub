@@ -1006,12 +1006,20 @@ select {
   color: inherit;
 }
 
+.community-result-main > span:last-child,
+.owned-community-link > span:last-child {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
 .community-result-main strong,
 .owned-community-link strong {
   display: block;
   color: var(--ink);
   font-size: 15px;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .community-result-main small,
@@ -1021,6 +1029,29 @@ select {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.owned-community-link {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px;
+  background: var(--surface-2);
+}
+
+.owned-community-link strong,
+.owned-community-link small {
+  max-width: 100%;
+}
+
+.owned-community-link small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .community-logo {
@@ -1054,13 +1085,6 @@ select {
   background: var(--surface-2);
   font-family: var(--font-mono);
   font-size: 11px;
-}
-
-.owned-community-link {
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  padding: 10px;
-  background: var(--surface-2);
 }
 
 .owned-community-link:hover,
