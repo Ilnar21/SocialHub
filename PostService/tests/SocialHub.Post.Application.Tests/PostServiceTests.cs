@@ -175,6 +175,28 @@ public sealed class PostServiceTests
     }
 
     [Fact]
+    public async Task Update_rejects_author_who_is_not_community_owner()
+    {
+        var authorId = Guid.NewGuid();
+        var created = await SeedPostAsync(authorId);
+        var service = CreateService(
+            isMember: true,
+            isOwner: false,
+            metadata: created.Metadata,
+            content: created.Content);
+
+        var result = await service.UpdateAsync(
+            created.PostId,
+            new UpdatePostRequest(authorId, "New title", "New text"),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(403, result.StatusCode);
+        Assert.Equal("Original", created.Metadata.Items.Single().Title);
+        Assert.Equal("Original text", created.Content.Items.Single().Text);
+    }
+
+    [Fact]
     public async Task ListByCommunity_returns_only_published_posts_with_media()
     {
         var authorId = Guid.NewGuid();
@@ -287,6 +309,45 @@ public sealed class PostServiceTests
         Assert.Equal(PostStatus.Deleted, deleted.Value!.Status);
         Assert.False(getAfterDelete.Succeeded);
         Assert.Equal(404, getAfterDelete.StatusCode);
+    }
+
+    [Fact]
+    public async Task Delete_allows_community_owner_to_remove_other_author_post()
+    {
+        var authorId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var created = await SeedPostAsync(authorId);
+        var service = CreateService(metadata: created.Metadata, content: created.Content, isOwner: true);
+
+        var result = await service.DeleteAsync(
+            created.PostId,
+            new DeletePostRequest(ownerId),
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(PostStatus.Deleted, result.Value!.Status);
+        Assert.NotNull(created.Metadata.Items.Single().DeletedAt);
+    }
+
+    [Fact]
+    public async Task Delete_rejects_user_who_is_not_author_or_community_owner()
+    {
+        var authorId = Guid.NewGuid();
+        var created = await SeedPostAsync(authorId);
+        var service = CreateService(
+            isMember: true,
+            isOwner: false,
+            metadata: created.Metadata,
+            content: created.Content);
+
+        var result = await service.DeleteAsync(
+            created.PostId,
+            new DeletePostRequest(Guid.NewGuid()),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(403, result.StatusCode);
+        Assert.Equal(PostStatus.Published, created.Metadata.Items.Single().Status);
     }
 
     [Fact]

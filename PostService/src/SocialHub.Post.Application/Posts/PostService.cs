@@ -205,6 +205,11 @@ public sealed class PostService
             return OperationResult<PostResponse>.Fail("Only author can edit post.", 403);
         }
 
+        if (!await _communityAccessClient.IsOwnerAsync(request.ActorId, metadata.CommunityId, cancellationToken))
+        {
+            return OperationResult<PostResponse>.Fail("Only community owner can edit posts directly.", 403);
+        }
+
         try
         {
             var now = _clock.UtcNow;
@@ -246,7 +251,19 @@ public sealed class PostService
 
         try
         {
-            metadata.MarkDeleted(request.ActorId, _clock.UtcNow);
+            if (metadata.AuthorId == request.ActorId)
+            {
+                metadata.MarkDeleted(request.ActorId, _clock.UtcNow);
+            }
+            else if (await _communityAccessClient.IsOwnerAsync(request.ActorId, metadata.CommunityId, cancellationToken))
+            {
+                metadata.MarkDeletedByCommunityOwner(_clock.UtcNow);
+            }
+            else
+            {
+                return OperationResult<PostResponse>.Fail("Only author or community owner can delete post.", 403);
+            }
+
             await _metadataRepository.UpdateAsync(metadata, cancellationToken);
 
             var media = await _mediaRepository.ListByPostIdAsync(postId, cancellationToken);

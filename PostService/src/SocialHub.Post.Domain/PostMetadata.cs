@@ -100,4 +100,16 @@ public sealed class PostMetadata
         DeletedAt = now;
         UpdatedAt = now;
     }
+
+    public void MarkDeletedByCommunityOwner(DateTimeOffset now)
+    {
+        if (Status == PostStatus.Deleted)
+        {
+            return;
+        }
+
+        Status = PostStatus.Deleted;
+        DeletedAt = now;
+        UpdatedAt = now;
+    }
 }
