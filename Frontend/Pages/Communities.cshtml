@@ -6,7 +6,7 @@
 <header class="page-header">
     <div>
         <h1>Сообщества</h1>
-        <p>Найдите сообщество, вступите в него или создайте свое. Владельцы видят свои сообщества отдельным списком.</p>
+        <p>Найдите сообщество по названию, описанию или @@username. Ваши подписки всегда доступны справа.</p>
     </div>
     <div class="actions no-margin">
         <button class="button secondary subtle-action" data-load-communities>
@@ -30,7 +30,10 @@
             <button class="button secondary" type="button" data-close-create-community>Закрыть</button>
         </div>
         <label>Название
-            <input name="name" placeholder="backend_daily" required />
+            <input name="name" placeholder="Backend Daily" required />
+        </label>
+        <label>Username
+            <input name="username" placeholder="backend_daily" autocomplete="off" required />
         </label>
         <label>Описание
             <textarea name="description" placeholder="О чем это сообщество и кому оно полезно" required></textarea>
@@ -49,15 +52,21 @@
             <h2>Поиск</h2>
             <span class="badge" data-membership-counter>0 из 30</span>
         </div>
-        <label>Название или описание
-            <input data-community-search placeholder="Например: дизайн, игры, backend" />
+        <label>Название, описание или username
+            <input data-community-search placeholder="Например: backend_daily" />
         </label>
         <div class="content-list" data-communities-list></div>
     </section>
 
-    <aside class="panel owned-communities-panel">
-        <h2>Мои сообщества</h2>
-        <div class="content-list" data-owned-communities-list></div>
+    <aside class="community-side-panels">
+        <section class="panel owned-communities-panel">
+            <h2>Мои подписки</h2>
+            <div class="content-list" data-subscriptions-list></div>
+        </section>
+        <section class="panel owned-communities-panel">
+            <h2>Я владелец</h2>
+            <div class="content-list" data-owned-communities-list></div>
+        </section>
     </aside>
 </section>
 

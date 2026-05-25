@@ -964,6 +964,11 @@ select {
   gap: 14px;
 }
 
+.community-side-panels {
+  display: grid;
+  gap: 14px;
+}
+
 .community-result-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1499,10 +1504,14 @@ select {
 }
 
 .community-hero-action {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   justify-self: end;
 }
 
-.community-suggest-form {
+.community-suggest-form,
+.community-edit-form {
   max-width: 720px;
 }
 

@@ -5,15 +5,18 @@ import { getSession } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
 const root = document.querySelector("[data-community-page]");
-const communityId = new URLSearchParams(location.search).get("communityId");
+const params = new URLSearchParams(location.search);
+let communityId = params.get("communityId");
+const communityUsername = params.get("username");
 
 let community = null;
 let posts = [];
 let suggestedPosts = [];
 let members = [];
 let activeTab = "posts";
+let editingDescription = false;
 
-if (!communityId) {
+if (!communityId && !communityUsername) {
   root.innerHTML = empty("Сообщество не найдено.");
 } else {
   await loadCommunityPage();
@@ -23,15 +26,23 @@ async function loadCommunityPage() {
   root.innerHTML = empty("Загружаем сообщество...");
 
   try {
-    community = await api(`/api/communities/${communityId}`);
-    posts = await api(`/communities/${communityId}/posts`);
+    community = communityUsername
+      ? await api(`/api/communities/by-username/${encodeURIComponent(communityUsername)}`)
+      : await api(`/api/communities/${communityId}`);
+    communityId = community.id;
+
+    if (!communityUsername && community.username) {
+      history.replaceState(null, "", `/CommunityDetails?username=${encodeURIComponent(community.username)}`);
+    }
+
+    posts = await api(`/communities/${community.id}/posts`);
     suggestedPosts = [];
     members = [];
 
     if (isOwner()) {
       [suggestedPosts, members] = await Promise.all([
-        api(`/api/communities/${communityId}/suggested-posts?status=Pending`),
-        api(`/api/communities/${communityId}/members`)
+        api(`/api/communities/${community.id}/suggested-posts?status=Pending`),
+        api(`/api/communities/${community.id}/members`)
       ]);
     }
 
@@ -53,6 +64,7 @@ function renderPage() {
       <div class="community-avatar">${communityInitial()}</div>
       <div>
         <h1>${escapeHtml(community.name)}</h1>
+        <p class="muted">@${escapeHtml(community.username)}</p>
         <p>${escapeHtml(community.description ?? "")}</p>
         <div class="meta">
           <span>${posts.length} постов</span>
@@ -65,6 +77,7 @@ function renderPage() {
       </div>
     </section>
 
+    ${renderEditDescriptionForm()}
     ${renderSuggestForm()}
 
     <section class="community-tabs">
@@ -82,7 +95,9 @@ function renderPage() {
 
 function renderCommunityAction() {
   if (isOwner()) {
-    return '<button class="button secondary" type="button" disabled>Вы владелец</button>';
+    return `
+      <button class="button secondary" type="button" disabled>Вы владелец</button>
+      <button class="button primary" type="button" data-edit-community>${editingDescription ? "Закрыть" : "Изменить"}</button>`;
   }
 
   if (isMember()) {
@@ -90,6 +105,22 @@ function renderCommunityAction() {
   }
 
   return `<button class="button primary" type="button" data-join-community="${community.id}">Вступить</button>`;
+}
+
+function renderEditDescriptionForm() {
+  if (!isOwner() || !editingDescription) return "";
+
+  return `
+    <form class="panel form-grid community-edit-form" data-form="edit-community">
+      <h2>Описание сообщества</h2>
+      <label>Описание
+        <textarea name="description" maxlength="500">${escapeHtml(community.description ?? "")}</textarea>
+      </label>
+      <div class="actions">
+        <button class="button primary" type="submit">Сохранить</button>
+        <button class="button secondary" type="button" data-cancel-community-edit>Отмена</button>
+      </div>
+    </form>`;
 }
 
 function renderSuggestForm() {
@@ -205,6 +236,28 @@ function bindActions() {
 
   root.querySelector("[data-leave-community]")?.addEventListener("click", (event) =>
     runCommunityAction(event.currentTarget, "DELETE"));
+
+  root.querySelector("[data-edit-community]")?.addEventListener("click", () => {
+    editingDescription = !editingDescription;
+    renderPage();
+  });
+
+  root.querySelector("[data-cancel-community-edit]")?.addEventListener("click", () => {
+    editingDescription = false;
+    renderPage();
+  });
+
+  root.querySelector('[data-form="edit-community"]')?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    await runWithButton(button, "Сохраняем...", async () => {
+      community = await api(`/api/communities/${community.id}`, toJson("PUT", formData(form)));
+      editingDescription = false;
+      toast("Описание сообщества обновлено.");
+      renderPage();
+    });
+  });
 
   root.querySelector('[data-form="suggest-post"]')?.addEventListener("submit", async (event) => {
     event.preventDefault();

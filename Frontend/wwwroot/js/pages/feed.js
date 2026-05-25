@@ -4,7 +4,7 @@ import { preloadUsers, userDisplayName, userProfileHref } from "../core/identity
 import { toast } from "../core/toast.js";
 
 const list = document.querySelector("[data-feed-list]");
-const communityNames = new Map();
+const communitiesById = new Map();
 
 document.querySelector("[data-refresh-feed]")?.addEventListener("click", async (event) => {
   await runWithButton(event.currentTarget, "Обновляем...", async () => {
@@ -143,15 +143,15 @@ function renderMediaItem(postId, item) {
 }
 
 async function loadCommunityNames() {
-  if (communityNames.size) return;
+  if (communitiesById.size) return;
   const communities = await api("/api/communities");
   for (const community of communities) {
-    communityNames.set(community.id, community.name);
+    communitiesById.set(community.id, community);
   }
 }
 
 function communityName(communityId) {
-  return communityNames.get(communityId) || "Сообщество";
+  return communitiesById.get(communityId)?.name || "Сообщество";
 }
 
 function communityInitial(communityId) {
@@ -159,7 +159,11 @@ function communityInitial(communityId) {
 }
 
 function renderCommunityLink(communityId) {
-  return `<a class="community-inline-link" href="/CommunityDetails?communityId=${communityId}">${escapeHtml(communityName(communityId))}</a>`;
+  const community = communitiesById.get(communityId);
+  const href = community?.username
+    ? `/CommunityDetails?username=${encodeURIComponent(community.username)}`
+    : `/CommunityDetails?communityId=${communityId}`;
+  return `<a class="community-inline-link" href="${escapeHtml(href)}">${escapeHtml(communityName(communityId))}</a>`;
 }
 
 function renderAuthorLink(userId) {

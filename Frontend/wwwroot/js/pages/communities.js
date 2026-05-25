@@ -4,6 +4,7 @@ import { toast } from "../core/toast.js";
 
 const list = document.querySelector("[data-communities-list]");
 const ownedList = document.querySelector("[data-owned-communities-list]");
+const subscriptionsList = document.querySelector("[data-subscriptions-list]");
 const membershipCounter = document.querySelector("[data-membership-counter]");
 const searchInput = document.querySelector("[data-community-search]");
 const createForm = document.querySelector('[data-form="create-community"]');
@@ -26,11 +27,13 @@ createForm?.addEventListener("submit", async (event) => {
   const button = createForm.querySelector('button[type="submit"]');
 
   await runWithButton(button, "Создаем...", async () => {
-    const created = await api("/api/communities", toJson("POST", formData(createForm)));
+    const data = formData(createForm);
+    data.username = normalizeUsername(data.username);
+    const created = await api("/api/communities", toJson("POST", data));
     createForm.reset();
     createForm.hidden = true;
     toast("Сообщество создано. Вы назначены владельцем.");
-    location.href = `/CommunityDetails?communityId=${created.id}`;
+    location.href = communityUrl(created);
   });
 });
 
@@ -39,6 +42,7 @@ await loadCommunities();
 async function loadCommunities() {
   list.innerHTML = empty("Загружаем сообщества...");
   ownedList.innerHTML = empty("Проверяем ваши сообщества...");
+  subscriptionsList.innerHTML = empty("Проверяем ваши подписки...");
 
   try {
     [communities, myCommunities] = await Promise.all([
@@ -46,25 +50,41 @@ async function loadCommunities() {
       api("/api/communities/my")
     ]);
 
-    membershipCounter.textContent = `${myCommunities.length} из 30`;
+    membershipCounter.textContent = `${myCommunities.length} из 30 подписок`;
     renderCommunities();
+    renderSubscriptions();
     renderOwnedCommunities();
   } catch (error) {
     list.innerHTML = empty(error.message);
     ownedList.innerHTML = empty(error.message);
+    subscriptionsList.innerHTML = empty(error.message);
   }
 }
 
 function renderCommunities() {
   const query = normalize(searchInput?.value);
+  if (!query) {
+    list.innerHTML = empty("Введите название, описание или @username сообщества, чтобы увидеть результаты поиска.");
+    return;
+  }
+
   const results = communities
-    .filter((community) => !query || normalize(`${community.name} ${community.description}`).includes(query))
+    .filter((community) => normalize(`${community.name} ${community.username} ${community.description}`).includes(query))
     .sort((left, right) => left.name.localeCompare(right.name, "ru"));
 
   list.innerHTML = results.length
     ? results.map(renderCommunityResult).join("")
-    : empty(query ? "Ничего не найдено." : "Сообществ пока нет.");
+    : empty("Ничего не найдено.");
   bindCommunityActions(list);
+}
+
+function renderSubscriptions() {
+  const subscriptions = myCommunities
+    .sort((left, right) => left.name.localeCompare(right.name, "ru"));
+
+  subscriptionsList.innerHTML = subscriptions.length
+    ? subscriptions.map(renderSubscription).join("")
+    : empty("Вы пока не подписаны ни на одно сообщество.");
 }
 
 function renderOwnedCommunities() {
@@ -85,11 +105,11 @@ function renderCommunityResult(community) {
 
   return `
     <article class="community-result-card">
-      <a class="community-result-main" href="/CommunityDetails?communityId=${community.id}">
+      <a class="community-result-main" href="${communityUrl(community)}">
         <span class="community-logo">${communityInitial(community.name)}</span>
         <span>
           <strong>${escapeHtml(community.name)}</strong>
-          <small>${escapeHtml(community.description ?? "")}</small>
+          <small>@${escapeHtml(community.username)} · ${escapeHtml(community.description ?? "")}</small>
         </span>
       </a>
       <div class="community-result-meta">
@@ -102,13 +122,24 @@ function renderCommunityResult(community) {
     </article>`;
 }
 
-function renderOwnedCommunity(community) {
+function renderSubscription(community) {
   return `
-    <a class="owned-community-link" href="/CommunityDetails?communityId=${community.id}">
+    <a class="owned-community-link" href="${communityUrl(community)}">
       <span class="community-logo">${communityInitial(community.name)}</span>
       <span>
         <strong>${escapeHtml(community.name)}</strong>
-        <small>${community.membersCount ?? 0} подписчиков</small>
+        <small>@${escapeHtml(community.username)} · ${roleLabel(communityRole(community))}</small>
+      </span>
+    </a>`;
+}
+
+function renderOwnedCommunity(community) {
+  return `
+    <a class="owned-community-link" href="${communityUrl(community)}">
+      <span class="community-logo">${communityInitial(community.name)}</span>
+      <span>
+        <strong>${escapeHtml(community.name)}</strong>
+        <small>@${escapeHtml(community.username)} · ${community.membersCount ?? 0} подписчиков</small>
       </span>
     </a>`;
 }
@@ -119,7 +150,7 @@ function renderMembershipAction(communityId, isMember, role, canLeave) {
   }
 
   if (role === "Owner") {
-    return `<a class="button secondary" href="/CommunityDetails?communityId=${communityId}">Управлять</a>`;
+    return `<a class="button secondary" href="${communityUrl(findCommunity(communityId))}">Управлять</a>`;
   }
 
   return `<button class="button secondary" type="button" data-leave="${communityId}" ${canLeave ? "" : "disabled"}>Выйти</button>`;
@@ -148,6 +179,10 @@ function findMembership(communityId) {
   return myCommunities.find((community) => community.id === communityId);
 }
 
+function findCommunity(communityId) {
+  return communities.find((community) => community.id === communityId) ?? findMembership(communityId);
+}
+
 function communityRole(community) {
   return community?.currentUserRole ?? community?.currentUserMembership?.role ?? community?.role;
 }
@@ -162,6 +197,24 @@ function normalize(value) {
 
 function typeLabel(type) {
   return type === "Closed" ? "Закрытое" : "Открытое";
+}
+
+function roleLabel(role) {
+  return {
+    Owner: "владелец",
+    Admin: "администратор",
+    Member: "подписка"
+  }[role] ?? "подписка";
+}
+
+function communityUrl(community) {
+  return community?.username
+    ? `/CommunityDetails?username=${encodeURIComponent(community.username)}`
+    : `/CommunityDetails?communityId=${community?.id ?? ""}`;
+}
+
+function normalizeUsername(value) {
+  return String(value ?? "").trim().toLowerCase();
 }
 
 async function runWithButton(button, pendingText, action) {

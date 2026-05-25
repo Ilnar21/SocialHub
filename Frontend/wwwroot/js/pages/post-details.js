@@ -181,7 +181,10 @@ function renderCommunityLink() {
     return `<strong>${escapeHtml(community?.name ?? "Сообщество")}</strong>`;
   }
 
-  return `<a class="community-inline-link" href="/CommunityDetails?communityId=${community.id}">${escapeHtml(community.name)}</a>`;
+  const href = community.username
+    ? `/CommunityDetails?username=${encodeURIComponent(community.username)}`
+    : `/CommunityDetails?communityId=${community.id}`;
+  return `<a class="community-inline-link" href="${escapeHtml(href)}">${escapeHtml(community.name)}</a>`;
 }
 
 function renderAuthorLink(userId) {

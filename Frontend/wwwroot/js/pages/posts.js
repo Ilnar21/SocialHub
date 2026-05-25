@@ -119,7 +119,7 @@ function renderPost(post) {
       ${renderVoteControls(post)}
       <p>${escapeHtml(post.text ?? "")}</p>
       <div class="meta">
-        <a href="/CommunityDetails?communityId=${post.communityId}">Сообщество: ${escapeHtml(community?.name ?? "Сообщество")}</a>
+        <a href="${escapeHtml(communityUrl(community, post.communityId))}">Сообщество: ${escapeHtml(community?.name ?? "Сообщество")}</a>
         ${renderAuthorLink(post.authorId)}
         <span>${formatDate(post.createdAt)}</span>
         ${post.updatedAt ? `<span>Изменен: ${formatDate(post.updatedAt)}</span>` : ""}
@@ -323,6 +323,12 @@ function renderAuthorLink(userId) {
   return href
     ? `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`
     : `<span>${escapeHtml(label)}</span>`;
+}
+
+function communityUrl(community, fallbackId) {
+  return community?.username
+    ? `/CommunityDetails?username=${encodeURIComponent(community.username)}`
+    : `/CommunityDetails?communityId=${fallbackId}`;
 }
 
 async function filesToMedia(fileList) {
