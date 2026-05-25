@@ -923,6 +923,118 @@ select {
 .panel .empty { border: 0; padding: 20px 0; }
 
 /* ---------- 16. Messages / chat ---------- */
+.telegram-shell {
+  min-height: calc(100vh - 170px);
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.telegram-sidebar,
+.telegram-chat {
+  min-height: 620px;
+}
+
+.telegram-sidebar {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+}
+
+.telegram-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.telegram-dialogs {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.dialog-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 10px;
+  text-align: left;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.dialog-card:hover,
+.dialog-card.active-card {
+  border-color: var(--brand);
+  background: linear-gradient(180deg, var(--brand-soft), transparent 80%), var(--surface-2);
+}
+
+.dialog-card > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.dialog-card strong,
+.dialog-card small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialog-card small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.dialog-avatar {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  color: var(--bg);
+  background: var(--brand);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.telegram-chat {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.telegram-chat-header {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+
+.telegram-chat-header h2 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 20px;
+}
+
+.telegram-chat-header p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .messages {
   min-height: 420px;
   max-height: 60vh;
@@ -975,6 +1087,27 @@ select {
 .message.mine strong,
 .message.mine small { color: rgba(0,0,0,.55); }
 .message.mine p { color: var(--bg); }
+
+.telegram-messages {
+  min-height: 0;
+  max-height: none;
+  padding: 8px 8px 8px 0;
+}
+
+.message-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.message-composer textarea {
+  min-height: 44px;
+  max-height: 140px;
+  resize: vertical;
+}
 
 /* ---------- 17. Posts: detail & comments ---------- */
 .post-card { display: grid; gap: 6px; }
@@ -1786,6 +1919,7 @@ select {
   .feed-layout,
   .communities-page,
   .post-page-layout,
+  .telegram-shell,
   .split {
     grid-template-columns: 1fr;
   }
@@ -1802,6 +1936,8 @@ select {
   }
   .post-detail-panel,
   .community-sidebar { position: static; }
+  .telegram-sidebar,
+  .telegram-chat { min-height: auto; }
   .messages { max-height: 50vh; }
 }
 
@@ -1857,6 +1993,8 @@ select {
   .card.feed-post-card { padding: 0; }
   .feed-toolbar { grid-template-columns: 1fr; }
   .posts-filter-panel { grid-template-columns: 1fr; }
+  .telegram-search,
+  .message-composer { grid-template-columns: 1fr; }
   .post-card-link { padding: 16px 16px 0; }
   .post-card-footer { padding: 12px 16px 16px; }
   .post-page-card { padding: 16px; }

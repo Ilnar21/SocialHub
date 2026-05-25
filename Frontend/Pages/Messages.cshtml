@@ -6,7 +6,7 @@
 <header class="page-header">
     <div>
         <h1>Сообщения</h1>
-        <p>Личные диалоги, изолированные от модерации платформы. Доступны только участникам переписки.</p>
+        <p>Личные диалоги создаются только после первого отправленного сообщения.</p>
     </div>
     <button class="button secondary subtle-action" data-load-dialogs>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -20,17 +20,32 @@
     </button>
 </header>
 
-<section class="split">
-    <div class="stack">
-        <form class="panel form-grid" data-form="send-message">
-            <h2>Написать</h2>
-            <label>Получатель
-                <select name="recipientUserId" data-user-select></select>
+<section class="telegram-shell">
+    <aside class="panel telegram-sidebar">
+        <form class="telegram-search" data-form="open-recipient">
+            <label>Поиск собеседника по ID
+                <input name="recipientUserId" data-recipient-search placeholder="UUID пользователя" autocomplete="off" />
             </label>
-            <label>Текст сообщения
-                <textarea name="text" maxlength="4000" placeholder="Не более 4000 символов" required></textarea>
-            </label>
-            <button class="button primary" type="submit">
+            <button class="button primary" type="submit">Открыть</button>
+        </form>
+
+        <div class="telegram-dialogs" data-dialogs-list></div>
+    </aside>
+
+    <section class="panel telegram-chat">
+        <div class="telegram-chat-header">
+            <div>
+                <h2 data-active-chat-title>Выберите диалог</h2>
+                <p data-active-chat-subtitle>Или вставьте ID пользователя сверху, чтобы открыть пустой чат.</p>
+            </div>
+        </div>
+
+        <div class="messages telegram-messages" data-messages-list></div>
+
+        <form class="message-composer" data-form="send-message">
+            <input type="hidden" name="recipientUserId" data-active-recipient-id />
+            <textarea name="text" maxlength="4000" placeholder="Сообщение" required disabled></textarea>
+            <button class="button primary" type="submit" disabled>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <line x1="22" y1="2" x2="11" y2="13" />
@@ -39,17 +54,7 @@
                 Отправить
             </button>
         </form>
-
-        <div class="panel">
-            <h2>Диалоги</h2>
-            <div class="content-list" data-dialogs-list></div>
-        </div>
-    </div>
-
-    <div class="panel">
-        <h2>История переписки</h2>
-        <div class="messages" data-messages-list></div>
-    </div>
+    </section>
 </section>
 
 @section Scripts {
