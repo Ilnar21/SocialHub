@@ -1,11 +1,10 @@
 import { api, toJson } from "../core/api.js";
-import { empty, escapeHtml, formData, formatDate, shortId } from "../core/dom.js";
-import { preloadUsers, userDisplayName, userProfileHref } from "../core/identity.js";
+import { empty, escapeHtml, formData, formatDate } from "../core/dom.js";
+import { preloadUsers, userDisplayName, userProfileHref, userUsername } from "../core/identity.js";
 import { getSession } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
 const recipientSearch = document.querySelector("[data-recipient-search]");
-const activeRecipientInput = document.querySelector("[data-active-recipient-id]");
 const activeTitle = document.querySelector("[data-active-chat-title]");
 const activeSubtitle = document.querySelector("[data-active-chat-subtitle]");
 const dialogsList = document.querySelector("[data-dialogs-list]");
@@ -13,7 +12,7 @@ const messagesList = document.querySelector("[data-messages-list]");
 const sendForm = document.querySelector('[data-form="send-message"]');
 const sendButton = sendForm?.querySelector('button[type="submit"]');
 const messageText = sendForm?.querySelector('textarea[name="text"]');
-const presetRecipientId = new URLSearchParams(location.search).get("recipientUserId") || "";
+const presetRecipientUsername = new URLSearchParams(location.search).get("recipientUsername") || "";
 
 let activeDialogId = "";
 let activeRecipientId = "";
@@ -26,15 +25,15 @@ document.querySelector("[data-load-dialogs]")?.addEventListener("click", async (
 document.querySelector('[data-form="open-recipient"]')?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = formData(event.currentTarget);
-  await openRecipient(data.recipientUserId);
+  await openRecipientByUsername(data.recipientUsername);
 });
 
 sendForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = formData(event.currentTarget);
 
-  if (!data.recipientUserId) {
-    toast("Откройте чат с пользователем по ID.", "error");
+  if (!activeRecipientId) {
+    toast("Откройте чат с пользователем по username.", "error");
     return;
   }
 
@@ -44,10 +43,9 @@ sendForm?.addEventListener("submit", async (event) => {
   }
 
   await runWithButton(sendButton, "Отправляем...", async () => {
-    const response = await api(`/api/dialogs/${data.recipientUserId}/messages`, toJson("POST", { text: data.text }));
+    const response = await api(`/api/dialogs/${activeRecipientId}/messages`, toJson("POST", { text: data.text }));
     const dialogId = response.dialogId ?? response.DialogId;
     messageText.value = "";
-    activeRecipientInput.value = activeRecipientId;
     toast("Сообщение отправлено.");
     await loadDialogs();
     if (dialogId) {
@@ -58,10 +56,10 @@ sendForm?.addEventListener("submit", async (event) => {
 
 await loadDialogs();
 
-if (presetRecipientId) {
-  await openRecipient(presetRecipientId);
+if (presetRecipientUsername) {
+  await openRecipientByUsername(presetRecipientUsername);
 } else {
-  renderEmptyChat("Выберите диалог или найдите собеседника по ID.");
+  renderEmptyChat("Выберите диалог или найдите собеседника по username.");
 }
 
 async function loadDialogs() {
@@ -89,12 +87,24 @@ function renderDialogs() {
   }
 }
 
-async function openRecipient(rawRecipientId) {
-  const recipientId = String(rawRecipientId || "").trim();
+async function openRecipientByUsername(rawUsername) {
+  const username = normalizeUsername(rawUsername);
+  if (!username) {
+    toast("Введите username пользователя.", "error");
+    return;
+  }
+
+  const user = await api(`/api/users/by-username/${encodeURIComponent(username)}`);
+  await preloadUsers([user.id]);
+  await openRecipientUser(user);
+}
+
+async function openRecipientUser(user) {
+  const recipientId = user?.id || "";
   const currentUserId = getSession().user?.id;
 
-  if (!isGuid(recipientId)) {
-    toast("Введите корректный ID пользователя.", "error");
+  if (!recipientId || !user?.username) {
+    toast("Пользователь не найден.", "error");
     return;
   }
 
@@ -107,8 +117,7 @@ async function openRecipient(rawRecipientId) {
   const existingDialog = dialogsCache.find((dialog) => (dialog.participantUserIds ?? []).includes(recipientId));
 
   activeRecipientId = recipientId;
-  activeRecipientInput.value = recipientId;
-  recipientSearch.value = recipientId;
+  recipientSearch.value = `@${user.username}`;
   setComposerEnabled(true);
 
   if (existingDialog) {
@@ -127,8 +136,7 @@ async function openDialog(dialogId) {
   const dialog = dialogsCache.find((item) => dialogIdOf(item) === dialogId);
   activeDialogId = dialogId;
   activeRecipientId = dialog ? otherParticipantId(dialog) : activeRecipientId;
-  activeRecipientInput.value = activeRecipientId;
-  recipientSearch.value = activeRecipientId;
+  recipientSearch.value = userUsername(activeRecipientId) ? `@${userUsername(activeRecipientId)}` : "";
   setComposerEnabled(Boolean(activeRecipientId));
   updateActiveHeader(activeRecipientId, dialogId);
   renderDialogs();
@@ -152,8 +160,8 @@ function renderDialog(dialog) {
   const dialogId = dialogIdOf(dialog);
   const otherId = otherParticipantId(dialog);
   const isActive = dialogId === activeDialogId ? " active-card" : "";
-  const href = userProfileHref(otherId);
   const name = userDisplayName(otherId);
+  const username = userUsername(otherId);
 
   return `
     <button class="dialog-card${isActive}" type="button" data-open-dialog="${dialogId}">
@@ -161,7 +169,7 @@ function renderDialog(dialog) {
       <span>
         <strong>${escapeHtml(name)}</strong>
         <small>${escapeHtml(dialog.lastMessagePreview ?? dialog.lastMessageText ?? dialog.lastMessage?.text ?? "Нет сообщений")}</small>
-        <small>${href ? "Профиль доступен" : `ID ${shortId(otherId)}`} · ${formatDate(dialog.lastMessageAt ?? dialog.lastMessageAtUtc ?? dialog.updatedAtUtc)}</small>
+        <small>@${escapeHtml(username || "user")} · ${formatDate(dialog.lastMessageAt ?? dialog.lastMessageAtUtc ?? dialog.updatedAtUtc)}</small>
       </span>
     </button>`;
 }
@@ -184,12 +192,13 @@ function renderEmptyChat(text) {
 function updateActiveHeader(recipientId, dialogId) {
   const name = userDisplayName(recipientId);
   const href = userProfileHref(recipientId);
+  const username = userUsername(recipientId);
   activeTitle.innerHTML = href
     ? `<a href="${escapeHtml(href)}">${escapeHtml(name)}</a>`
     : escapeHtml(name);
   activeSubtitle.textContent = dialogId
-    ? `Диалог ${shortId(dialogId)}`
-    : `Новый чат с пользователем ${shortId(recipientId)}`;
+    ? `@${username}`
+    : `Новый чат с @${username}`;
 }
 
 function setComposerEnabled(enabled) {
@@ -206,8 +215,8 @@ function otherParticipantId(dialog) {
   return (dialog.participantUserIds ?? []).find((id) => id !== currentUserId) || "";
 }
 
-function isGuid(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+function normalizeUsername(value) {
+  return String(value || "").trim().replace(/^@/, "").toLowerCase();
 }
 
 async function runWithButton(button, pendingText, action) {

@@ -1,6 +1,6 @@
 import { api, toJson } from "../core/api.js";
 import { empty, escapeHtml, formData, formatDate } from "../core/dom.js";
-import { preloadUsers, userDisplayName, userProfileHref } from "../core/identity.js";
+import { preloadUsers, userDisplayName, userProfileHref, userUsername } from "../core/identity.js";
 import { bindReportButtons } from "../core/reports.js";
 import { getSession } from "../core/session.js";
 import { toast } from "../core/toast.js";
@@ -176,7 +176,7 @@ function renderComment(comment) {
         ${authorHref
           ? `<a class="comment-author" href="${escapeHtml(authorHref)}"><strong>${escapeHtml(authorName)}</strong></a>`
           : `<strong>${escapeHtml(authorName)}</strong>`}
-        ${canMessage ? `<a class="button secondary" href="/Messages?recipientUserId=${comment.authorId}">Написать сообщение</a>` : ""}
+        ${canMessage ? renderMessageLink(comment.authorId) : ""}
       </div>
       <p>${escapeHtml(comment.text)}</p>
       <small>${formatDate(comment.createdAt)}</small>
@@ -220,6 +220,13 @@ function renderAuthorLink(userId) {
   return href
     ? `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`
     : `<span>${escapeHtml(label)}</span>`;
+}
+
+function renderMessageLink(userId) {
+  const username = userUsername(userId);
+  return username
+    ? `<a class="button secondary" href="/Messages?recipientUsername=${encodeURIComponent(username)}">Написать сообщение</a>`
+    : "";
 }
 
 function renderCommunityReportButton() {

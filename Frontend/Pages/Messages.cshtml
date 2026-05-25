@@ -23,8 +23,8 @@
 <section class="telegram-shell">
     <aside class="panel telegram-sidebar">
         <form class="telegram-search" data-form="open-recipient">
-            <label>Поиск собеседника по ID
-                <input name="recipientUserId" data-recipient-search placeholder="UUID пользователя" autocomplete="off" />
+            <label>Поиск собеседника по username
+                <input name="recipientUsername" data-recipient-search placeholder="@@username" autocomplete="off" />
             </label>
             <button class="button primary" type="submit">Открыть</button>
         </form>
@@ -36,14 +36,13 @@
         <div class="telegram-chat-header">
             <div>
                 <h2 data-active-chat-title>Выберите диалог</h2>
-                <p data-active-chat-subtitle>Или вставьте ID пользователя сверху, чтобы открыть пустой чат.</p>
+                <p data-active-chat-subtitle>Или введите username сверху, чтобы открыть пустой чат.</p>
             </div>
         </div>
 
         <div class="messages telegram-messages" data-messages-list></div>
 
         <form class="message-composer" data-form="send-message">
-            <input type="hidden" name="recipientUserId" data-active-recipient-id />
             <textarea name="text" maxlength="4000" placeholder="Сообщение" required disabled></textarea>
             <button class="button primary" type="submit" disabled>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"

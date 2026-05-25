@@ -6,11 +6,28 @@ export async function preloadUsers(userIds) {
   const uniqueIds = [...new Set(userIds.filter(Boolean))].filter((id) => !userCache.has(id));
   await Promise.all(uniqueIds.map(async (id) => {
     try {
-      userCache.set(id, await api(`/api/users/${id}`));
+      cacheUser(await api(`/api/users/${id}`));
     } catch {
       userCache.set(id, null);
     }
   }));
+}
+
+export async function findUserByUsername(username) {
+  const normalized = normalizeUsername(username);
+  if (!normalized) return null;
+
+  const cached = [...userCache.values()]
+    .filter(Boolean)
+    .find((user) => normalizeUsername(user.username) === normalized);
+
+  if (cached) {
+    return cached;
+  }
+
+  const user = await api(`/api/users/by-username/${encodeURIComponent(normalized)}`);
+  cacheUser(user);
+  return user;
 }
 
 export function userDisplayName(userId) {
@@ -25,4 +42,14 @@ export function userUsername(userId) {
 export function userProfileHref(userId) {
   const username = userUsername(userId);
   return username ? `/UserProfile?username=${encodeURIComponent(username)}` : "";
+}
+
+function cacheUser(user) {
+  if (user?.id) {
+    userCache.set(user.id, user);
+  }
+}
+
+function normalizeUsername(value) {
+  return String(value || "").trim().replace(/^@/, "").toLowerCase();
 }
