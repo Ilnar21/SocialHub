@@ -10,7 +10,9 @@ public interface ICommunityService
     Task<List<CommunitySummaryResponse>> GetCommunitiesAsync(CancellationToken cancellationToken);
     Task<List<CommunitySummaryResponse>> GetCurrentUserCommunitiesAsync(CancellationToken cancellationToken);
     Task<CommunityDetailsResponse> GetCommunityAsync(Guid communityId, CancellationToken cancellationToken);
+    Task<CommunityDetailsResponse> GetCommunityByUsernameAsync(string username, CancellationToken cancellationToken);
     Task<CommunityDetailsResponse> CreateCommunityAsync(CreateCommunityRequest request, CancellationToken cancellationToken);
+    Task<CommunityDetailsResponse> UpdateCommunityAsync(Guid communityId, UpdateCommunityRequest request, CancellationToken cancellationToken);
     Task<MemberResponse> JoinCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task LeaveCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task<List<MemberResponse>> GetMembersAsync(Guid communityId, CancellationToken cancellationToken);

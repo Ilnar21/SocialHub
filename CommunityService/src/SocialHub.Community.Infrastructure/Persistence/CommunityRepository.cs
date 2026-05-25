@@ -38,9 +38,21 @@ public sealed class CommunityRepository : ICommunityRepository
             .FirstOrDefaultAsync(c => c.Id == communityId, cancellationToken);
     }
 
+    public Task<Domain.Entities.Community?> GetCommunityByUsernameAsync(string normalizedUsername, CancellationToken cancellationToken)
+    {
+        return _dbContext.Communities
+            .Include(c => c.Members)
+            .FirstOrDefaultAsync(c => c.NormalizedUsername == normalizedUsername, cancellationToken);
+    }
+
     public Task<bool> CommunityNameExistsAsync(string normalizedName, CancellationToken cancellationToken)
     {
         return _dbContext.Communities.AnyAsync(c => c.NormalizedName == normalizedName, cancellationToken);
+    }
+
+    public Task<bool> CommunityUsernameExistsAsync(string normalizedUsername, CancellationToken cancellationToken)
+    {
+        return _dbContext.Communities.AnyAsync(c => c.NormalizedUsername == normalizedUsername, cancellationToken);
     }
 
     public Task<CommunityMember?> GetMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken)

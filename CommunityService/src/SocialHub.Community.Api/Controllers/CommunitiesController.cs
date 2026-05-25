@@ -38,11 +38,26 @@ public sealed class CommunitiesController : ControllerBase
         return Ok(await _communityService.GetCommunityAsync(communityId, cancellationToken));
     }
 
+    [HttpGet("by-username/{username}")]
+    public async Task<ActionResult<CommunityDetailsResponse>> GetCommunityByUsername(string username, CancellationToken cancellationToken)
+    {
+        return Ok(await _communityService.GetCommunityByUsernameAsync(username, cancellationToken));
+    }
+
     [HttpPost]
     public async Task<ActionResult<CommunityDetailsResponse>> CreateCommunity(CreateCommunityRequest request, CancellationToken cancellationToken)
     {
         var response = await _communityService.CreateCommunityAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetCommunity), new { communityId = response.Id }, response);
+    }
+
+    [HttpPut("{communityId:guid}")]
+    public async Task<ActionResult<CommunityDetailsResponse>> UpdateCommunity(
+        Guid communityId,
+        UpdateCommunityRequest request,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _communityService.UpdateCommunityAsync(communityId, request, cancellationToken));
     }
 
     [HttpPost("{communityId:guid}/join")]

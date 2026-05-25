@@ -58,22 +58,44 @@ public sealed class CommunityService : ICommunityService
         return ToDetails(community, currentMembership);
     }
 
+    public async Task<CommunityDetailsResponse> GetCommunityByUsernameAsync(string username, CancellationToken cancellationToken)
+    {
+        var normalizedUsername = NormalizeCommunityUsernameOrThrow(username).ToUpperInvariant();
+        var community = await _repository.GetCommunityByUsernameAsync(normalizedUsername, cancellationToken)
+            ?? throw AppException.NotFound("Сообщество не найдено.");
+
+        var currentMembership = await _repository.GetMemberAsync(community.Id, _currentUser.UserId, cancellationToken);
+        return ToDetails(community, currentMembership);
+    }
+
     public async Task<CommunityDetailsResponse> CreateCommunityAsync(CreateCommunityRequest request, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            throw AppException.BadRequest("Укажите название сообщества.");
+        }
+
         var normalizedName = request.Name.Trim().ToUpperInvariant();
         if (await _repository.CommunityNameExistsAsync(normalizedName, cancellationToken))
         {
-            throw AppException.Conflict("Community name already exists.");
+            throw AppException.Conflict("Сообщество с таким названием уже существует.");
+        }
+
+        var username = NormalizeCommunityUsernameOrThrow(request.Username);
+        var normalizedUsername = username.ToUpperInvariant();
+        if (await _repository.CommunityUsernameExistsAsync(normalizedUsername, cancellationToken))
+        {
+            throw AppException.Conflict("Юзернейм сообщества уже занят.");
         }
 
         var membershipCount = await _repository.CountMembershipsAsync(_currentUser.UserId, cancellationToken);
         if (membershipCount >= CommunityLimits.MaxCommunitiesPerUser)
         {
-            throw AppException.Conflict("Membership limit reached: a user can join no more than 30 communities.");
+            throw AppException.Conflict("Нельзя состоять больше чем в 30 сообществах.");
         }
 
         var now = DateTime.UtcNow;
-        var community = new Community.Domain.Entities.Community(request.Name, request.Description, request.Type, _currentUser.UserId, now);
+        var community = new Community.Domain.Entities.Community(request.Name, username, request.Description, request.Type, _currentUser.UserId, now);
         var owner = community.AddOwner(_currentUser.UserId, now);
 
         await _repository.AddCommunityAsync(community, cancellationToken);
@@ -81,6 +103,23 @@ public sealed class CommunityService : ICommunityService
         await _repository.SaveChangesAsync(cancellationToken);
 
         return ToDetails(community, owner);
+    }
+
+    public async Task<CommunityDetailsResponse> UpdateCommunityAsync(Guid communityId, UpdateCommunityRequest request, CancellationToken cancellationToken)
+    {
+        var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        var member = await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
+        if (member.Role != CommunityMemberRole.Owner)
+        {
+            throw AppException.Forbidden("Только владелец сообщества может менять описание.");
+        }
+
+        var now = DateTime.UtcNow;
+        community.UpdateDescription(request.Description, now);
+        await _repository.AddAuditLogAsync(new CommunityAuditLog(communityId, _currentUser.UserId, "COMMUNITY_DESCRIPTION_UPDATED", "Community description was updated.", now), cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        return ToDetails(community, member);
     }
 
     public async Task<MemberResponse> JoinCommunityAsync(Guid communityId, CancellationToken cancellationToken)
@@ -95,7 +134,7 @@ public sealed class CommunityService : ICommunityService
         var membershipCount = await _repository.CountMembershipsAsync(_currentUser.UserId, cancellationToken);
         if (membershipCount >= CommunityLimits.MaxCommunitiesPerUser)
         {
-            throw AppException.Conflict("Membership limit reached: a user can join no more than 30 communities.");
+            throw AppException.Conflict("Нельзя состоять больше чем в 30 сообществах.");
         }
 
         var now = DateTime.UtcNow;
@@ -113,7 +152,7 @@ public sealed class CommunityService : ICommunityService
         var member = await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
         if (member.Role == CommunityMemberRole.Owner)
         {
-            throw AppException.Conflict("Community owner cannot leave before transferring ownership.");
+            throw AppException.Conflict("Владелец не может выйти из сообщества, пока не передаст владение.");
         }
 
         _repository.RemoveMember(member);
@@ -154,13 +193,13 @@ public sealed class CommunityService : ICommunityService
 
         if (memberUserId == _currentUser.UserId)
         {
-            throw AppException.BadRequest("Administrators should use the leave community endpoint for themselves.");
+            throw AppException.BadRequest("Для выхода из сообщества используйте кнопку выхода.");
         }
 
         var member = await GetRequiredMemberAsync(communityId, memberUserId, cancellationToken);
         if (member.Role == CommunityMemberRole.Owner)
         {
-            throw AppException.Forbidden("Community owner cannot be removed.");
+            throw AppException.Forbidden("Владельца нельзя удалить из сообщества.");
         }
 
         _repository.RemoveMember(member);
@@ -173,18 +212,18 @@ public sealed class CommunityService : ICommunityService
         var actor = await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
         if (actor.Role != CommunityMemberRole.Owner)
         {
-            throw AppException.Forbidden("Only community owner can change member roles.");
+            throw AppException.Forbidden("Только владелец сообщества может менять роли участников.");
         }
 
         if (role == CommunityMemberRole.Owner)
         {
-            throw AppException.BadRequest("Ownership transfer is not supported by this endpoint.");
+            throw AppException.BadRequest("Передача владения через этот экран пока не поддерживается.");
         }
 
         var member = await GetRequiredMemberAsync(communityId, memberUserId, cancellationToken);
         if (member.Role == CommunityMemberRole.Owner)
         {
-            throw AppException.Forbidden("Owner role cannot be changed by this endpoint.");
+            throw AppException.Forbidden("Роль владельца нельзя изменить через этот экран.");
         }
 
         member.ChangeRole(role);
@@ -300,19 +339,19 @@ public sealed class CommunityService : ICommunityService
     private async Task<Community.Domain.Entities.Community> GetRequiredCommunityAsync(Guid communityId, CancellationToken cancellationToken)
     {
         return await _repository.GetCommunityAsync(communityId, cancellationToken)
-            ?? throw AppException.NotFound("Community was not found.");
+            ?? throw AppException.NotFound("Сообщество не найдено.");
     }
 
     private async Task<CommunityMember> GetRequiredMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken)
     {
         return await _repository.GetMemberAsync(communityId, userId, cancellationToken)
-            ?? throw AppException.NotFound("Community member was not found.");
+            ?? throw AppException.NotFound("Участник сообщества не найден.");
     }
 
     private async Task<SuggestedPost> GetRequiredSuggestedPostAsync(Guid communityId, Guid suggestedPostId, CancellationToken cancellationToken)
     {
         return await _repository.GetSuggestedPostAsync(communityId, suggestedPostId, cancellationToken)
-            ?? throw AppException.NotFound("Suggested post was not found.");
+            ?? throw AppException.NotFound("Предложенный пост не найден.");
     }
 
     private async Task EnsureCurrentUserCanAdminCommunityAsync(Guid communityId, CancellationToken cancellationToken)
@@ -321,7 +360,7 @@ public sealed class CommunityService : ICommunityService
         var member = await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
         if (member.Role is not (CommunityMemberRole.Owner or CommunityMemberRole.Admin))
         {
-            throw AppException.Forbidden("Insufficient community permissions.");
+            throw AppException.Forbidden("Недостаточно прав для управления сообществом.");
         }
     }
 
@@ -331,7 +370,7 @@ public sealed class CommunityService : ICommunityService
         var member = await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
         if (member.Role != CommunityMemberRole.Owner)
         {
-            throw AppException.Forbidden("Only community owner can review suggested posts.");
+            throw AppException.Forbidden("Только владелец сообщества может просматривать предложенные посты.");
         }
     }
 
@@ -340,6 +379,7 @@ public sealed class CommunityService : ICommunityService
         return new CommunityDetailsResponse(
             community.Id,
             community.Name,
+            community.Username,
             community.Description,
             community.Type,
             community.CreatedByUserId,
@@ -355,11 +395,29 @@ public sealed class CommunityService : ICommunityService
         return new CommunitySummaryResponse(
             community.Id,
             community.Name,
+            community.Username,
             community.Description,
             community.Type,
             community.CreatedAtUtc,
             community.Members.Count,
             currentMembership?.Role);
+    }
+
+    private static string NormalizeCommunityUsernameOrThrow(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            throw AppException.BadRequest("Укажите username сообщества.");
+        }
+
+        try
+        {
+            return Community.Domain.Entities.Community.NormalizeUsername(username);
+        }
+        catch (ArgumentException)
+        {
+            throw AppException.BadRequest("Юзернейм сообщества должен быть от 3 до 64 символов: латинские буквы, цифры, точка, дефис или нижнее подчеркивание. Первый символ должен быть буквой или цифрой.");
+        }
     }
 
     private static MemberResponse ToMemberResponse(CommunityMember member)

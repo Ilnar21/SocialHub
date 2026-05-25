@@ -23,13 +23,29 @@ public sealed class CommunityServiceTests
         var service = CreateService(repository);
 
         var response = await service.CreateCommunityAsync(
-            new CreateCommunityRequest("Architecture Club", "Course project", CommunityType.Open),
+            new CreateCommunityRequest("Architecture Club", "architecture", "Course project", CommunityType.Open),
             CancellationToken.None);
 
         Assert.Equal(UserId, response.CreatedByUserId);
+        Assert.Equal("architecture", response.Username);
         Assert.Equal("Owner", response.CurrentUserMembership?.Role.ToString());
         Assert.Single(repository.Communities);
         Assert.Single(repository.AuditLogs);
+    }
+
+    [Fact]
+    public async Task CreateCommunityAsync_RejectsDuplicateUsername()
+    {
+        var repository = new FakeCommunityRepository();
+        repository.AddSeedCommunity("Architecture Club", OwnerId, username: "architecture");
+        var service = CreateService(repository);
+
+        var exception = await Assert.ThrowsAsync<AppException>(() =>
+            service.CreateCommunityAsync(
+                new CreateCommunityRequest("Different Name", "ARCHITECTURE", "Course project", CommunityType.Open),
+                CancellationToken.None));
+
+        Assert.Equal(409, exception.StatusCode);
     }
 
     [Fact]
@@ -141,6 +157,23 @@ public sealed class CommunityServiceTests
         Assert.Equal(2, members.Count);
     }
 
+    [Fact]
+    public async Task UpdateCommunityAsync_AllowsOnlyOwnerAndChangesDescription()
+    {
+        var repository = new FakeCommunityRepository();
+        var community = repository.AddSeedCommunity("Owned", OwnerId, UserId);
+        var memberService = CreateService(repository, currentUserId: UserId);
+        var ownerService = CreateService(repository, currentUserId: OwnerId);
+
+        var exception = await Assert.ThrowsAsync<AppException>(() =>
+            memberService.UpdateCommunityAsync(community.Id, new UpdateCommunityRequest("member update"), CancellationToken.None));
+        var response = await ownerService.UpdateCommunityAsync(community.Id, new UpdateCommunityRequest("new description"), CancellationToken.None);
+
+        Assert.Equal(403, exception.StatusCode);
+        Assert.Equal("Owned", response.Name);
+        Assert.Equal("new description", response.Description);
+    }
+
     private static CommunityAppService CreateService(
         FakeCommunityRepository repository,
         FakeNotificationClient? notificationClient = null,
@@ -191,9 +224,9 @@ public sealed class CommunityServiceTests
         public List<CommunityAuditLog> AuditLogs { get; } = [];
         public List<SuggestedPost> SuggestedPosts { get; } = [];
 
-        public CommunityEntity AddSeedCommunity(string name, Guid ownerId, Guid? memberId = null)
+        public CommunityEntity AddSeedCommunity(string name, Guid ownerId, Guid? memberId = null, string? username = null)
         {
-            var community = new CommunityEntity(name, "Description", CommunityType.Open, ownerId, DateTime.UtcNow);
+            var community = new CommunityEntity(name, username ?? ToUsername(name), "Description", CommunityType.Open, ownerId, DateTime.UtcNow);
             community.AddOwner(ownerId, DateTime.UtcNow);
             if (memberId.HasValue)
             {
@@ -223,9 +256,19 @@ public sealed class CommunityServiceTests
             return Task.FromResult(Communities.FirstOrDefault(x => x.Id == communityId));
         }
 
+        public Task<CommunityEntity?> GetCommunityByUsernameAsync(string normalizedUsername, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Communities.FirstOrDefault(x => x.NormalizedUsername == normalizedUsername));
+        }
+
         public Task<bool> CommunityNameExistsAsync(string normalizedName, CancellationToken cancellationToken)
         {
             return Task.FromResult(Communities.Any(x => x.NormalizedName == normalizedName));
+        }
+
+        public Task<bool> CommunityUsernameExistsAsync(string normalizedUsername, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Communities.Any(x => x.NormalizedUsername == normalizedUsername));
         }
 
         public Task<CommunityMember?> GetMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken)
@@ -316,6 +359,17 @@ public sealed class CommunityServiceTests
         public Task SaveChangesAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
+        }
+
+        private static string ToUsername(string name)
+        {
+            var username = new string(name
+                .Trim()
+                .ToLowerInvariant()
+                .Select(character => char.IsLetterOrDigit(character) ? character : '_')
+                .ToArray());
+
+            return username.Length >= 3 ? username : $"{username}123";
         }
     }
 }

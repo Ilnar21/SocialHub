@@ -24,9 +24,12 @@ public sealed class CommunityDbContext : DbContext
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Name).HasMaxLength(CommunityLimits.NameMaxLength).IsRequired();
             builder.Property(x => x.NormalizedName).HasMaxLength(CommunityLimits.NameMaxLength).IsRequired();
+            builder.Property(x => x.Username).HasMaxLength(CommunityLimits.UsernameMaxLength).IsRequired();
+            builder.Property(x => x.NormalizedUsername).HasMaxLength(CommunityLimits.UsernameMaxLength).IsRequired();
             builder.Property(x => x.Description).HasMaxLength(CommunityLimits.DescriptionMaxLength).IsRequired();
             builder.Property(x => x.Type).HasConversion<string>().HasMaxLength(20).IsRequired();
             builder.HasIndex(x => x.NormalizedName).IsUnique();
+            builder.HasIndex(x => x.NormalizedUsername).IsUnique();
             builder.Metadata.FindNavigation(nameof(Domain.Entities.Community.Members))!
                 .SetPropertyAccessMode(PropertyAccessMode.Field);
             builder.Metadata.FindNavigation(nameof(Domain.Entities.Community.SuggestedPosts))!

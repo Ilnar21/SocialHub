@@ -8,7 +8,9 @@ public interface ICommunityRepository
     Task<List<Community.Domain.Entities.Community>> GetCommunitiesAsync(CancellationToken cancellationToken);
     Task<List<Community.Domain.Entities.Community>> GetCommunitiesByUserAsync(Guid userId, CancellationToken cancellationToken);
     Task<Community.Domain.Entities.Community?> GetCommunityAsync(Guid communityId, CancellationToken cancellationToken);
+    Task<Community.Domain.Entities.Community?> GetCommunityByUsernameAsync(string normalizedUsername, CancellationToken cancellationToken);
     Task<bool> CommunityNameExistsAsync(string normalizedName, CancellationToken cancellationToken);
+    Task<bool> CommunityUsernameExistsAsync(string normalizedUsername, CancellationToken cancellationToken);
     Task<CommunityMember?> GetMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken);
     Task<bool> IsMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken);
     Task<List<CommunityMember>> GetMembersAsync(Guid communityId, CancellationToken cancellationToken);

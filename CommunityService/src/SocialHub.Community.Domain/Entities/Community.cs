@@ -12,11 +12,13 @@ public sealed class Community
     {
     }
 
-    public Community(string name, string description, CommunityType type, Guid createdByUserId, DateTime createdAtUtc)
+    public Community(string name, string username, string description, CommunityType type, Guid createdByUserId, DateTime createdAtUtc)
     {
         Id = Guid.NewGuid();
         Name = NormalizeRequired(name, nameof(name), CommunityLimits.NameMaxLength);
         NormalizedName = Name.ToUpperInvariant();
+        Username = NormalizeUsername(username);
+        NormalizedUsername = Username.ToUpperInvariant();
         Description = NormalizeOptional(description, CommunityLimits.DescriptionMaxLength);
         Type = type;
         CreatedByUserId = createdByUserId;
@@ -27,6 +29,8 @@ public sealed class Community
     public Guid Id { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string NormalizedName { get; private set; } = string.Empty;
+    public string Username { get; private set; } = string.Empty;
+    public string NormalizedUsername { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public CommunityType Type { get; private set; }
     public Guid CreatedByUserId { get; private set; }
@@ -51,6 +55,38 @@ public sealed class Community
         return member;
     }
 
+    public void UpdateDescription(string? description, DateTime updatedAtUtc)
+    {
+        Description = NormalizeOptional(description, CommunityLimits.DescriptionMaxLength);
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public static string NormalizeUsername(string value)
+    {
+        var normalized = value.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            throw new ArgumentException("Community username is required.", nameof(value));
+        }
+
+        if (normalized.Length is < 3 or > CommunityLimits.UsernameMaxLength)
+        {
+            throw new ArgumentException("Community username must contain from 3 to 64 characters.", nameof(value));
+        }
+
+        if (!char.IsLetterOrDigit(normalized[0]))
+        {
+            throw new ArgumentException("Community username must start with a letter or digit.", nameof(value));
+        }
+
+        if (normalized.Any(character => !IsUsernameCharacter(character)))
+        {
+            throw new ArgumentException("Community username can contain only latin letters, digits, dots, dashes and underscores.", nameof(value));
+        }
+
+        return normalized;
+    }
+
     private static string NormalizeRequired(string value, string parameterName, int maxLength)
     {
         var normalized = value.Trim();
@@ -67,4 +103,11 @@ public sealed class Community
         var normalized = value?.Trim() ?? string.Empty;
         return normalized.Length > maxLength ? normalized[..maxLength] : normalized;
     }
+
+    private static bool IsUsernameCharacter(char character) =>
+        character is >= 'a' and <= 'z'
+            or >= '0' and <= '9'
+            or '_'
+            or '-'
+            or '.';
 }

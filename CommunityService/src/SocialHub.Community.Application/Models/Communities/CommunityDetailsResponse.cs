@@ -6,6 +6,7 @@ namespace SocialHub.Community.Application.Models.Communities;
 public sealed record CommunityDetailsResponse(
     Guid Id,
     string Name,
+    string Username,
     string Description,
     CommunityType Type,
     Guid CreatedByUserId,
