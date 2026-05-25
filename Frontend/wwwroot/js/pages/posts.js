@@ -1,19 +1,35 @@
 import { api, toJson } from "../core/api.js";
 import { empty, escapeHtml, formData, formatDate } from "../core/dom.js";
 import { preloadUsers, userDisplayName, userProfileHref } from "../core/identity.js";
+import { bindReportButtons } from "../core/reports.js";
 import { getSession, isPlatformModerator } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
-const communitySelect = document.querySelector("[data-community-select]");
+const createPanel = document.querySelector("[data-create-post-panel]");
+const createCommunitySelect = document.querySelector("[data-create-community-select]");
+const filterCommunitySelect = document.querySelector("[data-posts-community-filter]");
+const sortSelect = document.querySelector("[data-posts-sort]");
+const authorFilter = document.querySelector("[data-posts-author-filter]");
 const submitPostButton = document.querySelector("[data-submit-post]");
 const formHint = document.querySelector("[data-post-form-hint]");
 const list = document.querySelector("[data-posts-list]");
 
-let communities = [];
 let allMyCommunities = [];
+let ownerCommunities = [];
+let loadedPosts = [];
 
 document.querySelector("[data-load-posts]")?.addEventListener("click", loadPosts);
-communitySelect?.addEventListener("change", loadPosts);
+document.querySelector("[data-toggle-create-post]")?.addEventListener("click", () => {
+  createPanel.hidden = !createPanel.hidden;
+});
+
+filterCommunitySelect?.addEventListener("change", loadPosts);
+sortSelect?.addEventListener("change", renderLoadedPosts);
+authorFilter?.addEventListener("change", renderLoadedPosts);
+
+document.querySelector("[data-posts-filters]")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+});
 
 document.querySelector('[data-form="create-post"]')?.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -23,7 +39,7 @@ document.querySelector('[data-form="create-post"]')?.addEventListener("submit", 
   const selectedCommunityId = data.communityId;
 
   if (!selectedCommunityId) {
-    toast("Прямую публикацию можно сделать только в своем сообществе.", "error");
+    toast("Прямую публикацию можно сделать только в сообществе, где вы владелец.", "error");
     return;
   }
 
@@ -37,7 +53,9 @@ document.querySelector('[data-form="create-post"]')?.addEventListener("submit", 
     }));
 
     form.reset();
-    communitySelect.value = selectedCommunityId;
+    createCommunitySelect.value = selectedCommunityId;
+    filterCommunitySelect.value = selectedCommunityId;
+    createPanel.hidden = true;
     toast("Пост опубликован.");
     await loadPosts();
   });
@@ -49,99 +67,153 @@ await loadPosts();
 async function loadCommunities() {
   try {
     allMyCommunities = await api("/api/communities/my");
-    communities = allMyCommunities.filter((community) => communityRole(community) === "Owner");
+    ownerCommunities = allMyCommunities.filter((community) => communityRole(community) === "Owner");
     const preset = new URLSearchParams(location.search).get("communityId");
 
-    if (!communities.length) {
-      communitySelect.innerHTML = '<option value="">Нет сообществ, где вы владелец</option>';
-      communitySelect.disabled = true;
-      submitPostButton.disabled = true;
-      formHint.textContent = allMyCommunities.length
-        ? "Вы можете предложить пост на странице «Сообщества». Прямая публикация доступна только владельцу."
-        : "Создайте свое сообщество или вступите в существующее, чтобы предложить пост владельцу.";
-      return;
-    }
-
-    communitySelect.disabled = false;
-    submitPostButton.disabled = false;
-    formHint.textContent = "";
-    communitySelect.innerHTML = communities.map((community) => (
-      `<option value="${community.id}">${escapeHtml(community.name)}</option>`
-    )).join("");
-
-    if (preset && communities.some((community) => community.id === preset)) {
-      communitySelect.value = preset;
-    }
+    renderCreateCommunityOptions(preset);
+    renderFilterCommunityOptions(preset);
   } catch (error) {
-    communitySelect.innerHTML = `<option value="">${escapeHtml(error.message)}</option>`;
-    communitySelect.disabled = true;
+    createCommunitySelect.innerHTML = `<option value="">${escapeHtml(error.message)}</option>`;
+    createCommunitySelect.disabled = true;
+    filterCommunitySelect.innerHTML = `<option value="">${escapeHtml(error.message)}</option>`;
+    filterCommunitySelect.disabled = true;
     submitPostButton.disabled = true;
     formHint.textContent = "Не удалось загрузить сообщества пользователя.";
   }
 }
 
-async function loadPosts() {
-  const communityId = communitySelect.value;
-  if (!communityId) {
-    list.innerHTML = empty("Подпишитесь на сообщество, чтобы видеть и создавать посты.");
+function renderCreateCommunityOptions(preset) {
+  if (!ownerCommunities.length) {
+    createCommunitySelect.innerHTML = '<option value="">Нет сообществ, где вы владелец</option>';
+    createCommunitySelect.disabled = true;
+    submitPostButton.disabled = true;
+    formHint.textContent = allMyCommunities.length
+      ? "Прямую публикацию может сделать только владелец сообщества. В чужом сообществе используйте предложенный пост."
+      : "Создайте свое сообщество или вступите в существующее, чтобы работать с постами.";
     return;
   }
 
+  createCommunitySelect.disabled = false;
+  submitPostButton.disabled = false;
+  formHint.textContent = "";
+  createCommunitySelect.innerHTML = ownerCommunities.map((community) => (
+    `<option value="${community.id}">${escapeHtml(community.name)}</option>`
+  )).join("");
+
+  if (preset && ownerCommunities.some((community) => community.id === preset)) {
+    createCommunitySelect.value = preset;
+  }
+}
+
+function renderFilterCommunityOptions(preset) {
+  if (!allMyCommunities.length) {
+    filterCommunitySelect.innerHTML = '<option value="">Нет ваших сообществ</option>';
+    filterCommunitySelect.disabled = true;
+    return;
+  }
+
+  filterCommunitySelect.disabled = false;
+  filterCommunitySelect.innerHTML = `
+    <option value="">Все мои сообщества</option>
+    ${allMyCommunities.map((community) => `<option value="${community.id}">${escapeHtml(community.name)}</option>`).join("")}`;
+
+  if (preset && allMyCommunities.some((community) => community.id === preset)) {
+    filterCommunitySelect.value = preset;
+  }
+}
+
+async function loadPosts() {
+  if (!allMyCommunities.length) {
+    list.innerHTML = empty("Подпишитесь на сообщества, чтобы видеть посты.");
+    return;
+  }
+
+  const selectedCommunityId = filterCommunitySelect.value;
+  const targetCommunities = selectedCommunityId
+    ? allMyCommunities.filter((community) => community.id === selectedCommunityId)
+    : allMyCommunities;
+
   list.innerHTML = empty("Загружаем посты...");
   try {
-    const posts = await api(`/communities/${communityId}/posts`);
-    await preloadUsers([
-      ...posts.map((post) => post.authorId),
-      ...posts.flatMap((post) => getComments(post.id).map((comment) => comment.authorId))
-    ]);
-    list.innerHTML = posts.length
-      ? posts.map(renderPost).join("")
-      : empty("В этом сообществе пока нет постов. Опубликуйте первый.");
-    bindPostActions();
+    const batches = await Promise.all(targetCommunities.map((community) => api(`/communities/${community.id}/posts`)));
+    loadedPosts = batches.flat();
+    await preloadUsers(loadedPosts.map((post) => post.authorId));
+    renderAuthorOptions();
+    renderLoadedPosts();
   } catch (error) {
     list.innerHTML = empty(error.message);
   }
 }
 
+function renderAuthorOptions() {
+  const selectedAuthorId = authorFilter.value;
+  const authors = [...new Set(loadedPosts.map((post) => post.authorId).filter(Boolean))]
+    .sort((left, right) => userDisplayName(left).localeCompare(userDisplayName(right), "ru"));
+
+  authorFilter.innerHTML = `
+    <option value="">Все авторы</option>
+    ${authors.map((authorId) => `<option value="${authorId}">${escapeHtml(userDisplayName(authorId))}</option>`).join("")}`;
+
+  if (selectedAuthorId && authors.includes(selectedAuthorId)) {
+    authorFilter.value = selectedAuthorId;
+  }
+}
+
+function renderLoadedPosts() {
+  const posts = applyFilters(loadedPosts);
+  list.innerHTML = posts.length
+    ? posts.map(renderPost).join("")
+    : empty("По выбранным фильтрам постов нет.");
+  bindPostActions();
+}
+
+function applyFilters(posts) {
+  const selectedAuthorId = authorFilter.value;
+  const filtered = selectedAuthorId
+    ? posts.filter((post) => post.authorId === selectedAuthorId)
+    : [...posts];
+
+  return filtered.sort((left, right) => {
+    const leftTime = new Date(left.createdAt ?? left.createdAtUtc ?? 0).getTime();
+    const rightTime = new Date(right.createdAt ?? right.createdAtUtc ?? 0).getTime();
+    return sortSelect.value === "oldest" ? leftTime - rightTime : rightTime - leftTime;
+  });
+}
+
 function renderPost(post) {
   const session = getSession();
-  const comments = getComments(post.id);
+  const commentsCount = getComments(post.id).length;
   const isAuthor = post.authorId === session.user?.id;
+  const community = allMyCommunities.find((item) => item.id === post.communityId);
+  const isCommunityOwner = communityRole(community) === "Owner";
+  const canEdit = isAuthor && isCommunityOwner;
+  const canDelete = isAuthor || isCommunityOwner;
   const canModerate = isPlatformModerator();
-  const community = communities.find((item) => item.id === post.communityId);
 
   return `
     <article class="card post-card" data-post-card="${post.id}">
-      <div class="row">
-        <h2>${escapeHtml(post.title)}</h2>
-        <span class="badge success">${escapeHtml(post.status ?? "Published")}</span>
-      </div>
-      ${renderVoteControls(post)}
-      <p>${escapeHtml(post.text ?? "")}</p>
-      <div class="meta">
-        <a href="${escapeHtml(communityUrl(community, post.communityId))}">Сообщество: ${escapeHtml(community?.name ?? "Сообщество")}</a>
+      <div class="post-card-meta">
+        <span class="community-mark">${communityInitial(community)}</span>
+        <a class="community-inline-link" href="${escapeHtml(communityUrl(community, post.communityId))}">${escapeHtml(community?.name ?? "Сообщество")}</a>
         ${renderAuthorLink(post.authorId)}
         <span>${formatDate(post.createdAt)}</span>
         ${post.updatedAt ? `<span>Изменен: ${formatDate(post.updatedAt)}</span>` : ""}
       </div>
+      <h2><a class="post-card-title" href="/PostDetails?postId=${post.id}">${escapeHtml(post.title)}</a></h2>
+      ${renderVoteControls(post)}
+      <p>${escapeHtml(post.text ?? "")}</p>
       ${renderMedia(post.id, post.media)}
-      ${isAuthor ? renderEditForm(post) : ""}
-      <section class="comments">
-        <div class="row comments-title">
-          <strong>Комментарии</strong>
-          <span class="badge">${comments.length}</span>
-        </div>
-        <div class="comment-list">
-          ${comments.length ? comments.map(renderComment).join("") : '<p class="muted">Комментариев пока нет.</p>'}
-        </div>
-        <form class="comment-form" data-form="add-comment" data-post-id="${post.id}">
-          <input name="text" maxlength="1000" placeholder="Добавить комментарий" required />
-          <button class="button secondary" type="submit">Отправить</button>
-        </form>
-      </section>
-      <div class="actions">
-        ${isAuthor ? `<button class="button danger" data-delete-own-post="${post.id}">Удалить свой пост</button>` : ""}
-        ${canModerate ? `<button class="button danger" data-delete-post="${post.id}">Удалить как модератор</button>` : ""}
+      ${canEdit ? renderEditForm(post) : ""}
+      <div class="post-card-footer">
+        <a class="comment-pill" href="/PostDetails?postId=${post.id}#comments">${commentsCount} комментариев</a>
+        <button class="button secondary" type="button"
+                data-report-target-type="POST"
+                data-report-target-id="${post.id}"
+                data-report-target-label="Пост: ${escapeHtml(post.title)}">
+          Пожаловаться
+        </button>
+        ${canDelete ? `<button class="button danger" data-delete-owned-post="${post.id}">${isAuthor ? "Удалить свой пост" : "Удалить пост сообщества"}</button>` : ""}
+        ${canModerate ? `<button class="button danger" data-delete-post-moderation="${post.id}">Удалить как модератор</button>` : ""}
       </div>
     </article>`;
 }
@@ -196,43 +268,14 @@ function renderEditForm(post) {
     </form>`;
 }
 
-function renderComment(comment) {
-  const currentUserId = getSession().user?.id;
-  const canMessage = comment.authorId && comment.authorId !== currentUserId;
-  const authorName = comment.authorId ? userDisplayName(comment.authorId) : comment.author || "Пользователь";
-  const authorHref = comment.authorId ? userProfileHref(comment.authorId) : "";
-
-  return `
-    <article class="comment">
-      <div class="row">
-        ${authorHref
-          ? `<a class="comment-author" href="${escapeHtml(authorHref)}"><strong>${escapeHtml(authorName)}</strong></a>`
-          : `<strong>${escapeHtml(authorName)}</strong>`}
-        ${canMessage ? `<a class="button secondary" href="/Messages?recipientUserId=${comment.authorId}">Написать сообщение</a>` : ""}
-      </div>
-      <p>${escapeHtml(comment.text)}</p>
-      <small>${formatDate(comment.createdAt)}</small>
-    </article>`;
-}
-
 function bindPostActions() {
-  for (const button of document.querySelectorAll("[data-vote-post]")) {
+  for (const button of list.querySelectorAll("[data-vote-post]")) {
     button.addEventListener("click", () => votePost(button));
   }
 
-  for (const form of document.querySelectorAll('[data-form="add-comment"]')) {
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const data = formData(form);
-      const postId = form.dataset.postId;
-      addComment(postId, data.text);
-      form.reset();
-      toast("Комментарий добавлен.");
-      await loadPosts();
-    });
-  }
+  bindReportButtons(list);
 
-  for (const form of document.querySelectorAll('[data-form="edit-post"]')) {
+  for (const form of list.querySelectorAll('[data-form="edit-post"]')) {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const button = form.querySelector('button[type="submit"]');
@@ -249,22 +292,24 @@ function bindPostActions() {
     });
   }
 
-  for (const button of document.querySelectorAll("[data-delete-own-post]")) {
+  for (const button of list.querySelectorAll("[data-delete-owned-post]")) {
     button.addEventListener("click", async () => {
-      if (!confirm("Удалить свой пост?")) return;
+      if (!confirm("Удалить пост?")) return;
       await runWithButton(button, "Удаляем...", async () => {
-        await api(`/posts/${button.dataset.deleteOwnPost}`, toJson("DELETE", {}));
+        await api(`/posts/${button.dataset.deleteOwnedPost}`, toJson("DELETE", {}));
         toast("Пост удален.");
         await loadPosts();
       });
     });
   }
 
-  for (const button of document.querySelectorAll("[data-delete-post]")) {
+  for (const button of list.querySelectorAll("[data-delete-post-moderation]")) {
     button.addEventListener("click", async () => {
       if (!confirm("Удалить пост как модератор платформы?")) return;
       await runWithButton(button, "Удаляем...", async () => {
-        await api(`/api/posts/${button.dataset.deletePost}/moderation-delete`, toJson("POST", { reason: "Удалено модератором через frontend" }));
+        await api(`/api/posts/${button.dataset.deletePostModeration}/moderation-delete`, toJson("POST", {
+          reason: "Удалено модератором через frontend"
+        }));
         toast("Пост удален модератором.");
         await loadPosts();
       });
@@ -274,28 +319,6 @@ function bindPostActions() {
 
 function getComments(postId) {
   return readJson(`socialhub.comments.${postId}`, []);
-}
-
-function addComment(postId, text) {
-  const session = getSession();
-  commentsFor(postId).push({
-    text,
-    authorId: session.user?.id,
-    author: session.user?.profile?.displayName || session.user?.username || "Пользователь",
-    createdAt: new Date().toISOString()
-  });
-}
-
-function commentsFor(postId) {
-  const key = `socialhub.comments.${postId}`;
-  const comments = getComments(postId);
-  localStorage.setItem(key, JSON.stringify(comments));
-  return {
-    push(comment) {
-      comments.push(comment);
-      localStorage.setItem(key, JSON.stringify(comments));
-    }
-  };
 }
 
 function readJson(key, fallback) {
@@ -331,6 +354,10 @@ function communityUrl(community, fallbackId) {
     : `/CommunityDetails?communityId=${fallbackId}`;
 }
 
+function communityInitial(community) {
+  return String(community?.name ?? "C").trim().slice(0, 1).toUpperCase() || "C";
+}
+
 async function filesToMedia(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return [];
@@ -364,7 +391,7 @@ function readFileAsBase64(file) {
 }
 
 function communityRole(community) {
-  return community.currentUserRole ?? community.currentUserMembership?.role ?? community.role;
+  return community?.currentUserRole ?? community?.currentUserMembership?.role ?? community?.role;
 }
 
 async function runWithButton(button, pendingText, action) {

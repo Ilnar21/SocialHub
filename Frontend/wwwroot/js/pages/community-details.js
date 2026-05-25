@@ -1,6 +1,7 @@
 import { api, toJson } from "../core/api.js";
 import { empty, escapeHtml, formData, formatDate } from "../core/dom.js";
 import { preloadUsers, userDisplayName, userProfileHref } from "../core/identity.js";
+import { bindReportButtons } from "../core/reports.js";
 import { getSession } from "../core/session.js";
 import { toast } from "../core/toast.js";
 
@@ -106,18 +107,26 @@ function renderCommunityAction() {
   }
 
   if (isMember()) {
-    return `<button class="button secondary" type="button" data-leave-community="${community.id}">Выйти</button>`;
+    return `
+      <button class="button secondary" type="button" data-leave-community="${community.id}">Выйти</button>
+      ${renderCommunityReportButton()}`;
   }
 
   if (community.type === "Closed") {
     if (community.currentUserJoinRequest?.status === "Pending") {
-      return `<button class="button secondary" type="button" disabled>Заявка отправлена</button>`;
+      return `
+        <button class="button secondary" type="button" disabled>Заявка отправлена</button>
+        ${renderCommunityReportButton()}`;
     }
 
-    return `<button class="button primary" type="button" data-request-join="${community.id}">Подать заявку</button>`;
+    return `
+      <button class="button primary" type="button" data-request-join="${community.id}">Подать заявку</button>
+      ${renderCommunityReportButton()}`;
   }
 
-  return `<button class="button primary" type="button" data-join-community="${community.id}">Вступить</button>`;
+  return `
+    <button class="button primary" type="button" data-join-community="${community.id}">Вступить</button>
+    ${renderCommunityReportButton()}`;
 }
 
 function renderEditDescriptionForm() {
@@ -188,6 +197,12 @@ function renderPost(post) {
       <div class="post-card-footer">
         ${renderVoteControls(post)}
         <a class="comment-pill" href="/PostDetails?postId=${post.id}#comments">${getComments(post.id).length} комментариев</a>
+        <button class="button secondary" type="button"
+                data-report-target-type="POST"
+                data-report-target-id="${post.id}"
+                data-report-target-label="Пост: ${escapeHtml(post.title)}">
+          Пожаловаться
+        </button>
       </div>
     </article>`;
 }
@@ -260,6 +275,8 @@ function renderMember(member) {
 }
 
 function bindActions() {
+  bindReportButtons(root);
+
   for (const button of root.querySelectorAll("[data-tab]")) {
     button.addEventListener("click", () => {
       activeTab = button.dataset.tab;
@@ -466,6 +483,16 @@ function renderAuthorLink(userId) {
   return href
     ? `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`
     : `<span>${escapeHtml(label)}</span>`;
+}
+
+function renderCommunityReportButton() {
+  return `
+    <button class="button secondary" type="button"
+            data-report-target-type="COMMUNITY"
+            data-report-target-id="${community.id}"
+            data-report-target-label="Сообщество: ${escapeHtml(community.name)}">
+      Пожаловаться
+    </button>`;
 }
 
 function typeLabel(type) {

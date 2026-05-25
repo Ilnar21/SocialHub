@@ -1,6 +1,7 @@
 import { api, toJson } from "../core/api.js";
 import { empty, escapeHtml, formatDate } from "../core/dom.js";
 import { preloadUsers, userDisplayName, userProfileHref } from "../core/identity.js";
+import { bindReportButtons } from "../core/reports.js";
 import { toast } from "../core/toast.js";
 
 const list = document.querySelector("[data-feed-list]");
@@ -162,6 +163,12 @@ function renderFeedPost(post) {
       <div class="post-card-footer">
         ${renderVoteControls(post)}
         <a class="comment-pill" href="/PostDetails?postId=${postId}#comments">${commentsCount} комментариев</a>
+        <button class="button secondary" type="button"
+                data-report-target-type="POST"
+                data-report-target-id="${postId}"
+                data-report-target-label="Пост: ${escapeHtml(post.title)}">
+          Пожаловаться
+        </button>
       </div>
     </article>`;
 }
@@ -188,6 +195,8 @@ function bindFeedActions() {
       votePost(button);
     });
   }
+
+  bindReportButtons(list);
 
   for (const card of document.querySelectorAll("[data-open-post]")) {
     card.addEventListener("click", (event) => {

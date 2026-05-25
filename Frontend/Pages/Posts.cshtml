@@ -6,39 +6,49 @@
 <header class="page-header">
     <div>
         <h1>Посты</h1>
-        <p>Публикации существуют только внутри сообществ. Дневной лимит — до 100 постов в одно сообщество.</p>
+        <p>Публикации из ваших сообществ. Прямо публиковать можно только в сообществах, где вы владелец.</p>
     </div>
-    <button class="button secondary subtle-action" data-load-posts>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="23 4 23 10 17 10" />
-            <polyline points="1 20 1 14 7 14" />
-            <path d="M3.5 9a9 9 0 0 1 15-3.4L23 10" />
-            <path d="M20.5 15a9 9 0 0 1-15 3.4L1 14" />
-        </svg>
-        Обновить
-    </button>
+    <div class="actions">
+        <button class="button primary subtle-action" type="button" data-toggle-create-post>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+            </svg>
+            Создать пост
+        </button>
+        <button class="button secondary subtle-action" type="button" data-load-posts>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="23 4 23 10 17 10" />
+                <polyline points="1 20 1 14 7 14" />
+                <path d="M3.5 9a9 9 0 0 1 15-3.4L23 10" />
+                <path d="M20.5 15a9 9 0 0 1-15 3.4L1 14" />
+            </svg>
+            Обновить
+        </button>
+    </div>
 </header>
 
-<section class="split">
-    <form class="panel form-grid" data-form="create-post">
+<section class="posts-page">
+    <form class="panel form-grid posts-create-panel" data-form="create-post" data-create-post-panel hidden>
         <h2>Новая публикация</h2>
         <label>Сообщество
-            <select name="communityId" data-community-select required></select>
+            <select name="communityId" data-create-community-select required></select>
         </label>
         <label>Заголовок
-            <input name="title" maxlength="120" placeholder="Паттерны интеграции" required />
+            <input name="title" maxlength="120" placeholder="Название поста" required />
         </label>
         <label>Текст поста
-            <textarea name="text" maxlength="10000" placeholder="Поделитесь мыслью, ссылкой или вопросом — но один пост на одну идею." required></textarea>
+            <textarea name="text" maxlength="10000" placeholder="Поделитесь мыслью, ссылкой или вопросом." required></textarea>
         </label>
         <label>Фото
-            <input name="media" type="file" accept="image/*" multiple data-post-media />
+            <input name="media" type="file" accept="image/*,.heic,.heif,.avif,.webp" multiple data-post-media />
         </label>
 
         <div class="meta" style="margin-top:0;">
-            <span>Правило BR-1: посты доступны только в сообществах</span>
-            <span>BR-2: до 100 постов / сутки / сообщество</span>
+            <span>До 10 файлов в одном посте</span>
+            <span>До 10 MB на файл</span>
         </div>
 
         <button class="button primary" type="submit" data-submit-post>
@@ -52,9 +62,24 @@
         <p class="muted" data-post-form-hint></p>
     </form>
 
-    <div class="stack">
-        <div class="content-list" data-posts-list></div>
-    </div>
+    <form class="panel posts-filter-panel" data-posts-filters>
+        <label>Сообщество
+            <select name="communityId" data-posts-community-filter></select>
+        </label>
+        <label>Сортировка
+            <select name="sort" data-posts-sort>
+                <option value="newest">Сначала новые</option>
+                <option value="oldest">Сначала старые</option>
+            </select>
+        </label>
+        <label>Автор
+            <select name="authorId" data-posts-author-filter>
+                <option value="">Все авторы</option>
+            </select>
+        </label>
+    </form>
+
+    <div class="content-list" data-posts-list></div>
 </section>
 
 @section Scripts {

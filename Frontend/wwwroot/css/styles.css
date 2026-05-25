@@ -478,6 +478,21 @@ small { font-size: 12px; color: var(--muted); }
   gap: 18px;
 }
 
+.posts-page {
+  display: grid;
+  grid-template-columns: minmax(0, 900px);
+  justify-content: center;
+  gap: 14px;
+}
+
+.posts-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, 220px) minmax(150px, 240px);
+  align-items: end;
+  gap: 14px;
+  padding: 16px;
+}
+
 .post-page-main {
   display: grid;
   gap: 14px;
@@ -1437,6 +1452,56 @@ select {
   padding: 8px 16px;
 }
 
+.report-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.report-modal[hidden] {
+  display: none;
+}
+
+.report-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .62);
+  backdrop-filter: blur(4px);
+}
+
+.report-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 520px);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.report-dialog h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.report-dialog textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.report-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 /* ---------- 18. Profile ---------- */
 .profile-summary { min-height: 220px; }
 .profile-avatar {
@@ -1727,6 +1792,9 @@ select {
   .feed-toolbar {
     grid-template-columns: 1fr 1fr;
   }
+  .posts-filter-panel {
+    grid-template-columns: 1fr 1fr;
+  }
   .feed-toolbar-status {
     grid-column: 1 / -1;
     justify-self: start;
@@ -1788,6 +1856,7 @@ select {
   .card  { padding: 14px 16px; }
   .card.feed-post-card { padding: 0; }
   .feed-toolbar { grid-template-columns: 1fr; }
+  .posts-filter-panel { grid-template-columns: 1fr; }
   .post-card-link { padding: 16px 16px 0; }
   .post-card-footer { padding: 12px 16px 16px; }
   .post-page-card { padding: 16px; }
