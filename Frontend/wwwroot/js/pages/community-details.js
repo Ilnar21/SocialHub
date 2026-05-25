@@ -103,7 +103,8 @@ function renderCommunityAction() {
   if (isOwner()) {
     return `
       <button class="button secondary" type="button" disabled>Вы владелец</button>
-      <button class="button primary" type="button" data-edit-community>${editingDescription ? "Закрыть" : "Изменить"}</button>`;
+      <button class="button primary" type="button" data-edit-community>${editingDescription ? "Закрыть" : "Изменить"}</button>
+      ${renderCommunityReportButton()}`;
   }
 
   if (isMember()) {

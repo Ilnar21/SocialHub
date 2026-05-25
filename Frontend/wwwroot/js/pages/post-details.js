@@ -104,7 +104,9 @@ function renderCommunity() {
 
 function renderCommunityAction(isMember, isOwner) {
   if (isOwner) {
-    return '<button class="button secondary" type="button" disabled>Вы владелец</button>';
+    return `
+      <button class="button secondary" type="button" disabled>Вы владелец</button>
+      ${renderCommunityReportButton()}`;
   }
 
   if (isMember) {
