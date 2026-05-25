@@ -140,6 +140,45 @@ namespace SocialHub.Community.Infrastructure.Persistence.Migrations
                     b.ToTable("community_members", (string)null);
                 });
 
+            modelBuilder.Entity("SocialHub.Community.Domain.Entities.CommunityJoinRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReviewComment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommunityId", "Status");
+
+                    b.HasIndex("CommunityId", "UserId", "Status");
+
+                    b.ToTable("community_join_requests", (string)null);
+                });
+
             modelBuilder.Entity("SocialHub.Community.Domain.Entities.SuggestedPost", b =>
                 {
                     b.Property<Guid>("Id")
@@ -205,6 +244,17 @@ namespace SocialHub.Community.Infrastructure.Persistence.Migrations
                     b.Navigation("Community");
                 });
 
+            modelBuilder.Entity("SocialHub.Community.Domain.Entities.CommunityJoinRequest", b =>
+                {
+                    b.HasOne("SocialHub.Community.Domain.Entities.Community", "Community")
+                        .WithMany("JoinRequests")
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Community");
+                });
+
             modelBuilder.Entity("SocialHub.Community.Domain.Entities.SuggestedPost", b =>
                 {
                     b.HasOne("SocialHub.Community.Domain.Entities.Community", "Community")
@@ -218,6 +268,8 @@ namespace SocialHub.Community.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("SocialHub.Community.Domain.Entities.Community", b =>
                 {
+                    b.Navigation("JoinRequests");
+
                     b.Navigation("Members");
 
                     b.Navigation("SuggestedPosts");

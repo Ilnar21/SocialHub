@@ -2,6 +2,7 @@ using SocialHub.Community.Application.Abstractions;
 using SocialHub.Community.Application.Exceptions;
 using SocialHub.Community.Application.Models.Communities;
 using SocialHub.Community.Application.Models.External;
+using SocialHub.Community.Application.Models.JoinRequests;
 using SocialHub.Community.Application.Models.Members;
 using SocialHub.Community.Application.Models.SuggestedPosts;
 using SocialHub.Community.Domain.Constants;
@@ -55,7 +56,10 @@ public sealed class CommunityService : ICommunityService
     {
         var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
         var currentMembership = await _repository.GetMemberAsync(communityId, _currentUser.UserId, cancellationToken);
-        return ToDetails(community, currentMembership);
+        var pendingRequest = currentMembership is null
+            ? await _repository.GetPendingJoinRequestAsync(communityId, _currentUser.UserId, cancellationToken)
+            : null;
+        return ToDetails(community, currentMembership, pendingRequest);
     }
 
     public async Task<CommunityDetailsResponse> GetCommunityByUsernameAsync(string username, CancellationToken cancellationToken)
@@ -65,7 +69,10 @@ public sealed class CommunityService : ICommunityService
             ?? throw AppException.NotFound("Сообщество не найдено.");
 
         var currentMembership = await _repository.GetMemberAsync(community.Id, _currentUser.UserId, cancellationToken);
-        return ToDetails(community, currentMembership);
+        var pendingRequest = currentMembership is null
+            ? await _repository.GetPendingJoinRequestAsync(community.Id, _currentUser.UserId, cancellationToken)
+            : null;
+        return ToDetails(community, currentMembership, pendingRequest);
     }
 
     public async Task<CommunityDetailsResponse> CreateCommunityAsync(CreateCommunityRequest request, CancellationToken cancellationToken)
@@ -102,7 +109,7 @@ public sealed class CommunityService : ICommunityService
         await _repository.AddAuditLogAsync(new CommunityAuditLog(community.Id, _currentUser.UserId, "COMMUNITY_CREATED", $"Community '{community.Name}' was created.", now), cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
-        return ToDetails(community, owner);
+        return ToDetails(community, owner, null);
     }
 
     public async Task<CommunityDetailsResponse> UpdateCommunityAsync(Guid communityId, UpdateCommunityRequest request, CancellationToken cancellationToken)
@@ -119,7 +126,7 @@ public sealed class CommunityService : ICommunityService
         await _repository.AddAuditLogAsync(new CommunityAuditLog(communityId, _currentUser.UserId, "COMMUNITY_DESCRIPTION_UPDATED", "Community description was updated.", now), cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
-        return ToDetails(community, member);
+        return ToDetails(community, member, null);
     }
 
     public async Task<MemberResponse> JoinCommunityAsync(Guid communityId, CancellationToken cancellationToken)
@@ -129,6 +136,11 @@ public sealed class CommunityService : ICommunityService
         if (existingMember is not null)
         {
             return ToMemberResponse(existingMember);
+        }
+
+        if (community.Type == CommunityType.Closed)
+        {
+            throw AppException.Conflict("Сообщество закрытое. Для вступления отправьте заявку владельцу.");
         }
 
         var membershipCount = await _repository.CountMembershipsAsync(_currentUser.UserId, cancellationToken);
@@ -144,6 +156,54 @@ public sealed class CommunityService : ICommunityService
         await _repository.SaveChangesAsync(cancellationToken);
 
         return ToMemberResponse(member);
+    }
+
+    public async Task<JoinRequestResponse> RequestToJoinCommunityAsync(Guid communityId, CancellationToken cancellationToken)
+    {
+        var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        if (community.Type != CommunityType.Closed)
+        {
+            throw AppException.BadRequest("В открытое сообщество можно вступить без заявки.");
+        }
+
+        var existingMember = await _repository.GetMemberAsync(communityId, _currentUser.UserId, cancellationToken);
+        if (existingMember is not null)
+        {
+            throw AppException.Conflict("Вы уже состоите в этом сообществе.");
+        }
+
+        var existingRequest = await _repository.GetPendingJoinRequestAsync(communityId, _currentUser.UserId, cancellationToken);
+        if (existingRequest is not null)
+        {
+            return ToJoinRequestResponse(existingRequest);
+        }
+
+        var membershipCount = await _repository.CountMembershipsAsync(_currentUser.UserId, cancellationToken);
+        if (membershipCount >= CommunityLimits.MaxCommunitiesPerUser)
+        {
+            throw AppException.Conflict("Нельзя состоять больше чем в 30 сообществах.");
+        }
+
+        var now = DateTime.UtcNow;
+        var request = new CommunityJoinRequest(communityId, _currentUser.UserId, now);
+        await _repository.AddJoinRequestAsync(request, cancellationToken);
+        await _repository.AddAuditLogAsync(new CommunityAuditLog(communityId, _currentUser.UserId, "JOIN_REQUEST_CREATED", "User requested to join the community.", now), cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        foreach (var owner in community.Members.Where(member => member.Role == CommunityMemberRole.Owner))
+        {
+            await _notificationClient.NotifyAsync(
+                new InternalNotificationRequest(
+                    owner.UserId,
+                    "JoinRequestCreated",
+                    "Новая заявка на вступление",
+                    $"Пользователь хочет вступить в закрытое сообщество «{community.Name}».",
+                    communityId,
+                    request.Id),
+                cancellationToken);
+        }
+
+        return ToJoinRequestResponse(request);
     }
 
     public async Task LeaveCommunityAsync(Guid communityId, CancellationToken cancellationToken)
@@ -171,6 +231,95 @@ public sealed class CommunityService : ICommunityService
             .ToList();
     }
 
+    public async Task<List<JoinRequestResponse>> GetJoinRequestsAsync(
+        Guid communityId,
+        CommunityJoinRequestStatus? status,
+        CancellationToken cancellationToken)
+    {
+        await EnsureCurrentUserOwnsCommunityAsync(communityId, cancellationToken);
+        var requests = await _repository.GetJoinRequestsAsync(communityId, status, cancellationToken);
+        return requests
+            .OrderByDescending(request => request.CreatedAtUtc)
+            .Select(ToJoinRequestResponse)
+            .ToList();
+    }
+
+    public async Task<JoinRequestResponse> ApproveJoinRequestAsync(
+        Guid communityId,
+        Guid requestId,
+        CancellationToken cancellationToken)
+    {
+        await EnsureCurrentUserOwnsCommunityAsync(communityId, cancellationToken);
+        var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        var request = await GetRequiredJoinRequestAsync(communityId, requestId, cancellationToken);
+        if (request.Status != CommunityJoinRequestStatus.Pending)
+        {
+            throw AppException.Conflict("Заявка на вступление уже рассмотрена.");
+        }
+
+        var existingMember = await _repository.GetMemberAsync(communityId, request.UserId, cancellationToken);
+        if (existingMember is null)
+        {
+            var membershipCount = await _repository.CountMembershipsAsync(request.UserId, cancellationToken);
+            if (membershipCount >= CommunityLimits.MaxCommunitiesPerUser)
+            {
+                throw AppException.Conflict("Пользователь уже состоит в 30 сообществах.");
+            }
+
+            var member = community.AddMember(request.UserId, DateTime.UtcNow);
+            await _repository.AddMemberAsync(member, cancellationToken);
+        }
+
+        var now = DateTime.UtcNow;
+        request.Approve(_currentUser.UserId, now);
+        await _repository.AddAuditLogAsync(new CommunityAuditLog(communityId, _currentUser.UserId, "JOIN_REQUEST_APPROVED", $"Join request '{request.Id}' was approved.", now), cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        await _notificationClient.NotifyAsync(
+            new InternalNotificationRequest(
+                request.UserId,
+                "JoinRequestApproved",
+                "Заявка одобрена",
+                $"Вас приняли в сообщество «{community.Name}».",
+                communityId,
+                request.Id),
+            cancellationToken);
+
+        return ToJoinRequestResponse(request);
+    }
+
+    public async Task<JoinRequestResponse> RejectJoinRequestAsync(
+        Guid communityId,
+        Guid requestId,
+        RejectJoinRequestRequest rejectRequest,
+        CancellationToken cancellationToken)
+    {
+        await EnsureCurrentUserOwnsCommunityAsync(communityId, cancellationToken);
+        var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        var request = await GetRequiredJoinRequestAsync(communityId, requestId, cancellationToken);
+        if (request.Status != CommunityJoinRequestStatus.Pending)
+        {
+            throw AppException.Conflict("Заявка на вступление уже рассмотрена.");
+        }
+
+        var now = DateTime.UtcNow;
+        request.Reject(_currentUser.UserId, rejectRequest.Comment, now);
+        await _repository.AddAuditLogAsync(new CommunityAuditLog(communityId, _currentUser.UserId, "JOIN_REQUEST_REJECTED", $"Join request '{request.Id}' was rejected.", now), cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        await _notificationClient.NotifyAsync(
+            new InternalNotificationRequest(
+                request.UserId,
+                "JoinRequestRejected",
+                "Заявка отклонена",
+                $"Заявку на вступление в сообщество «{community.Name}» отклонили.",
+                communityId,
+                request.Id),
+            cancellationToken);
+
+        return ToJoinRequestResponse(request);
+    }
+
     public async Task<bool> IsMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken)
     {
         return await _repository.IsMemberAsync(communityId, userId, cancellationToken);
@@ -180,6 +329,17 @@ public sealed class CommunityService : ICommunityService
     {
         var member = await _repository.GetMemberAsync(communityId, userId, cancellationToken);
         return member?.Role == CommunityMemberRole.Owner;
+    }
+
+    public async Task<bool> CanViewPostsAsync(Guid communityId, Guid? userId, CancellationToken cancellationToken)
+    {
+        var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        if (community.Type == CommunityType.Open)
+        {
+            return true;
+        }
+
+        return userId.HasValue && await _repository.IsMemberAsync(communityId, userId.Value, cancellationToken);
     }
 
     public async Task<List<Guid>> GetCommunityIdsByUserAsync(Guid userId, CancellationToken cancellationToken)
@@ -354,6 +514,12 @@ public sealed class CommunityService : ICommunityService
             ?? throw AppException.NotFound("Предложенный пост не найден.");
     }
 
+    private async Task<CommunityJoinRequest> GetRequiredJoinRequestAsync(Guid communityId, Guid requestId, CancellationToken cancellationToken)
+    {
+        return await _repository.GetJoinRequestAsync(communityId, requestId, cancellationToken)
+            ?? throw AppException.NotFound("Заявка на вступление не найдена.");
+    }
+
     private async Task EnsureCurrentUserCanAdminCommunityAsync(Guid communityId, CancellationToken cancellationToken)
     {
         await GetRequiredCommunityAsync(communityId, cancellationToken);
@@ -370,11 +536,14 @@ public sealed class CommunityService : ICommunityService
         var member = await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
         if (member.Role != CommunityMemberRole.Owner)
         {
-            throw AppException.Forbidden("Только владелец сообщества может просматривать предложенные посты.");
+            throw AppException.Forbidden("Только владелец сообщества может управлять этим разделом.");
         }
     }
 
-    private CommunityDetailsResponse ToDetails(Community.Domain.Entities.Community community, CommunityMember? currentMembership)
+    private CommunityDetailsResponse ToDetails(
+        Community.Domain.Entities.Community community,
+        CommunityMember? currentMembership,
+        CommunityJoinRequest? currentJoinRequest)
     {
         return new CommunityDetailsResponse(
             community.Id,
@@ -385,7 +554,8 @@ public sealed class CommunityService : ICommunityService
             community.CreatedByUserId,
             community.CreatedAtUtc,
             community.Members.Count,
-            currentMembership is null ? null : ToMemberResponse(currentMembership));
+            currentMembership is null ? null : ToMemberResponse(currentMembership),
+            currentJoinRequest is null ? null : ToJoinRequestResponse(currentJoinRequest));
     }
 
     private static CommunitySummaryResponse ToSummary(
@@ -423,6 +593,19 @@ public sealed class CommunityService : ICommunityService
     private static MemberResponse ToMemberResponse(CommunityMember member)
     {
         return new MemberResponse(member.Id, member.CommunityId, member.UserId, member.Role, member.JoinedAtUtc);
+    }
+
+    private static JoinRequestResponse ToJoinRequestResponse(CommunityJoinRequest request)
+    {
+        return new JoinRequestResponse(
+            request.Id,
+            request.CommunityId,
+            request.UserId,
+            request.Status,
+            request.CreatedAtUtc,
+            request.ReviewedByUserId,
+            request.ReviewedAtUtc,
+            request.ReviewComment);
     }
 
     private static SuggestedPostResponse ToSuggestedPostResponse(SuggestedPost post)

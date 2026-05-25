@@ -1,4 +1,5 @@
 using SocialHub.Community.Application.Models.Members;
+using SocialHub.Community.Application.Models.JoinRequests;
 using SocialHub.Community.Domain.Enums;
 
 namespace SocialHub.Community.Application.Models.Communities;
@@ -12,4 +13,5 @@ public sealed record CommunityDetailsResponse(
     Guid CreatedByUserId,
     DateTime CreatedAtUtc,
     int MembersCount,
-    MemberResponse? CurrentUserMembership);
+    MemberResponse? CurrentUserMembership,
+    JoinRequestResponse? CurrentUserJoinRequest);

@@ -90,6 +90,39 @@ public sealed class CommunityRepository : ICommunityRepository
         return _dbContext.CommunityMembers.CountAsync(m => m.UserId == userId, cancellationToken);
     }
 
+    public Task<CommunityJoinRequest?> GetJoinRequestAsync(Guid communityId, Guid requestId, CancellationToken cancellationToken)
+    {
+        return _dbContext.Set<CommunityJoinRequest>()
+            .FirstOrDefaultAsync(request => request.CommunityId == communityId && request.Id == requestId, cancellationToken);
+    }
+
+    public Task<CommunityJoinRequest?> GetPendingJoinRequestAsync(Guid communityId, Guid userId, CancellationToken cancellationToken)
+    {
+        return _dbContext.Set<CommunityJoinRequest>()
+            .FirstOrDefaultAsync(
+                request => request.CommunityId == communityId
+                    && request.UserId == userId
+                    && request.Status == CommunityJoinRequestStatus.Pending,
+                cancellationToken);
+    }
+
+    public Task<List<CommunityJoinRequest>> GetJoinRequestsAsync(
+        Guid communityId,
+        CommunityJoinRequestStatus? status,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.Set<CommunityJoinRequest>()
+            .AsNoTracking()
+            .Where(request => request.CommunityId == communityId);
+
+        if (status.HasValue)
+        {
+            query = query.Where(request => request.Status == status);
+        }
+
+        return query.ToListAsync(cancellationToken);
+    }
+
     public Task<SuggestedPost?> GetSuggestedPostAsync(Guid communityId, Guid suggestedPostId, CancellationToken cancellationToken)
     {
         return _dbContext.SuggestedPosts
@@ -118,6 +151,11 @@ public sealed class CommunityRepository : ICommunityRepository
     public async Task AddMemberAsync(CommunityMember member, CancellationToken cancellationToken)
     {
         await _dbContext.CommunityMembers.AddAsync(member, cancellationToken);
+    }
+
+    public async Task AddJoinRequestAsync(CommunityJoinRequest request, CancellationToken cancellationToken)
+    {
+        await _dbContext.Set<CommunityJoinRequest>().AddAsync(request, cancellationToken);
     }
 
     public async Task AddSuggestedPostAsync(SuggestedPost suggestedPost, CancellationToken cancellationToken)

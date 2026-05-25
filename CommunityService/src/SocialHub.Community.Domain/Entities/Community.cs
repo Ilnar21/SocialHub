@@ -7,6 +7,7 @@ public sealed class Community
 {
     private readonly List<CommunityMember> _members = [];
     private readonly List<SuggestedPost> _suggestedPosts = [];
+    private readonly List<CommunityJoinRequest> _joinRequests = [];
 
     private Community()
     {
@@ -39,6 +40,7 @@ public sealed class Community
 
     public IReadOnlyCollection<CommunityMember> Members => _members;
     public IReadOnlyCollection<SuggestedPost> SuggestedPosts => _suggestedPosts;
+    public IReadOnlyCollection<CommunityJoinRequest> JoinRequests => _joinRequests;
 
     public CommunityMember AddOwner(Guid userId, DateTime joinedAtUtc)
     {

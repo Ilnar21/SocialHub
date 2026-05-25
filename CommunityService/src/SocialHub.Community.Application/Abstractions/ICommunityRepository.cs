@@ -16,10 +16,14 @@ public interface ICommunityRepository
     Task<List<CommunityMember>> GetMembersAsync(Guid communityId, CancellationToken cancellationToken);
     Task<List<Guid>> GetCommunityIdsByUserAsync(Guid userId, CancellationToken cancellationToken);
     Task<int> CountMembershipsAsync(Guid userId, CancellationToken cancellationToken);
+    Task<CommunityJoinRequest?> GetJoinRequestAsync(Guid communityId, Guid requestId, CancellationToken cancellationToken);
+    Task<CommunityJoinRequest?> GetPendingJoinRequestAsync(Guid communityId, Guid userId, CancellationToken cancellationToken);
+    Task<List<CommunityJoinRequest>> GetJoinRequestsAsync(Guid communityId, CommunityJoinRequestStatus? status, CancellationToken cancellationToken);
     Task<SuggestedPost?> GetSuggestedPostAsync(Guid communityId, Guid suggestedPostId, CancellationToken cancellationToken);
     Task<List<SuggestedPost>> GetSuggestedPostsAsync(Guid communityId, SuggestedPostStatus? status, CancellationToken cancellationToken);
     Task AddCommunityAsync(Community.Domain.Entities.Community community, CancellationToken cancellationToken);
     Task AddMemberAsync(CommunityMember member, CancellationToken cancellationToken);
+    Task AddJoinRequestAsync(CommunityJoinRequest request, CancellationToken cancellationToken);
     Task AddSuggestedPostAsync(SuggestedPost suggestedPost, CancellationToken cancellationToken);
     Task AddAuditLogAsync(CommunityAuditLog auditLog, CancellationToken cancellationToken);
     void RemoveMember(CommunityMember member);

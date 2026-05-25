@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using SocialHub.Community.Application.Abstractions;
 using SocialHub.Community.Application.Models.Communities;
+using SocialHub.Community.Application.Models.JoinRequests;
 using SocialHub.Community.Application.Models.Members;
 using SocialHub.Community.Application.Models.SuggestedPosts;
 using SocialHub.Community.Domain.Enums;
@@ -66,6 +67,13 @@ public sealed class CommunitiesController : ControllerBase
         return Ok(await _communityService.JoinCommunityAsync(communityId, cancellationToken));
     }
 
+    [HttpPost("{communityId:guid}/join-requests")]
+    public async Task<ActionResult<JoinRequestResponse>> RequestToJoinCommunity(Guid communityId, CancellationToken cancellationToken)
+    {
+        var response = await _communityService.RequestToJoinCommunityAsync(communityId, cancellationToken);
+        return CreatedAtAction(nameof(GetJoinRequests), new { communityId, status = response.Status }, response);
+    }
+
     [HttpDelete("{communityId:guid}/membership")]
     public async Task<IActionResult> LeaveCommunity(Guid communityId, CancellationToken cancellationToken)
     {
@@ -77,6 +85,34 @@ public sealed class CommunitiesController : ControllerBase
     public async Task<ActionResult<List<MemberResponse>>> GetMembers(Guid communityId, CancellationToken cancellationToken)
     {
         return Ok(await _communityService.GetMembersAsync(communityId, cancellationToken));
+    }
+
+    [HttpGet("{communityId:guid}/join-requests")]
+    public async Task<ActionResult<List<JoinRequestResponse>>> GetJoinRequests(
+        Guid communityId,
+        [FromQuery] CommunityJoinRequestStatus? status,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _communityService.GetJoinRequestsAsync(communityId, status, cancellationToken));
+    }
+
+    [HttpPost("{communityId:guid}/join-requests/{requestId:guid}/approve")]
+    public async Task<ActionResult<JoinRequestResponse>> ApproveJoinRequest(
+        Guid communityId,
+        Guid requestId,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _communityService.ApproveJoinRequestAsync(communityId, requestId, cancellationToken));
+    }
+
+    [HttpPost("{communityId:guid}/join-requests/{requestId:guid}/reject")]
+    public async Task<ActionResult<JoinRequestResponse>> RejectJoinRequest(
+        Guid communityId,
+        Guid requestId,
+        RejectJoinRequestRequest request,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _communityService.RejectJoinRequestAsync(communityId, requestId, request, cancellationToken));
     }
 
     [HttpDelete("{communityId:guid}/members/{memberUserId:guid}")]

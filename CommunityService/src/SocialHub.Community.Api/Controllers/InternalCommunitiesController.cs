@@ -38,4 +38,15 @@ public sealed class InternalCommunitiesController : ControllerBase
         var isOwner = await _communityService.IsOwnerAsync(communityId, userId, cancellationToken);
         return isOwner ? Ok(new { communityId, userId, isOwner = true }) : NotFound();
     }
+
+    [HttpGet("internal/communities/{communityId:guid}/post-visibility")]
+    [HttpGet("communities/{communityId:guid}/post-visibility")]
+    public async Task<IActionResult> CheckPostVisibility(
+        Guid communityId,
+        [FromQuery] Guid? userId,
+        CancellationToken cancellationToken)
+    {
+        var canViewPosts = await _communityService.CanViewPostsAsync(communityId, userId, cancellationToken);
+        return Ok(new { communityId, userId, canViewPosts });
+    }
 }

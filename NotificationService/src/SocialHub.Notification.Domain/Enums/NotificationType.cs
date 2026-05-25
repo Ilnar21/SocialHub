@@ -8,5 +8,8 @@ public enum NotificationType
     SuggestedPostRejected = 4,
     ReportResolved = 5,
     PublicationDecision = 6,
-    UserBlocked = 7
+    UserBlocked = 7,
+    JoinRequestCreated = 8,
+    JoinRequestApproved = 9,
+    JoinRequestRejected = 10
 }

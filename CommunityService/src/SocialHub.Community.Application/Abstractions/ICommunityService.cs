@@ -1,4 +1,5 @@
 using SocialHub.Community.Application.Models.Communities;
+using SocialHub.Community.Application.Models.JoinRequests;
 using SocialHub.Community.Application.Models.Members;
 using SocialHub.Community.Application.Models.SuggestedPosts;
 using SocialHub.Community.Domain.Enums;
@@ -14,10 +15,15 @@ public interface ICommunityService
     Task<CommunityDetailsResponse> CreateCommunityAsync(CreateCommunityRequest request, CancellationToken cancellationToken);
     Task<CommunityDetailsResponse> UpdateCommunityAsync(Guid communityId, UpdateCommunityRequest request, CancellationToken cancellationToken);
     Task<MemberResponse> JoinCommunityAsync(Guid communityId, CancellationToken cancellationToken);
+    Task<JoinRequestResponse> RequestToJoinCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task LeaveCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task<List<MemberResponse>> GetMembersAsync(Guid communityId, CancellationToken cancellationToken);
+    Task<List<JoinRequestResponse>> GetJoinRequestsAsync(Guid communityId, CommunityJoinRequestStatus? status, CancellationToken cancellationToken);
+    Task<JoinRequestResponse> ApproveJoinRequestAsync(Guid communityId, Guid requestId, CancellationToken cancellationToken);
+    Task<JoinRequestResponse> RejectJoinRequestAsync(Guid communityId, Guid requestId, RejectJoinRequestRequest request, CancellationToken cancellationToken);
     Task<bool> IsMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken);
     Task<bool> IsOwnerAsync(Guid communityId, Guid userId, CancellationToken cancellationToken);
+    Task<bool> CanViewPostsAsync(Guid communityId, Guid? userId, CancellationToken cancellationToken);
     Task<List<Guid>> GetCommunityIdsByUserAsync(Guid userId, CancellationToken cancellationToken);
     Task RemoveMemberAsync(Guid communityId, Guid memberUserId, CancellationToken cancellationToken);
     Task<MemberResponse> ChangeMemberRoleAsync(Guid communityId, Guid memberUserId, CommunityMemberRole role, CancellationToken cancellationToken);

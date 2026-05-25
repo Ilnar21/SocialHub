@@ -13,6 +13,7 @@ public sealed class CommunityDbContext : DbContext
 
     public DbSet<Domain.Entities.Community> Communities => Set<Domain.Entities.Community>();
     public DbSet<CommunityMember> CommunityMembers => Set<CommunityMember>();
+    public DbSet<CommunityJoinRequest> CommunityJoinRequests => Set<CommunityJoinRequest>();
     public DbSet<SuggestedPost> SuggestedPosts => Set<SuggestedPost>();
     public DbSet<CommunityAuditLog> CommunityAuditLogs => Set<CommunityAuditLog>();
 
@@ -34,6 +35,8 @@ public sealed class CommunityDbContext : DbContext
                 .SetPropertyAccessMode(PropertyAccessMode.Field);
             builder.Metadata.FindNavigation(nameof(Domain.Entities.Community.SuggestedPosts))!
                 .SetPropertyAccessMode(PropertyAccessMode.Field);
+            builder.Metadata.FindNavigation(nameof(Domain.Entities.Community.JoinRequests))!
+                .SetPropertyAccessMode(PropertyAccessMode.Field);
         });
 
         modelBuilder.Entity<CommunityMember>(builder =>
@@ -45,6 +48,20 @@ public sealed class CommunityDbContext : DbContext
             builder.HasIndex(x => x.UserId);
             builder.HasOne(x => x.Community)
                 .WithMany(nameof(Domain.Entities.Community.Members))
+                .HasForeignKey(x => x.CommunityId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CommunityJoinRequest>(builder =>
+        {
+            builder.ToTable("community_join_requests");
+            builder.HasKey(x => x.Id);
+            builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            builder.Property(x => x.ReviewComment).HasMaxLength(500);
+            builder.HasIndex(x => new { x.CommunityId, x.Status });
+            builder.HasIndex(x => new { x.CommunityId, x.UserId, x.Status });
+            builder.HasOne(x => x.Community)
+                .WithMany(nameof(Domain.Entities.Community.JoinRequests))
                 .HasForeignKey(x => x.CommunityId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

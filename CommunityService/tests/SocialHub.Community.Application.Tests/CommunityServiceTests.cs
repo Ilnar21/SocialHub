@@ -67,6 +67,70 @@ public sealed class CommunityServiceTests
     }
 
     [Fact]
+    public async Task JoinCommunityAsync_RejectsClosedCommunity()
+    {
+        var repository = new FakeCommunityRepository();
+        var target = repository.AddSeedCommunity("Private", OwnerId, type: CommunityType.Closed);
+        var service = CreateService(repository);
+
+        var exception = await Assert.ThrowsAsync<AppException>(() =>
+            service.JoinCommunityAsync(target.Id, CancellationToken.None));
+
+        Assert.Equal(409, exception.StatusCode);
+        Assert.Empty(repository.JoinRequests);
+    }
+
+    [Fact]
+    public async Task RequestToJoinCommunityAsync_CreatesPendingRequestAndNotifiesOwner()
+    {
+        var repository = new FakeCommunityRepository();
+        var notificationClient = new FakeNotificationClient();
+        var target = repository.AddSeedCommunity("Private", OwnerId, type: CommunityType.Closed);
+        var service = CreateService(repository, notificationClient);
+
+        var response = await service.RequestToJoinCommunityAsync(target.Id, CancellationToken.None);
+
+        Assert.Equal(CommunityJoinRequestStatus.Pending, response.Status);
+        Assert.Equal(UserId, response.UserId);
+        Assert.Single(repository.JoinRequests);
+        var notification = Assert.Single(notificationClient.Requests);
+        Assert.Equal(OwnerId, notification.RecipientUserId);
+        Assert.Equal("JoinRequestCreated", notification.Type);
+    }
+
+    [Fact]
+    public async Task ApproveJoinRequestAsync_AddsMemberAndNotifiesRequester()
+    {
+        var repository = new FakeCommunityRepository();
+        var notificationClient = new FakeNotificationClient();
+        var target = repository.AddSeedCommunity("Private", OwnerId, type: CommunityType.Closed);
+        var joinRequest = new CommunityJoinRequest(target.Id, UserId, DateTime.UtcNow);
+        repository.JoinRequests.Add(joinRequest);
+        var service = CreateService(repository, notificationClient, currentUserId: OwnerId);
+
+        var response = await service.ApproveJoinRequestAsync(target.Id, joinRequest.Id, CancellationToken.None);
+
+        Assert.Equal(CommunityJoinRequestStatus.Approved, response.Status);
+        Assert.True(await repository.IsMemberAsync(target.Id, UserId, CancellationToken.None));
+        var notification = Assert.Single(notificationClient.Requests);
+        Assert.Equal(UserId, notification.RecipientUserId);
+        Assert.Equal("JoinRequestApproved", notification.Type);
+    }
+
+    [Fact]
+    public async Task CanViewPostsAsync_HidesClosedCommunityPostsFromNonMembers()
+    {
+        var repository = new FakeCommunityRepository();
+        var openCommunity = repository.AddSeedCommunity("Open", OwnerId, type: CommunityType.Open);
+        var closedCommunity = repository.AddSeedCommunity("Private", OwnerId, memberId: AdminId, type: CommunityType.Closed);
+        var service = CreateService(repository);
+
+        Assert.True(await service.CanViewPostsAsync(openCommunity.Id, null, CancellationToken.None));
+        Assert.False(await service.CanViewPostsAsync(closedCommunity.Id, UserId, CancellationToken.None));
+        Assert.True(await service.CanViewPostsAsync(closedCommunity.Id, AdminId, CancellationToken.None));
+    }
+
+    [Fact]
     public async Task GetCurrentUserCommunitiesAsync_ReturnsOnlyJoinedCommunities()
     {
         var repository = new FakeCommunityRepository();
@@ -222,11 +286,17 @@ public sealed class CommunityServiceTests
     {
         public List<CommunityEntity> Communities { get; } = [];
         public List<CommunityAuditLog> AuditLogs { get; } = [];
+        public List<CommunityJoinRequest> JoinRequests { get; } = [];
         public List<SuggestedPost> SuggestedPosts { get; } = [];
 
-        public CommunityEntity AddSeedCommunity(string name, Guid ownerId, Guid? memberId = null, string? username = null)
+        public CommunityEntity AddSeedCommunity(
+            string name,
+            Guid ownerId,
+            Guid? memberId = null,
+            string? username = null,
+            CommunityType type = CommunityType.Open)
         {
-            var community = new CommunityEntity(name, username ?? ToUsername(name), "Description", CommunityType.Open, ownerId, DateTime.UtcNow);
+            var community = new CommunityEntity(name, username ?? ToUsername(name), "Description", type, ownerId, DateTime.UtcNow);
             community.AddOwner(ownerId, DateTime.UtcNow);
             if (memberId.HasValue)
             {
@@ -312,6 +382,33 @@ public sealed class CommunityServiceTests
             return Task.FromResult(Communities.Count(x => x.Members.Any(member => member.UserId == userId)));
         }
 
+        public Task<CommunityJoinRequest?> GetJoinRequestAsync(Guid communityId, Guid requestId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(JoinRequests.FirstOrDefault(x => x.CommunityId == communityId && x.Id == requestId));
+        }
+
+        public Task<CommunityJoinRequest?> GetPendingJoinRequestAsync(Guid communityId, Guid userId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(JoinRequests.FirstOrDefault(x =>
+                x.CommunityId == communityId
+                && x.UserId == userId
+                && x.Status == CommunityJoinRequestStatus.Pending));
+        }
+
+        public Task<List<CommunityJoinRequest>> GetJoinRequestsAsync(
+            Guid communityId,
+            CommunityJoinRequestStatus? status,
+            CancellationToken cancellationToken)
+        {
+            var query = JoinRequests.Where(x => x.CommunityId == communityId);
+            if (status.HasValue)
+            {
+                query = query.Where(x => x.Status == status);
+            }
+
+            return Task.FromResult(query.ToList());
+        }
+
         public Task<SuggestedPost?> GetSuggestedPostAsync(Guid communityId, Guid suggestedPostId, CancellationToken cancellationToken)
         {
             return Task.FromResult(SuggestedPosts.FirstOrDefault(x => x.CommunityId == communityId && x.Id == suggestedPostId));
@@ -336,6 +433,12 @@ public sealed class CommunityServiceTests
 
         public Task AddMemberAsync(CommunityMember member, CancellationToken cancellationToken)
         {
+            return Task.CompletedTask;
+        }
+
+        public Task AddJoinRequestAsync(CommunityJoinRequest request, CancellationToken cancellationToken)
+        {
+            JoinRequests.Add(request);
             return Task.CompletedTask;
         }
 
