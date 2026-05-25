@@ -200,6 +200,35 @@ public sealed class PostServiceTests
     }
 
     [Fact]
+    public async Task ListByCommunity_returns_empty_when_viewer_cannot_view_posts()
+    {
+        var authorId = Guid.NewGuid();
+        var communityId = Guid.NewGuid();
+        var metadata = new InMemoryMetadataRepository();
+        var content = new InMemoryContentRepository();
+        var published = PostMetadata.Create(authorId, communityId, "Published", DateTimeOffset.UtcNow);
+        await metadata.AddAsync(published, CancellationToken.None);
+        await content.SaveAsync(new PostContent(published.Id, "Text", DateTimeOffset.UtcNow), CancellationToken.None);
+        var service = CreateService(metadata: metadata, content: content, canViewPosts: false);
+
+        var result = await service.ListByCommunityAsync(communityId, viewerId: Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetAsync_rejects_when_viewer_cannot_view_posts()
+    {
+        var created = await SeedPostAsync(Guid.NewGuid());
+        var service = CreateService(metadata: created.Metadata, content: created.Content, canViewPosts: false);
+
+        var result = await service.GetAsync(created.PostId, viewerId: Guid.NewGuid(), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(403, result.StatusCode);
+    }
+
+    [Fact]
     public async Task GetMedia_returns_file_for_published_post()
     {
         var authorId = Guid.NewGuid();
@@ -354,6 +383,7 @@ public sealed class PostServiceTests
     private static PostService CreateService(
         bool isMember = true,
         bool isOwner = true,
+        bool canViewPosts = true,
         InMemoryMetadataRepository? metadata = null,
         InMemoryContentRepository? content = null,
         InMemoryMediaRepository? media = null,
@@ -365,7 +395,7 @@ public sealed class PostServiceTests
             media ?? new InMemoryMediaRepository(),
             storage ?? new FakeMediaStorage(),
             votes ?? new InMemoryVoteRepository(),
-            new FakeCommunityAccessClient(isMember, isOwner),
+            new FakeCommunityAccessClient(isMember, isOwner, canViewPosts),
             new FixedClock());
 
     private sealed record SeededPost(
@@ -480,13 +510,16 @@ public sealed class PostServiceTests
         }
     }
 
-    private sealed class FakeCommunityAccessClient(bool isMember, bool isOwner) : ICommunityAccessClient
+    private sealed class FakeCommunityAccessClient(bool isMember, bool isOwner, bool canViewPosts) : ICommunityAccessClient
     {
         public Task<bool> IsMemberAsync(Guid userId, Guid communityId, CancellationToken cancellationToken) =>
             Task.FromResult(isMember);
 
         public Task<bool> IsOwnerAsync(Guid userId, Guid communityId, CancellationToken cancellationToken) =>
             Task.FromResult(isOwner);
+
+        public Task<bool> CanViewPostsAsync(Guid? userId, Guid communityId, CancellationToken cancellationToken) =>
+            Task.FromResult(canViewPosts);
     }
 
     private sealed class FixedClock : IClock

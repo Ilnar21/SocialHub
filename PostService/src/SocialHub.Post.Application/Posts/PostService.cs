@@ -117,7 +117,18 @@ public sealed class PostService
         Guid? viewerId,
         CancellationToken cancellationToken)
     {
-        var post = await LoadPostAsync(postId, viewerId, cancellationToken);
+        var metadata = await _metadataRepository.GetByIdAsync(postId, cancellationToken);
+        if (metadata is null || metadata.Status == PostStatus.Deleted)
+        {
+            return OperationResult<PostResponse>.Fail("Post not found.", 404);
+        }
+
+        if (!await CanViewPostAsync(metadata, viewerId, cancellationToken))
+        {
+            return OperationResult<PostResponse>.Fail("Post is available only to approved community members.", 403);
+        }
+
+        var post = await LoadPostAsync(metadata, viewerId, cancellationToken);
         return post is null
             ? OperationResult<PostResponse>.Fail("Post not found.", 404)
             : OperationResult<PostResponse>.Ok(post);
@@ -150,14 +161,21 @@ public sealed class PostService
     public async Task<IReadOnlyCollection<PostResponse>> ListByCommunityAsync(
         Guid communityId,
         Guid? viewerId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool skipVisibilityCheck = false)
     {
+        if (!skipVisibilityCheck
+            && !await _communityAccessClient.CanViewPostsAsync(viewerId, communityId, cancellationToken))
+        {
+            return [];
+        }
+
         var posts = await _metadataRepository.ListByCommunityAsync(communityId, cancellationToken);
         var result = new List<PostResponse>();
 
         foreach (var metadata in posts.Where(post => post.Status == PostStatus.Published))
         {
-            var post = await LoadPostAsync(metadata.Id, viewerId, cancellationToken);
+            var post = await LoadPostAsync(metadata, viewerId, cancellationToken);
             if (post is not null)
             {
                 result.Add(post);
@@ -286,6 +304,11 @@ public sealed class PostService
             return OperationResult<PostVoteResponse>.Fail("Post not found.", 404);
         }
 
+        if (!await CanViewPostAsync(metadata, viewerId, cancellationToken))
+        {
+            return OperationResult<PostVoteResponse>.Fail("Post is available only to approved community members.", 403);
+        }
+
         if (request.Value == 0)
         {
             await _voteRepository.ClearVoteAsync(postId, viewerId, cancellationToken);
@@ -316,14 +339,30 @@ public sealed class PostService
             return null;
         }
 
-        var content = await _contentRepository.GetByPostIdAsync(postId, cancellationToken);
+        return await LoadPostAsync(metadata, viewerId, cancellationToken);
+    }
+
+    private async Task<PostResponse?> LoadPostAsync(
+        PostMetadata metadata,
+        Guid? viewerId,
+        CancellationToken cancellationToken)
+    {
+        var content = await _contentRepository.GetByPostIdAsync(metadata.Id, cancellationToken);
         if (content is null)
         {
             return null;
         }
 
-        var media = await _mediaRepository.ListByPostIdAsync(postId, cancellationToken);
+        var media = await _mediaRepository.ListByPostIdAsync(metadata.Id, cancellationToken);
         return await ToResponseAsync(metadata, content, media, viewerId, cancellationToken);
+    }
+
+    private async Task<bool> CanViewPostAsync(
+        PostMetadata metadata,
+        Guid? viewerId,
+        CancellationToken cancellationToken)
+    {
+        return await _communityAccessClient.CanViewPostsAsync(viewerId, metadata.CommunityId, cancellationToken);
     }
 
     private async Task<IReadOnlyCollection<PostMedia>> SaveMediaAsync(

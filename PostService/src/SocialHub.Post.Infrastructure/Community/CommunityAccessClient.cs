@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using SocialHub.Post.Application.Abstractions;
 
 namespace SocialHub.Post.Infrastructure.Community;
@@ -53,4 +54,26 @@ public sealed class CommunityAccessClient : ICommunityAccessClient
             _ => response.IsSuccessStatusCode
         };
     }
+
+    public async Task<bool> CanViewPostsAsync(Guid? userId, Guid communityId, CancellationToken cancellationToken)
+    {
+        if (_options.SkipMembershipCheck)
+        {
+            return true;
+        }
+
+        var path = userId.HasValue
+            ? $"/communities/{communityId}/post-visibility?userId={userId.Value}"
+            : $"/communities/{communityId}/post-visibility";
+        var response = await _httpClient.GetAsync(path, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return false;
+        }
+
+        var payload = await response.Content.ReadFromJsonAsync<PostVisibilityResponse>(cancellationToken: cancellationToken);
+        return payload?.CanViewPosts == true;
+    }
+
+    private sealed record PostVisibilityResponse(bool CanViewPosts);
 }

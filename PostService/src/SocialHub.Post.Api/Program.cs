@@ -143,7 +143,7 @@ app.MapPost("/internal/posts/by-communities", async (
 
     foreach (var communityId in request.CommunityIds.Distinct().Take(100))
     {
-        var posts = await postService.ListByCommunityAsync(communityId, viewerId: null, cancellationToken);
+        var posts = await postService.ListByCommunityAsync(communityId, viewerId: null, cancellationToken, skipVisibilityCheck: true);
         snapshots.AddRange(posts.Select(ToSnapshot));
     }
 
