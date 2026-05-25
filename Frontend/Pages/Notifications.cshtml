@@ -20,6 +20,27 @@
     </button>
 </header>
 
+<form class="panel notification-filters" data-notification-filters>
+    <label>Тип
+        <select name="type" data-notification-type>
+            <option value="all">Все уведомления</option>
+            <option value="messages">Сообщения</option>
+            <option value="joinRequests">Заявки на вступление</option>
+            <option value="suggestedPosts">Предложенные посты</option>
+            <option value="moderation">Модерация платформы</option>
+        </select>
+    </label>
+    <label>Период
+        <select name="period" data-notification-period>
+            <option value="all">За все время</option>
+            <option value="day">За день</option>
+            <option value="week">За неделю</option>
+            <option value="year">За год</option>
+        </select>
+    </label>
+    <span class="feed-toolbar-status" data-notification-status></span>
+</form>
+
 <section class="content-list" data-notifications-list></section>
 
 @section Scripts {

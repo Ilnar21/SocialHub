@@ -286,8 +286,6 @@ small { font-size: 12px; color: var(--muted); }
 .session-card {
   margin-top: auto;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  align-items: center;
   gap: 12px;
   padding: 14px;
   border: 1px solid var(--line);
@@ -297,7 +295,20 @@ small { font-size: 12px; color: var(--muted); }
     var(--surface-2);
 }
 
-.session-card div {
+.session-profile-link {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+}
+
+.session-profile-link:hover strong {
+  color: var(--brand-hi);
+}
+
+.session-profile-link > span:last-child {
   min-width: 0;
   display: grid;
   gap: 2px;
@@ -461,6 +472,14 @@ small { font-size: 12px; color: var(--muted); }
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.notification-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(160px, 220px) minmax(0, 1fr);
+  align-items: end;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .post-detail-panel { position: sticky; top: 28px; }
@@ -1926,6 +1945,7 @@ select {
   .feed-toolbar {
     grid-template-columns: 1fr 1fr;
   }
+  .notification-filters,
   .posts-filter-panel {
     grid-template-columns: 1fr 1fr;
   }
@@ -1992,6 +2012,7 @@ select {
   .card  { padding: 14px 16px; }
   .card.feed-post-card { padding: 0; }
   .feed-toolbar { grid-template-columns: 1fr; }
+  .notification-filters,
   .posts-filter-panel { grid-template-columns: 1fr; }
   .telegram-search,
   .message-composer { grid-template-columns: 1fr; }

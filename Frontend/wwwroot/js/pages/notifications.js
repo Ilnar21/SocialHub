@@ -3,21 +3,94 @@ import { empty, escapeHtml, formatDate } from "../core/dom.js";
 import { toast } from "../core/toast.js";
 
 const list = document.querySelector("[data-notifications-list]");
+const typeSelect = document.querySelector("[data-notification-type]");
+const periodSelect = document.querySelector("[data-notification-period]");
+const statusLabel = document.querySelector("[data-notification-status]");
+
+const typeGroups = {
+  messages: ["MessageReceived"],
+  joinRequests: ["JoinRequestCreated", "JoinRequestApproved", "JoinRequestRejected"],
+  suggestedPosts: ["SuggestedPostCreated", "SuggestedPostApproved", "SuggestedPostRejected"],
+  moderation: ["ReportResolved", "PublicationDecision", "UserBlocked"]
+};
+
+const typeLabels = {
+  MessageReceived: "сообщение",
+  SuggestedPostCreated: "предложенный пост",
+  SuggestedPostApproved: "предложенный пост",
+  SuggestedPostRejected: "предложенный пост",
+  ReportResolved: "модерация",
+  PublicationDecision: "модерация",
+  UserBlocked: "блокировка",
+  JoinRequestCreated: "заявка",
+  JoinRequestApproved: "заявка",
+  JoinRequestRejected: "заявка"
+};
+
+const periodLabels = {
+  all: "за все время",
+  day: "за день",
+  week: "за неделю",
+  year: "за год"
+};
+
+let notifications = [];
+
 document.querySelector("[data-load-notifications]")?.addEventListener("click", async (event) => {
   await runWithButton(event.currentTarget, "Обновляем...", loadNotifications);
 });
 
-loadNotifications();
+document.querySelector("[data-notification-filters]")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+});
+
+for (const control of [typeSelect, periodSelect]) {
+  control?.addEventListener("change", renderNotifications);
+}
+
+await loadNotifications();
 
 async function loadNotifications() {
   list.innerHTML = empty("Загружаем уведомления...");
   try {
     const response = await api("/api/notifications");
-    const items = response.items ?? [];
-    list.innerHTML = items.length ? items.map(renderNotification).join("") : empty("Новых уведомлений нет.");
+    notifications = response.items ?? [];
+    renderNotifications();
   } catch (error) {
     list.innerHTML = empty(error.message);
+    updateStatus("Не удалось загрузить");
   }
+}
+
+function renderNotifications() {
+  const items = applyFilters(notifications);
+  list.innerHTML = items.length ? items.map(renderNotification).join("") : empty("По выбранным фильтрам уведомлений нет.");
+  updateStatus(`${items.length} из ${notifications.length} · ${periodLabels[periodSelect.value] ?? periodLabels.all}`);
+}
+
+function applyFilters(items) {
+  const selectedType = typeSelect.value;
+  const selectedPeriod = periodSelect.value;
+  const since = periodStart(selectedPeriod);
+
+  return items
+    .filter((notification) => {
+      if (selectedType === "all") return true;
+      return (typeGroups[selectedType] ?? []).includes(notification.type);
+    })
+    .filter((notification) => {
+      if (!since) return true;
+      return new Date(notification.createdAtUtc) >= since;
+    })
+    .sort((left, right) => new Date(right.createdAtUtc) - new Date(left.createdAtUtc));
+}
+
+function periodStart(period) {
+  const now = new Date();
+  if (period === "day") return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  if (period === "week") return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  if (period === "year") return new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+  return null;
 }
 
 function renderNotification(notification) {
@@ -25,11 +98,18 @@ function renderNotification(notification) {
     <article class="card">
       <div class="row">
         <h2>${escapeHtml(notification.title)}</h2>
+        <span class="badge">${escapeHtml(typeLabels[notification.type] ?? "уведомление")}</span>
         <span class="badge ${notification.isRead ? "" : "warn"}">${notification.isRead ? "прочитано" : "новое"}</span>
       </div>
       <p>${escapeHtml(notification.message)}</p>
       <div class="meta"><span>${formatDate(notification.createdAtUtc)}</span></div>
     </article>`;
+}
+
+function updateStatus(text) {
+  if (statusLabel) {
+    statusLabel.textContent = text;
+  }
 }
 
 async function runWithButton(button, pendingText, action) {

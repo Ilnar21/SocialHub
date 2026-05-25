@@ -107,11 +107,13 @@
             </nav>
 
             <section class="session-card" data-session-card>
-                <span class="avatar" data-user-avatar>U</span>
-                <div>
-                    <strong data-user-name>Гость</strong>
-                    <small data-user-role>Войдите в систему</small>
-                </div>
+                <a class="session-profile-link" href="/Profile" aria-label="Открыть свой профиль">
+                    <span class="avatar" data-user-avatar>U</span>
+                    <span>
+                        <strong data-user-name>Гость</strong>
+                        <small data-user-role>Войдите в систему</small>
+                    </span>
+                </a>
                 <button class="button secondary" type="button" data-logout>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
