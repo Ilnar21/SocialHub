@@ -117,7 +117,7 @@ function renderCommunityResult(community) {
         <span>${typeLabel(community.type)}</span>
       </div>
       <div class="actions no-margin">
-        ${renderMembershipAction(community.id, isMember, role, canLeave)}
+        ${renderMembershipAction(community, isMember, role, canLeave)}
       </div>
     </article>`;
 }
@@ -144,8 +144,13 @@ function renderOwnedCommunity(community) {
     </a>`;
 }
 
-function renderMembershipAction(communityId, isMember, role, canLeave) {
+function renderMembershipAction(community, isMember, role, canLeave) {
+  const communityId = community.id;
   if (!isMember) {
+    if (community.type === "Closed") {
+      return `<a class="button primary" href="${communityUrl(community)}">Подать заявку</a>`;
+    }
+
     return `<button class="button primary" type="button" data-join="${communityId}">Вступить</button>`;
   }
 

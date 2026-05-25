@@ -45,7 +45,8 @@ export async function api(path, options = {}) {
       throw new Error(blockedMessage);
     }
 
-    throw new Error("Недостаточно прав для выполнения действия.");
+    const translatedForbidden = translateErrorText(`${code} ${payload?.detail || payload?.message || ""}`);
+    throw new Error(translatedForbidden || "Недостаточно прав для выполнения действия.");
   }
 
   if (!response.ok) {
@@ -171,6 +172,18 @@ function translateErrorText(text) {
 
   if (value.includes("only community owner") || value.includes("только владелец сообщества")) {
     return "Это действие доступно только владельцу сообщества.";
+  }
+
+  if (value.includes("post is available only to approved community members")) {
+    return "Посты закрытого сообщества видны только участникам после одобрения заявки владельцем.";
+  }
+
+  if (value.includes("сообщество закрытое") || value.includes("closed community")) {
+    return "Сообщество закрытое. Отправьте заявку владельцу и дождитесь одобрения.";
+  }
+
+  if (value.includes("заявка на вступление уже рассмотрена")) {
+    return "Эта заявка уже рассмотрена.";
   }
 
   return "";

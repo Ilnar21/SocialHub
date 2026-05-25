@@ -25,10 +25,10 @@ async function loadPage() {
   try {
     post = await api(`/posts/${postId}`);
     await preloadUsers([post.authorId, ...getComments(post.id).map((comment) => comment.authorId)]);
-    [community, communityPosts] = await Promise.all([
-      api(`/api/communities/${post.communityId}`),
-      api(`/communities/${post.communityId}/posts`)
-    ]);
+    community = await api(`/api/communities/${post.communityId}`);
+    communityPosts = canViewCommunityPosts()
+      ? await api(`/communities/${post.communityId}/posts`)
+      : [];
 
     renderPost();
     renderCommunity();
@@ -88,7 +88,7 @@ function renderCommunity() {
       <h2>${renderCommunityLink()}</h2>
       <p>${escapeHtml(community?.description || "Описание пока не заполнено.")}</p>
       <div class="community-stats">
-        <span><strong>${communityPosts.length}</strong> постов</span>
+        <span>${canViewCommunityPosts() ? `<strong>${communityPosts.length}</strong> постов` : "Посты скрыты"}</span>
         <span><strong>${community?.membersCount ?? 0}</strong> подписчиков</span>
       </div>
       ${renderCommunityAction(isMember, isOwner)}
@@ -102,6 +102,14 @@ function renderCommunityAction(isMember, isOwner) {
 
   if (isMember) {
     return `<button class="button secondary" type="button" data-leave-community="${community.id}">Выйти</button>`;
+  }
+
+  if (community.type === "Closed") {
+    if (community.currentUserJoinRequest?.status === "Pending") {
+      return '<button class="button secondary" type="button" disabled>Заявка отправлена</button>';
+    }
+
+    return `<button class="button primary" type="button" data-request-join="${community.id}">Подать заявку</button>`;
   }
 
   return `<button class="button primary" type="button" data-join-community="${community.id}">Вступить</button>`;
@@ -206,6 +214,16 @@ function bindCommunityActions() {
     });
   });
 
+  communityRoot.querySelector("[data-request-join]")?.addEventListener("click", async (event) => {
+    await runWithButton(event.currentTarget, "Отправляем...", async () => {
+      await api(`/api/communities/${community.id}/join-requests`, { method: "POST" });
+      toast("Заявка отправлена владельцу сообщества.");
+      community = await api(`/api/communities/${post.communityId}`);
+      renderCommunity();
+      bindCommunityActions();
+    });
+  });
+
   communityRoot.querySelector("[data-leave-community]")?.addEventListener("click", async (event) => {
     await runWithButton(event.currentTarget, "Выходим...", async () => {
       await api(`/api/communities/${community.id}/membership`, { method: "DELETE" });
@@ -254,6 +272,10 @@ function readJson(key, fallback) {
 
 function communityInitial() {
   return (community?.name ?? "C").trim().slice(0, 1).toUpperCase() || "C";
+}
+
+function canViewCommunityPosts() {
+  return community?.type !== "Closed" || Boolean(community?.currentUserMembership);
 }
 
 async function runWithButton(button, pendingText, action) {

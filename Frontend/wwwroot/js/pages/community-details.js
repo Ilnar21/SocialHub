@@ -12,6 +12,7 @@ const communityUsername = params.get("username");
 let community = null;
 let posts = [];
 let suggestedPosts = [];
+let joinRequests = [];
 let members = [];
 let activeTab = "posts";
 let editingDescription = false;
@@ -35,13 +36,15 @@ async function loadCommunityPage() {
       history.replaceState(null, "", `/CommunityDetails?username=${encodeURIComponent(community.username)}`);
     }
 
-    posts = await api(`/communities/${community.id}/posts`);
+    posts = canViewCommunityPosts() ? await api(`/communities/${community.id}/posts`) : [];
     suggestedPosts = [];
+    joinRequests = [];
     members = [];
 
     if (isOwner()) {
-      [suggestedPosts, members] = await Promise.all([
+      [suggestedPosts, joinRequests, members] = await Promise.all([
         api(`/api/communities/${community.id}/suggested-posts?status=Pending`),
+        api(`/api/communities/${community.id}/join-requests?status=Pending`),
         api(`/api/communities/${community.id}/members`)
       ]);
     }
@@ -49,6 +52,7 @@ async function loadCommunityPage() {
     await preloadUsers([
       ...posts.map((post) => post.authorId),
       ...suggestedPosts.map((post) => post.authorUserId),
+      ...joinRequests.map((request) => request.userId),
       ...members.map((member) => member.userId)
     ]);
 
@@ -67,7 +71,7 @@ function renderPage() {
         <p class="muted">@${escapeHtml(community.username)}</p>
         <p>${escapeHtml(community.description ?? "")}</p>
         <div class="meta">
-          <span>${posts.length} постов</span>
+          <span>${canViewCommunityPosts() ? `${posts.length} постов` : "Посты скрыты"}</span>
           <span>${community.membersCount ?? 0} подписчиков</span>
           <span>${typeLabel(community.type)}</span>
         </div>
@@ -81,8 +85,9 @@ function renderPage() {
     ${renderSuggestForm()}
 
     <section class="community-tabs">
-      ${renderTab("posts", `Посты ${posts.length}`)}
+      ${renderTab("posts", canViewCommunityPosts() ? `Посты ${posts.length}` : "Посты")}
       ${isOwner() ? renderTab("suggested", `Предложенные ${suggestedPosts.length}`) : ""}
+      ${isOwner() ? renderTab("joinRequests", `Заявки ${joinRequests.length}`) : ""}
       ${isOwner() ? renderTab("members", `Участники ${members.length}`) : ""}
     </section>
 
@@ -102,6 +107,14 @@ function renderCommunityAction() {
 
   if (isMember()) {
     return `<button class="button secondary" type="button" data-leave-community="${community.id}">Выйти</button>`;
+  }
+
+  if (community.type === "Closed") {
+    if (community.currentUserJoinRequest?.status === "Pending") {
+      return `<button class="button secondary" type="button" disabled>Заявка отправлена</button>`;
+    }
+
+    return `<button class="button primary" type="button" data-request-join="${community.id}">Подать заявку</button>`;
   }
 
   return `<button class="button primary" type="button" data-join-community="${community.id}">Вступить</button>`;
@@ -145,11 +158,16 @@ function renderTab(tab, label) {
 
 function renderActiveTab() {
   if (activeTab === "suggested") return renderSuggestedPosts();
+  if (activeTab === "joinRequests") return renderJoinRequests();
   if (activeTab === "members") return renderMembers();
   return renderPosts();
 }
 
 function renderPosts() {
+  if (!canViewCommunityPosts()) {
+    return empty("Посты закрытого сообщества видны только участникам после одобрения заявки владельцем.");
+  }
+
   return posts.length
     ? posts.map(renderPost).join("")
     : empty("В этом сообществе пока нет постов.");
@@ -204,6 +222,28 @@ function renderMembers() {
     : empty("Участников пока нет.");
 }
 
+function renderJoinRequests() {
+  return joinRequests.length
+    ? joinRequests.map(renderJoinRequest).join("")
+    : empty("Новых заявок на вступление нет.");
+}
+
+function renderJoinRequest(request) {
+  return `
+    <article class="card suggested-review-card">
+      <div class="post-card-meta">
+        <span class="community-logo">${userInitial(request.userId)}</span>
+        ${renderAuthorLink(request.userId)}
+        <span>${formatDate(request.createdAtUtc)}</span>
+      </div>
+      <p>Пользователь хочет вступить в закрытое сообщество.</p>
+      <div class="actions">
+        <button class="button primary" type="button" data-approve-join-request="${request.id}">Принять</button>
+        <button class="button danger" type="button" data-reject-join-request="${request.id}">Отклонить</button>
+      </div>
+    </article>`;
+}
+
 function renderMember(member) {
   const currentUserId = getSession().user?.id;
   const canRemove = member.userId !== currentUserId && member.role !== "Owner";
@@ -233,6 +273,9 @@ function bindActions() {
 
   root.querySelector("[data-join-community]")?.addEventListener("click", (event) =>
     runCommunityAction(event.currentTarget, "POST"));
+
+  root.querySelector("[data-request-join]")?.addEventListener("click", (event) =>
+    requestJoinCommunity(event.currentTarget));
 
   root.querySelector("[data-leave-community]")?.addEventListener("click", (event) =>
     runCommunityAction(event.currentTarget, "DELETE"));
@@ -278,6 +321,14 @@ function bindActions() {
     button.addEventListener("click", () => reviewSuggestedPost(button, button.dataset.rejectSuggested, "reject"));
   }
 
+  for (const button of root.querySelectorAll("[data-approve-join-request]")) {
+    button.addEventListener("click", () => reviewJoinRequest(button, button.dataset.approveJoinRequest, "approve"));
+  }
+
+  for (const button of root.querySelectorAll("[data-reject-join-request]")) {
+    button.addEventListener("click", () => reviewJoinRequest(button, button.dataset.rejectJoinRequest, "reject"));
+  }
+
   for (const button of root.querySelectorAll("[data-remove-member]")) {
     button.addEventListener("click", () => removeMember(button));
   }
@@ -292,6 +343,14 @@ async function runCommunityAction(button, method) {
   });
 }
 
+async function requestJoinCommunity(button) {
+  await runWithButton(button, "Отправляем...", async () => {
+    await api(`/api/communities/${community.id}/join-requests`, { method: "POST" });
+    toast("Заявка отправлена владельцу сообщества.");
+    await loadCommunityPage();
+  });
+}
+
 async function reviewSuggestedPost(button, suggestedPostId, action) {
   const request = action === "reject"
     ? toJson("POST", { comment: "Удалено владельцем сообщества" })
@@ -301,6 +360,19 @@ async function reviewSuggestedPost(button, suggestedPostId, action) {
     await api(`/api/communities/${community.id}/suggested-posts/${suggestedPostId}/${action}`, request);
     toast(action === "approve" ? "Предложенный пост опубликован." : "Предложенный пост удален.");
     activeTab = "suggested";
+    await loadCommunityPage();
+  });
+}
+
+async function reviewJoinRequest(button, requestId, action) {
+  const request = action === "reject"
+    ? toJson("POST", { comment: "Отклонено владельцем сообщества" })
+    : { method: "POST" };
+
+  await runWithButton(button, action === "approve" ? "Принимаем..." : "Отклоняем...", async () => {
+    await api(`/api/communities/${community.id}/join-requests/${requestId}/${action}`, request);
+    toast(action === "approve" ? "Пользователь принят в сообщество." : "Заявка отклонена.");
+    activeTab = "joinRequests";
     await loadCommunityPage();
   });
 }
@@ -374,6 +446,10 @@ function isMember() {
 
 function isOwner() {
   return community?.currentUserMembership?.role === "Owner";
+}
+
+function canViewCommunityPosts() {
+  return community?.type !== "Closed" || isMember();
 }
 
 function communityInitial() {
