@@ -27,7 +27,7 @@ export async function api(path, options = {}) {
   if (response.status === 204) return null;
 
   const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json") ? await response.json() : await response.text();
+  const payload = contentType.includes("json") ? await response.json() : await response.text();
 
   if (response.status === 403) {
     const code = `${payload?.code || payload?.title || payload?.error || ""}`;
@@ -67,6 +67,9 @@ function normalizeError(payload) {
   if (!payload) return "";
 
   if (typeof payload === "string") {
+    const parsedPayload = parseJsonError(payload);
+    if (parsedPayload) return normalizeError(parsedPayload);
+
     const translated = translateErrorText(payload);
     if (translated) return translated;
     if (payload.includes("invalid_credentials")) return "Неверный логин или пароль";
@@ -93,6 +96,17 @@ function normalizeError(payload) {
   if (code === "account_blocked") return payload.message || payload.detail || "Аккаунт заблокирован";
 
   return payload.message || payload.detail || payload.title || payload.error || "";
+}
+
+function parseJsonError(payload) {
+  const value = payload.trim();
+  if (!value.startsWith("{") && !value.startsWith("[")) return null;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
 }
 
 function translateErrorText(text) {
