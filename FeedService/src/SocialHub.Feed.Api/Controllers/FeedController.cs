@@ -24,8 +24,8 @@ public sealed class FeedController : ControllerBase
     }
 
     /// <summary>
-    /// GET /feed?page=1&amp;limit=20
-    /// Лента текущего пользователя, отсортированная по убыванию score.
+    /// GET /feed?page=1&amp;limit=20&amp;sort=popular&amp;period=week
+    /// Лента текущего пользователя с выбранной сортировкой и временным периодом.
     /// </summary>
     [HttpGet]
     [Authorize]
@@ -34,6 +34,8 @@ public sealed class FeedController : ControllerBase
     public async Task<ActionResult<FeedResponse>> GetFeed(
         [FromQuery] int page = 1,
         [FromQuery] int limit = FeedLimits.DefaultPageSize,
+        [FromQuery] string? sort = null,
+        [FromQuery] string? period = null,
         CancellationToken ct = default)
     {
         if (!_userContext.IsAuthenticated || _userContext.UserId is not { } userId)
@@ -41,7 +43,7 @@ public sealed class FeedController : ControllerBase
             return Unauthorized(new { error = "A valid JWT bearer token is required" });
         }
 
-        var feed = await _feedService.GetFeedAsync(userId, page, limit, ct);
+        var feed = await _feedService.GetFeedAsync(userId, page, limit, FeedQueryOptions.From(sort, period), ct);
         return Ok(feed);
     }
 

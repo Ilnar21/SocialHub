@@ -21,6 +21,27 @@
 </header>
 
 <section class="feed-layout">
+    <form class="feed-toolbar panel" data-feed-filters>
+        <label>
+            Сортировка
+            <select data-feed-sort>
+                <option value="popular">Популярные</option>
+                <option value="newest">Новые</option>
+                <option value="discussed">Обсуждаемые</option>
+            </select>
+        </label>
+        <label>
+            Период
+            <select data-feed-period>
+                <option value="all">Все время</option>
+                <option value="day">За день</option>
+                <option value="week">За неделю</option>
+                <option value="month">За месяц</option>
+                <option value="year">За год</option>
+            </select>
+        </label>
+        <span class="feed-toolbar-status" data-feed-status></span>
+    </form>
     <div class="content-list" data-feed-list></div>
 </section>
 

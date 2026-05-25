@@ -10,7 +10,7 @@ namespace SocialHub.Feed.Infrastructure.Cache;
 /// <summary>
 /// Реализация IFeedCache поверх StackExchange.Redis.
 /// Хранит готовый JSON FeedResponse под ключом
-///   {prefix}:user:{userId}:page:{page}:limit:{limit}
+///   {prefix}:user:{userId}:sort:{sort}:period:{period}:page:{page}:limit:{limit}
 /// TTL задаётся CacheOptions.TtlSeconds (по умолчанию 5 минут).
 /// </summary>
 public sealed class RedisFeedCache : IFeedCache
@@ -31,10 +31,15 @@ public sealed class RedisFeedCache : IFeedCache
         _logger = logger;
     }
 
-    public async Task<FeedResponse?> GetAsync(Guid userId, int page, int limit, CancellationToken ct = default)
+    public async Task<FeedResponse?> GetAsync(
+        Guid userId,
+        int page,
+        int limit,
+        FeedQueryOptions options,
+        CancellationToken ct = default)
     {
         var db = _redis.GetDatabase();
-        var value = await db.StringGetAsync(BuildKey(userId, page, limit));
+        var value = await db.StringGetAsync(BuildKey(userId, page, limit, options));
         if (value.IsNullOrEmpty)
         {
             return null;
@@ -51,12 +56,18 @@ public sealed class RedisFeedCache : IFeedCache
         }
     }
 
-    public async Task SetAsync(Guid userId, int page, int limit, FeedResponse response, CancellationToken ct = default)
+    public async Task SetAsync(
+        Guid userId,
+        int page,
+        int limit,
+        FeedQueryOptions options,
+        FeedResponse response,
+        CancellationToken ct = default)
     {
         var db = _redis.GetDatabase();
         var payload = JsonSerializer.Serialize(response, JsonOpts);
         await db.StringSetAsync(
-            BuildKey(userId, page, limit),
+            BuildKey(userId, page, limit, options),
             payload,
             TimeSpan.FromSeconds(_options.TtlSeconds));
     }
@@ -98,6 +109,6 @@ public sealed class RedisFeedCache : IFeedCache
         }
     }
 
-    private string BuildKey(Guid userId, int page, int limit) =>
-        $"{_options.KeyPrefix}:user:{userId:N}:page:{page}:limit:{limit}";
+    private string BuildKey(Guid userId, int page, int limit, FeedQueryOptions options) =>
+        $"{_options.KeyPrefix}:user:{userId:N}:sort:{options.CacheSortKey}:period:{options.CachePeriodKey}:page:{page}:limit:{limit}";
 }

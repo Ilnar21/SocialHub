@@ -7,9 +7,20 @@ namespace SocialHub.Feed.Application.Abstractions;
 /// </summary>
 public interface IFeedCache
 {
-    Task<FeedResponse?> GetAsync(Guid userId, int page, int limit, CancellationToken ct = default);
+    Task<FeedResponse?> GetAsync(
+        Guid userId,
+        int page,
+        int limit,
+        FeedQueryOptions options,
+        CancellationToken ct = default);
 
-    Task SetAsync(Guid userId, int page, int limit, FeedResponse response, CancellationToken ct = default);
+    Task SetAsync(
+        Guid userId,
+        int page,
+        int limit,
+        FeedQueryOptions options,
+        FeedResponse response,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Сбрасывает все страницы ленты конкретного пользователя.

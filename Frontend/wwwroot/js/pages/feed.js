@@ -4,7 +4,37 @@ import { preloadUsers, userDisplayName, userProfileHref } from "../core/identity
 import { toast } from "../core/toast.js";
 
 const list = document.querySelector("[data-feed-list]");
+const filtersForm = document.querySelector("[data-feed-filters]");
+const sortSelect = document.querySelector("[data-feed-sort]");
+const periodSelect = document.querySelector("[data-feed-period]");
+const statusLabel = document.querySelector("[data-feed-status]");
 const communitiesById = new Map();
+const feedPreferencesKey = "socialhub.feed.filters";
+
+const sortLabels = {
+  popular: "популярности",
+  newest: "новизне",
+  discussed: "обсуждаемости"
+};
+
+const periodLabels = {
+  all: "за все время",
+  day: "за день",
+  week: "за неделю",
+  month: "за месяц",
+  year: "за год"
+};
+
+restoreFilters();
+
+filtersForm?.addEventListener("submit", (event) => event.preventDefault());
+
+for (const control of [sortSelect, periodSelect]) {
+  control?.addEventListener("change", async () => {
+    saveFilters();
+    await loadFeed();
+  });
+}
 
 document.querySelector("[data-refresh-feed]")?.addEventListener("click", async (event) => {
   await runWithButton(event.currentTarget, "Обновляем...", async () => {
@@ -19,9 +49,12 @@ loadFeed();
 async function loadFeed() {
   list.innerHTML = empty("Загружаем ленту...");
 
+  updateStatus("Загружаем...");
+
   try {
+    const filters = currentFilters();
     const [response] = await Promise.all([
-      api("/feed?page=1&limit=20"),
+      api(`/feed?${buildFeedQuery(filters)}`),
       loadCommunityNames()
     ]);
     const items = response.items ?? response.posts ?? [];
@@ -31,10 +64,62 @@ async function loadFeed() {
 
     list.innerHTML = posts.length
       ? posts.map(renderFeedPost).join("")
-      : empty("Подпишитесь на сообщества, чтобы увидеть ленту.");
+      : empty(emptyFeedMessage(response.total ?? 0, filters));
+    updateStatus(statusText(response.total ?? posts.length, filters));
     bindFeedActions();
   } catch (error) {
     list.innerHTML = empty(error.message);
+    updateStatus("Не удалось загрузить");
+  }
+}
+
+function currentFilters() {
+  return {
+    sort: sortSelect?.value || "popular",
+    period: periodSelect?.value || "all"
+  };
+}
+
+function buildFeedQuery(filters) {
+  return new URLSearchParams({
+    page: "1",
+    limit: "20",
+    sort: filters.sort,
+    period: filters.period
+  }).toString();
+}
+
+function restoreFilters() {
+  const saved = readJson(feedPreferencesKey, {});
+  if (sortSelect && saved.sort && sortLabels[saved.sort]) {
+    sortSelect.value = saved.sort;
+  }
+
+  if (periodSelect && saved.period && periodLabels[saved.period]) {
+    periodSelect.value = saved.period;
+  }
+}
+
+function saveFilters() {
+  localStorage.setItem(feedPreferencesKey, JSON.stringify(currentFilters()));
+}
+
+function statusText(total, filters) {
+  const countText = total === 1 ? "1 пост" : `${total} постов`;
+  return `${countText} · по ${sortLabels[filters.sort] ?? sortLabels.popular} · ${periodLabels[filters.period] ?? periodLabels.all}`;
+}
+
+function emptyFeedMessage(total, filters) {
+  if (total === 0 && filters.period !== "all") {
+    return "За выбранный период постов нет. Попробуйте увеличить промежуток.";
+  }
+
+  return "Подпишитесь на сообщества, чтобы увидеть ленту.";
+}
+
+function updateStatus(text) {
+  if (statusLabel) {
+    statusLabel.textContent = text;
   }
 }
 

@@ -14,7 +14,7 @@ namespace SocialHub.Feed.Application.Services;
 ///   2. Берём список подписок пользователя из Community Service (BR-3: ≤ 30).
 ///   3. Запрашиваем посты по этим сообществам у Post Service (BR-1: только сообщества).
 ///   4. Дополнительно фильтруем по списку сообществ (защита от багов Post Service).
-///   5. Считаем score через IRanker, сортируем по убыванию, режем по пагинации.
+///   5. Фильтруем по выбранному периоду, сортируем по выбранному режиму, режем по пагинации.
 ///   6. Кладём результат в кэш с TTL = 5 минут (NFR-2 → быстрое повторное чтение).
 /// </summary>
 public sealed class FeedService : IFeedService
@@ -39,15 +39,27 @@ public sealed class FeedService : IFeedService
         _logger = logger;
     }
 
-    public async Task<FeedResponse> GetFeedAsync(Guid userId, int page, int limit, CancellationToken ct = default)
+    public async Task<FeedResponse> GetFeedAsync(
+        Guid userId,
+        int page,
+        int limit,
+        FeedQueryOptions options,
+        CancellationToken ct = default)
     {
         (page, limit) = NormalizePaging(page, limit);
+        options ??= FeedQueryOptions.Default;
 
         // Шаг 1 — горячий путь через кэш.
-        var cached = await TryGetFromCacheAsync(userId, page, limit, ct);
+        var cached = await TryGetFromCacheAsync(userId, page, limit, options, ct);
         if (cached is not null)
         {
-            _logger.LogInformation("Feed cache HIT user={UserId} page={Page} limit={Limit}", userId, page, limit);
+            _logger.LogInformation(
+                "Feed cache HIT user={UserId} page={Page} limit={Limit} sort={Sort} period={Period}",
+                userId,
+                page,
+                limit,
+                options.Sort,
+                options.Period);
             return cached with { FromCache = true };
         }
 
@@ -58,7 +70,7 @@ public sealed class FeedService : IFeedService
         if (communityIds.Count == 0)
         {
             var empty = new FeedResponse(Array.Empty<FeedItemResponse>(), page, limit, 0, FromCache: false);
-            await TrySetCacheAsync(userId, page, limit, empty, ct);
+            await TrySetCacheAsync(userId, page, limit, options, empty, ct);
             return empty;
         }
 
@@ -76,12 +88,12 @@ public sealed class FeedService : IFeedService
         var posts = await _postClient.GetPostsByCommunitiesAsync(communityIds, fetchLimit, ct);
 
         // Шаг 4–5 — фильтрация (защитный фильтр) + ранжирование + пагинация.
-        var ranked = RankAndPaginate(posts, communityIds, page, limit);
+        var ranked = RankAndPaginate(posts, communityIds, page, limit, options);
 
         var response = new FeedResponse(ranked.PageItems, page, limit, ranked.Total, FromCache: false);
 
         // Шаг 6 — запись в кэш.
-        await TrySetCacheAsync(userId, page, limit, response, ct);
+        await TrySetCacheAsync(userId, page, limit, options, response, ct);
         return response;
     }
 
@@ -105,11 +117,16 @@ public sealed class FeedService : IFeedService
         return (page, limit);
     }
 
-    private async Task<FeedResponse?> TryGetFromCacheAsync(Guid userId, int page, int limit, CancellationToken ct)
+    private async Task<FeedResponse?> TryGetFromCacheAsync(
+        Guid userId,
+        int page,
+        int limit,
+        FeedQueryOptions options,
+        CancellationToken ct)
     {
         try
         {
-            return await _cache.GetAsync(userId, page, limit, ct);
+            return await _cache.GetAsync(userId, page, limit, options, ct);
         }
         catch (Exception ex)
         {
@@ -119,11 +136,17 @@ public sealed class FeedService : IFeedService
         }
     }
 
-    private async Task TrySetCacheAsync(Guid userId, int page, int limit, FeedResponse response, CancellationToken ct)
+    private async Task TrySetCacheAsync(
+        Guid userId,
+        int page,
+        int limit,
+        FeedQueryOptions options,
+        FeedResponse response,
+        CancellationToken ct)
     {
         try
         {
-            await _cache.SetAsync(userId, page, limit, response, ct);
+            await _cache.SetAsync(userId, page, limit, options, response, ct);
         }
         catch (Exception ex)
         {
@@ -135,14 +158,17 @@ public sealed class FeedService : IFeedService
         IReadOnlyList<PostSnapshot> posts,
         IReadOnlyList<Guid> communityIds,
         int page,
-        int limit)
+        int limit,
+        FeedQueryOptions options)
     {
         var communitySet = communityIds.ToHashSet();
         var now = DateTimeOffset.UtcNow;
+        var periodStart = GetPeriodStart(options.Period, now);
 
         var ranked = posts
             // BR-1 + защита: только посты из подписанных сообществ.
             .Where(p => communitySet.Contains(p.CommunityId))
+            .Where(p => periodStart is null || p.CreatedAt >= periodStart.Value)
             .Select(p => new FeedItemResponse(
                 PostId: p.Id,
                 CommunityId: p.CommunityId,
@@ -153,12 +179,46 @@ public sealed class FeedService : IFeedService
                 Comments: p.Comments,
                 CreatedAt: p.CreatedAt,
                 Score: _ranker.Score(p, now)))
-            .OrderByDescending(p => p.Score)
-            .ThenByDescending(p => p.CreatedAt)
             .ToList();
+
+        ranked = ApplySort(ranked, options.Sort);
 
         var skip = (page - 1) * limit;
         var pageItems = ranked.Skip(skip).Take(limit).ToList();
         return (pageItems, ranked.Count);
+    }
+
+    private static List<FeedItemResponse> ApplySort(
+        IReadOnlyCollection<FeedItemResponse> posts,
+        FeedSortMode sort)
+    {
+        return sort switch
+        {
+            FeedSortMode.Newest => posts
+                .OrderByDescending(p => p.CreatedAt)
+                .ThenByDescending(p => p.Score)
+                .ToList(),
+            FeedSortMode.Discussed => posts
+                .OrderByDescending(p => p.Comments)
+                .ThenByDescending(p => p.Likes)
+                .ThenByDescending(p => p.CreatedAt)
+                .ToList(),
+            _ => posts
+                .OrderByDescending(p => p.Score)
+                .ThenByDescending(p => p.CreatedAt)
+                .ToList()
+        };
+    }
+
+    private static DateTimeOffset? GetPeriodStart(FeedPeriod period, DateTimeOffset now)
+    {
+        return period switch
+        {
+            FeedPeriod.Day => now.AddDays(-1),
+            FeedPeriod.Week => now.AddDays(-7),
+            FeedPeriod.Month => now.AddMonths(-1),
+            FeedPeriod.Year => now.AddYears(-1),
+            _ => null
+        };
     }
 }

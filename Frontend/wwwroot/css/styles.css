@@ -446,6 +446,23 @@ small { font-size: 12px; color: var(--muted); }
   gap: 18px;
 }
 
+.feed-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(160px, 220px) auto;
+  align-items: end;
+  gap: 14px;
+  padding: 16px;
+}
+
+.feed-toolbar-status {
+  justify-self: end;
+  padding: 11px 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .post-detail-panel { position: sticky; top: 28px; }
 
 .compact-header {
@@ -1683,6 +1700,14 @@ select {
   .split {
     grid-template-columns: 1fr;
   }
+  .feed-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .feed-toolbar-status {
+    grid-column: 1 / -1;
+    justify-self: start;
+    padding: 0;
+  }
   .post-detail-panel,
   .community-sidebar { position: static; }
   .messages { max-height: 50vh; }
@@ -1738,6 +1763,7 @@ select {
   .panel { padding: 16px; }
   .card  { padding: 14px 16px; }
   .card.feed-post-card { padding: 0; }
+  .feed-toolbar { grid-template-columns: 1fr; }
   .post-card-link { padding: 16px 16px 0; }
   .post-card-footer { padding: 12px 16px 16px; }
   .post-page-card { padding: 16px; }
