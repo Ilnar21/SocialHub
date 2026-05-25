@@ -30,7 +30,7 @@ public sealed class AuthDbContext(DbContextOptions<AuthDbContext> options) : DbC
             {
                 profile.Property(value => value.DisplayName).HasColumnName("display_name").HasMaxLength(128).IsRequired();
                 profile.Property(value => value.Bio).HasColumnName("bio").HasMaxLength(1000);
-                profile.Property(value => value.AvatarUrl).HasColumnName("avatar_url").HasMaxLength(512);
+                profile.Property(value => value.AvatarUrl).HasColumnName("avatar_url").HasColumnType("text");
             });
         });
 

@@ -160,8 +160,7 @@ namespace SocialHub.Auth.Infrastructure.Persistence.Migrations
                                 .HasColumnType("uuid");
 
                             b1.Property<string>("AvatarUrl")
-                                .HasMaxLength(512)
-                                .HasColumnType("character varying(512)")
+                                .HasColumnType("text")
                                 .HasColumnName("avatar_url");
 
                             b1.Property<string>("Bio")
