@@ -67,6 +67,8 @@ function normalizeError(payload) {
   if (!payload) return "";
 
   if (typeof payload === "string") {
+    const translated = translateErrorText(payload);
+    if (translated) return translated;
     if (payload.includes("invalid_credentials")) return "Неверный логин или пароль";
     if (payload.includes("duplicate_username")) return "Логин уже занят";
     if (payload.includes("duplicate_email")) return "Email уже занят";
@@ -75,12 +77,89 @@ function normalizeError(payload) {
   }
 
   const code = payload.code || payload.title || payload.error || "";
+  const translated = translateErrorText(`${code} ${payload.message || ""} ${payload.detail || ""}`);
+  if (translated) return translated;
+
+  if (payload.errors) {
+    const validationText = Object.values(payload.errors).flat().join(" ");
+    const validationMessage = translateErrorText(validationText);
+    if (validationMessage) return validationMessage;
+    if (validationText) return "Проверьте заполнение формы.";
+  }
+
   if (code === "invalid_credentials") return "Неверный логин или пароль";
   if (code === "duplicate_username") return "Логин уже занят";
   if (code === "duplicate_email") return "Email уже занят";
   if (code === "account_blocked") return payload.message || payload.detail || "Аккаунт заблокирован";
 
   return payload.message || payload.detail || payload.title || payload.error || "";
+}
+
+function translateErrorText(text) {
+  const value = String(text || "").toLowerCase();
+  if (!value) return "";
+
+  if (value.includes("community name already exists") || value.includes("сообщество с таким названием")) {
+    return "Сообщество с таким названием уже существует.";
+  }
+
+  if (value.includes("community username already exists") || value.includes("юзернейм сообщества уже занят")) {
+    return "Юзернейм сообщества уже занят.";
+  }
+
+  if (value.includes("community username") || value.includes("username field is required") || value.includes("the username field is required")) {
+    return "Укажите username сообщества: от 3 до 64 символов, латинские буквы, цифры, точка, дефис или нижнее подчеркивание.";
+  }
+
+  if (value.includes("the name field is required") || value.includes("name field is required")) {
+    return "Укажите название.";
+  }
+
+  if (value.includes("the description field is required") || value.includes("description field is required")) {
+    return "Заполните описание.";
+  }
+
+  if (value.includes("username must contain at least 3")) {
+    return "Логин должен быть не короче 3 символов.";
+  }
+
+  if (value.includes("valid email is required")) {
+    return "Введите корректный email.";
+  }
+
+  if (value.includes("password must contain at least 8")) {
+    return "Пароль должен быть не короче 8 символов.";
+  }
+
+  if (value.includes("display name is required")) {
+    return "Укажите отображаемое имя.";
+  }
+
+  if (value.includes("user was not found")) {
+    return "Пользователь не найден.";
+  }
+
+  if (value.includes("block reason is required")) {
+    return "Укажите причину блокировки.";
+  }
+
+  if (value.includes("moderator cannot block own account")) {
+    return "Нельзя заблокировать собственный аккаунт модератора.";
+  }
+
+  if (value.includes("membership limit") || value.includes("no more than 30") || value.includes("больше чем в 30 сообществах")) {
+    return "Нельзя состоять больше чем в 30 сообществах.";
+  }
+
+  if (value.includes("community was not found") || value.includes("сообщество не найдено")) {
+    return "Сообщество не найдено.";
+  }
+
+  if (value.includes("only community owner") || value.includes("только владелец сообщества")) {
+    return "Это действие доступно только владельцу сообщества.";
+  }
+
+  return "";
 }
 
 function isAuthPage() {
