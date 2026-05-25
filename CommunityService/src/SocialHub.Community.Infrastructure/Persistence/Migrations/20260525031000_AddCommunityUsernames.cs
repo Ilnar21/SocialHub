@@ -1,9 +1,13 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using SocialHub.Community.Infrastructure.Persistence;
 
 #nullable disable
 
 namespace SocialHub.Community.Infrastructure.Persistence.Migrations;
 
+[DbContext(typeof(CommunityDbContext))]
+[Migration("20260525031000_AddCommunityUsernames")]
 public partial class AddCommunityUsernames : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
@@ -27,7 +31,7 @@ public partial class AddCommunityUsernames : Migration
         migrationBuilder.Sql(@"
 UPDATE communities
 SET ""Username"" = lower(concat(
-    trim(both '_' from regexp_replace(""Name"", '[^[:alnum:]]+', '_', 'g')),
+    trim(both '_' from regexp_replace(lower(""Name""), '[^a-z0-9]+', '_', 'g')),
     '_',
     left(replace(""Id""::text, '-', ''), 8)
 ));
