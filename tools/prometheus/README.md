@@ -28,3 +28,6 @@ For TC-45 verification, run a user flow through `http://localhost:8080`, then se
 
 Grafana starts with a preconfigured Prometheus datasource named `Prometheus`.
 Local default login is `admin` / `local_grafana_password`, and anonymous viewer access is enabled for quick project demos.
+Provisioned dashboard: `SocialHub / SocialHub Overview`.
+
+The overview dashboard shows service availability, gateway traffic, application request rate, p95 latency, active requests, process CPU, process memory, .NET memory and 5xx errors.
