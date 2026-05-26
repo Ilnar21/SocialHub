@@ -33,10 +33,11 @@ const typeLabels = {
 };
 
 const periodLabels = {
-  all: "за все время",
+  all: "все сохранённые",
   day: "за день",
   week: "за неделю",
-  year: "за год"
+  month: "за месяц",
+  retention: "за 90 дней"
 };
 
 let notifications = [];
@@ -94,7 +95,8 @@ function periodStart(period) {
   const now = new Date();
   if (period === "day") return new Date(now.getTime() - 24 * 60 * 60 * 1000);
   if (period === "week") return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  if (period === "year") return new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+  if (period === "month") return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  if (period === "retention") return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
   return null;
 }
 
