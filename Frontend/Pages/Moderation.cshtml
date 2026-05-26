@@ -24,7 +24,7 @@
     <div class="stack">
         <section class="panel">
             <h2>Очередь решений</h2>
-            <p class="muted">Модератор рассматривает жалобы на посты и сообщества, удаляет нарушающие посты, закрывает проверенные обращения и управляет блокировками пользователей.</p>
+            <p class="muted">Модератор рассматривает жалобы на посты и сообщества, переходит к связанным профилям, закрывает обращения и управляет блокировками.</p>
         </section>
 
         <form class="panel form-grid" data-form="block-user">
@@ -48,6 +48,18 @@
                 </svg>
                 Заблокировать
             </button>
+        </form>
+
+        <form class="panel form-grid" data-form="community-moderation">
+            <h2>Сообщество</h2>
+            <label>Username
+                <input name="communityUsername" data-community-search placeholder="username без @@" autocomplete="off" />
+            </label>
+            <button class="button secondary" type="button" data-find-community>Найти</button>
+            <div class="content-list" data-community-search-result></div>
+            <label>Причина блокировки
+                <input name="communityReason" data-community-block-reason value="Нарушение правил платформы" />
+            </label>
         </form>
 
         <div class="panel">

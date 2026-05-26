@@ -100,6 +100,10 @@ function renderPage() {
 }
 
 function renderCommunityAction() {
+  if (isCommunityBlocked()) {
+    return `<button class="button secondary" type="button" disabled>Сообщество заблокировано</button>`;
+  }
+
   if (isOwner()) {
     return `
       <button class="button secondary" type="button" disabled>Вы владелец</button>
@@ -467,7 +471,12 @@ function isOwner() {
 }
 
 function canViewCommunityPosts() {
+  if (isCommunityBlocked()) return false;
   return community?.type !== "Closed" || isMember();
+}
+
+function isCommunityBlocked() {
+  return String(community?.status || "").toLowerCase() === "blocked";
 }
 
 function communityInitial() {

@@ -170,6 +170,14 @@ function translateErrorText(text) {
     return "Удалить пост можно только по жалобе на пост.";
   }
 
+  if (value.includes("community is blocked by platform moderation")) {
+    return "Сообщество заблокировано модерацией платформы.";
+  }
+
+  if (value.includes("community status could not be changed")) {
+    return "Не удалось изменить статус сообщества. Попробуйте еще раз.";
+  }
+
   if (value.includes("membership limit") || value.includes("no more than 30") || value.includes("больше чем в 30 сообществах")) {
     return "Нельзя состоять больше чем в 30 сообществах.";
   }
