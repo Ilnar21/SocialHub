@@ -12,6 +12,14 @@ using SocialHub.Feed.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.ClearProviders();
+builder.Logging.AddJsonConsole(options =>
+{
+    options.IncludeScopes = true;
+    options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
+    options.UseUtcTimestamp = true;
+});
+
 // Current user context is resolved from authenticated JWT claims.
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserContext, JwtCurrentUserContext>();

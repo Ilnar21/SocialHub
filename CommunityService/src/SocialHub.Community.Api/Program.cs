@@ -15,6 +15,14 @@ using SocialHub.Community.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.ClearProviders();
+builder.Logging.AddJsonConsole(options =>
+{
+    options.IncludeScopes = true;
+    options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
+    options.UseUtcTimestamp = true;
+});
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.Configure<InternalAuthOptions>(builder.Configuration.GetSection(InternalAuthOptions.SectionName));
 builder.Services.AddScoped<InternalTokenFilter>();

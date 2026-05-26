@@ -2,6 +2,14 @@ using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.ClearProviders();
+builder.Logging.AddJsonConsole(options =>
+{
+    options.IncludeScopes = true;
+    options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
+    options.UseUtcTimestamp = true;
+});
+
 builder.Services.AddRazorPages();
 
 var app = builder.Build();
