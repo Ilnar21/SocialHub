@@ -14,7 +14,8 @@ public sealed class AuthUserService(
     ILoginAuditRepository loginAudit,
     IUnitOfWork unitOfWork,
     IPasswordHasher passwordHasher,
-    ITokenService tokenService)
+    ITokenService tokenService,
+    INotificationClient notificationClient)
 {
     public async Task<ServiceResult<UserResponse>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -51,6 +52,7 @@ public sealed class AuthUserService(
 
         await users.AddAsync(user, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await NotifyRegistrationAsync(user, cancellationToken);
 
         return ServiceResult<UserResponse>.Success(user.ToResponse());
     }
@@ -147,6 +149,7 @@ public sealed class AuthUserService(
         user.BlockedUntil = request.BlockedUntil;
         user.UpdatedAt = DateTimeOffset.UtcNow;
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await NotifyUserBlockedAsync(user, cancellationToken);
 
         return ServiceResult<UserResponse>.Success(user.ToResponse());
     }
@@ -160,18 +163,21 @@ public sealed class AuthUserService(
         }
 
         var status = request.Status.Trim().ToUpperInvariant();
+        Func<Task>? sendStatusNotification;
         switch (status)
         {
             case "ACTIVE":
                 user.Status = UserStatus.Active;
                 user.BlockReason = null;
                 user.BlockedUntil = null;
+                sendStatusNotification = () => NotifyUserUnblockedAsync(user, cancellationToken);
                 break;
 
             case "BLOCKED":
                 user.Status = UserStatus.Blocked;
                 user.BlockReason = NormalizeOptional(request.Reason) ?? "Blocked by moderation.";
                 user.BlockedUntil = request.ExpiresAtUtc;
+                sendStatusNotification = () => NotifyUserBlockedAsync(user, cancellationToken);
                 break;
 
             default:
@@ -180,6 +186,7 @@ public sealed class AuthUserService(
 
         user.UpdatedAt = DateTimeOffset.UtcNow;
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await sendStatusNotification();
 
         return ServiceResult<UserResponse>.Success(user.ToResponse());
     }
@@ -202,6 +209,49 @@ public sealed class AuthUserService(
 
         var user = await users.FindByIdAsync(userId, cancellationToken);
         return user?.Status == UserStatus.Active ? user : null;
+    }
+
+    private Task NotifyRegistrationAsync(UserAccount user, CancellationToken cancellationToken)
+    {
+        return notificationClient.NotifyAsync(
+            user.Id,
+            user.Email,
+            "UserRegistered",
+            "Добро пожаловать в SocialHub",
+            $"Здравствуйте, {user.Profile.DisplayName}! Аккаунт @{user.Username} успешно зарегистрирован в SocialHub.",
+            user.Id,
+            cancellationToken);
+    }
+
+    private Task NotifyUserBlockedAsync(UserAccount user, CancellationToken cancellationToken)
+    {
+        var reason = string.IsNullOrWhiteSpace(user.BlockReason)
+            ? "нарушение правил платформы"
+            : user.BlockReason.Trim();
+        var term = user.BlockedUntil is null
+            ? "Срок блокировки: бессрочно."
+            : $"Срок блокировки: до {FormatDate(user.BlockedUntil.Value)}.";
+
+        return notificationClient.NotifyAsync(
+            user.Id,
+            user.Email,
+            "UserBlocked",
+            "Аккаунт заблокирован",
+            $"Ваш аккаунт @{user.Username} заблокирован. Причина: {reason}. {term}",
+            user.Id,
+            cancellationToken);
+    }
+
+    private Task NotifyUserUnblockedAsync(UserAccount user, CancellationToken cancellationToken)
+    {
+        return notificationClient.NotifyAsync(
+            user.Id,
+            user.Email,
+            "UserUnblocked",
+            "Аккаунт разблокирован",
+            $"Ваш аккаунт @{user.Username} разблокирован. Вы снова можете пользоваться SocialHub.",
+            user.Id,
+            cancellationToken);
     }
 
     private async Task AddLoginAuditAsync(
@@ -253,6 +303,9 @@ public sealed class AuthUserService(
 
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string FormatDate(DateTimeOffset value) =>
+        value.UtcDateTime.ToString("dd.MM.yyyy HH:mm 'UTC'");
 
     private static string BuildBlockedLoginMessage(UserAccount user)
     {

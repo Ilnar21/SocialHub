@@ -26,6 +26,8 @@ services:
       Jwt__Audience: ${JWT_AUDIENCE}
       Jwt__Secret: ${JWT_SECRET}
       Jwt__AccessTokenLifetimeMinutes: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES}
+      ExternalServices__NotificationBaseUrl: ${NOTIFICATION_BASE_URL}
+      ExternalServices__InternalToken: ${INTERNAL_SERVICE_TOKEN}
       InternalAuth__RequireInternalToken: ${INTERNAL_AUTH_REQUIRE_TOKEN}
       InternalAuth__Token: ${INTERNAL_SERVICE_TOKEN}
     ports:

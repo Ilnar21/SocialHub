@@ -14,7 +14,8 @@ public sealed class AuthUserServiceTests
     {
         var users = new FakeUserRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = CreateService(users, unitOfWork: unitOfWork);
+        var notifications = new FakeNotificationClient();
+        var service = CreateService(users, unitOfWork: unitOfWork, notificationClient: notifications);
 
         var result = await service.RegisterAsync(
             new RegisterRequest("  ivan  ", "  ivan@example.com  ", "Password123!", "  Ivan Petrov  ", "  bio  "),
@@ -27,6 +28,10 @@ public sealed class AuthUserServiceTests
         Assert.Equal("Ivan Petrov", result.Value!.Profile.DisplayName);
         Assert.Equal("bio", result.Value.Profile.Bio);
         Assert.Equal(1, unitOfWork.SaveCount);
+        var notification = Assert.Single(notifications.Events);
+        Assert.Equal("UserRegistered", notification.Type);
+        Assert.Equal("ivan@example.com", notification.RecipientEmail);
+        Assert.Contains("@ivan", notification.Message);
     }
 
     [Theory]
@@ -195,7 +200,8 @@ public sealed class AuthUserServiceTests
     public async Task SetStatus_blocks_and_reactivates_user_for_internal_side_effects()
     {
         var user = NewUser();
-        var service = CreateService(new FakeUserRepository(user));
+        var notifications = new FakeNotificationClient();
+        var service = CreateService(new FakeUserRepository(user), notificationClient: notifications);
 
         var blockedUntil = DateTimeOffset.UtcNow.AddDays(2);
         var blocked = await service.SetStatusAsync(
@@ -212,6 +218,18 @@ public sealed class AuthUserServiceTests
         Assert.Equal(UserStatus.Active, user.Status);
         Assert.Null(user.BlockReason);
         Assert.Null(user.BlockedUntil);
+        Assert.Collection(
+            notifications.Events,
+            blockedNotification =>
+            {
+                Assert.Equal("UserBlocked", blockedNotification.Type);
+                Assert.Contains("rule violation", blockedNotification.Message);
+            },
+            unblockedNotification =>
+            {
+                Assert.Equal("UserUnblocked", unblockedNotification.Type);
+                Assert.Contains("разблокирован", unblockedNotification.Message);
+            });
     }
 
     [Fact]
@@ -235,7 +253,8 @@ public sealed class AuthUserServiceTests
         FakeUserRepository? users = null,
         FakeAuthSessionRepository? sessions = null,
         FakeLoginAuditRepository? audit = null,
-        FakeUnitOfWork? unitOfWork = null)
+        FakeUnitOfWork? unitOfWork = null,
+        FakeNotificationClient? notificationClient = null)
     {
         return new AuthUserService(
             users ?? new FakeUserRepository(),
@@ -243,7 +262,8 @@ public sealed class AuthUserServiceTests
             audit ?? new FakeLoginAuditRepository(),
             unitOfWork ?? new FakeUnitOfWork(),
             new FakePasswordHasher(),
-            new FakeTokenService());
+            new FakeTokenService(),
+            notificationClient ?? new FakeNotificationClient());
     }
 
     private static UserAccount NewUser(
@@ -353,4 +373,30 @@ public sealed class AuthUserServiceTests
             ExpiresAt = DateTimeOffset.UtcNow.AddHours(1)
         };
     }
+
+    private sealed class FakeNotificationClient : INotificationClient
+    {
+        public List<NotificationCall> Events { get; } = [];
+
+        public Task NotifyAsync(
+            Guid recipientUserId,
+            string recipientEmail,
+            string type,
+            string title,
+            string message,
+            Guid? sourceEntityId,
+            CancellationToken cancellationToken)
+        {
+            Events.Add(new NotificationCall(recipientUserId, recipientEmail, type, title, message, sourceEntityId));
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed record NotificationCall(
+        Guid RecipientUserId,
+        string RecipientEmail,
+        string Type,
+        string Title,
+        string Message,
+        Guid? SourceEntityId);
 }
