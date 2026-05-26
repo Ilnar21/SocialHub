@@ -8,10 +8,15 @@ namespace SocialHub.Notification.Infrastructure.Persistence;
 public sealed class MongoNotificationRepository : INotificationRepository
 {
     private readonly IMongoCollection<NotificationDocument> _notifications;
+    private readonly NotificationRetentionOptions _retentionOptions;
 
-    public MongoNotificationRepository(IMongoDatabase database, IOptions<MongoOptions> options)
+    public MongoNotificationRepository(
+        IMongoDatabase database,
+        IOptions<MongoOptions> options,
+        IOptions<NotificationRetentionOptions> retentionOptions)
     {
         _notifications = database.GetCollection<NotificationDocument>(options.Value.NotificationsCollection);
+        _retentionOptions = retentionOptions.Value;
         EnsureIndexes();
     }
 
@@ -73,10 +78,36 @@ public sealed class MongoNotificationRepository : INotificationRepository
             .Ascending(x => x.RecipientUserId)
             .Ascending(x => x.IsRead);
 
+        var unreadRetentionIndex = Builders<NotificationDocument>.IndexKeys
+            .Ascending(x => x.CreatedAtUtc);
+
+        var readRetentionIndex = Builders<NotificationDocument>.IndexKeys
+            .Ascending(x => x.ReadAtUtc);
+
         _notifications.Indexes.CreateMany(new[]
         {
             new CreateIndexModel<NotificationDocument>(inboxIndex),
-            new CreateIndexModel<NotificationDocument>(unreadIndex)
+            new CreateIndexModel<NotificationDocument>(unreadIndex),
+            new CreateIndexModel<NotificationDocument>(
+                unreadRetentionIndex,
+                new CreateIndexOptions<NotificationDocument>
+                {
+                    Name = "notifications_created_retention_ttl",
+                    ExpireAfter = RetentionDays(_retentionOptions.NotificationDays)
+                }),
+            new CreateIndexModel<NotificationDocument>(
+                readRetentionIndex,
+                new CreateIndexOptions<NotificationDocument>
+                {
+                    Name = "notifications_read_retention_ttl",
+                    ExpireAfter = RetentionDays(_retentionOptions.ReadNotificationDays),
+                    PartialFilterExpression = Builders<NotificationDocument>.Filter.Eq(x => x.IsRead, true)
+                })
         });
+    }
+
+    private static TimeSpan RetentionDays(int days)
+    {
+        return TimeSpan.FromDays(Math.Max(1, days));
     }
 }

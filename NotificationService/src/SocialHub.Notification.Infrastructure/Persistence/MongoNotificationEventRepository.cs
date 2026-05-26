@@ -11,14 +11,17 @@ public sealed class MongoNotificationEventRepository : INotificationEventReposit
 {
     private readonly IMongoCollection<NotificationEventDocument> _events;
     private readonly NotificationProcessingOptions _processingOptions;
+    private readonly NotificationRetentionOptions _retentionOptions;
 
     public MongoNotificationEventRepository(
         IMongoDatabase database,
         IOptions<MongoOptions> options,
-        IOptions<NotificationProcessingOptions> processingOptions)
+        IOptions<NotificationProcessingOptions> processingOptions,
+        IOptions<NotificationRetentionOptions> retentionOptions)
     {
         _events = database.GetCollection<NotificationEventDocument>(options.Value.EventsCollection);
         _processingOptions = processingOptions.Value;
+        _retentionOptions = retentionOptions.Value;
         EnsureIndexes();
     }
 
@@ -68,10 +71,46 @@ public sealed class MongoNotificationEventRepository : INotificationEventReposit
             .Ascending(x => x.SourceService)
             .Ascending(x => x.SourceEntityId);
 
+        var completedRetentionIndex = Builders<NotificationEventDocument>.IndexKeys
+            .Ascending(x => x.ProcessedAtUtc);
+
+        var failedRetentionIndex = Builders<NotificationEventDocument>.IndexKeys
+            .Ascending(x => x.LastAttemptAtUtc);
+
+        var completedFilter = Builders<NotificationEventDocument>.Filter.And(
+            Builders<NotificationEventDocument>.Filter.Eq(x => x.Status, NotificationEventStatus.Completed),
+            Builders<NotificationEventDocument>.Filter.Exists(x => x.ProcessedAtUtc, true));
+
+        var exhaustedFailedFilter = Builders<NotificationEventDocument>.Filter.And(
+            Builders<NotificationEventDocument>.Filter.Eq(x => x.Status, NotificationEventStatus.Failed),
+            Builders<NotificationEventDocument>.Filter.Gte(x => x.AttemptCount, _processingOptions.MaxAttempts),
+            Builders<NotificationEventDocument>.Filter.Exists(x => x.LastAttemptAtUtc, true));
+
         _events.Indexes.CreateMany(new[]
         {
             new CreateIndexModel<NotificationEventDocument>(statusIndex),
-            new CreateIndexModel<NotificationEventDocument>(sourceIndex)
+            new CreateIndexModel<NotificationEventDocument>(sourceIndex),
+            new CreateIndexModel<NotificationEventDocument>(
+                completedRetentionIndex,
+                new CreateIndexOptions<NotificationEventDocument>
+                {
+                    Name = "notification_events_completed_retention_ttl",
+                    ExpireAfter = RetentionDays(_retentionOptions.CompletedEventDays),
+                    PartialFilterExpression = completedFilter
+                }),
+            new CreateIndexModel<NotificationEventDocument>(
+                failedRetentionIndex,
+                new CreateIndexOptions<NotificationEventDocument>
+                {
+                    Name = "notification_events_failed_retention_ttl",
+                    ExpireAfter = RetentionDays(_retentionOptions.FailedEventDays),
+                    PartialFilterExpression = exhaustedFailedFilter
+                })
         });
+    }
+
+    private static TimeSpan RetentionDays(int days)
+    {
+        return TimeSpan.FromDays(Math.Max(1, days));
     }
 }

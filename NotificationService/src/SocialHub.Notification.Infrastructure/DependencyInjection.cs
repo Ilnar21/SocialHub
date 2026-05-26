@@ -16,6 +16,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<MongoOptions>(configuration.GetSection(MongoOptions.SectionName));
+        services.Configure<NotificationRetentionOptions>(configuration.GetSection(NotificationRetentionOptions.SectionName));
         services.Configure<NotificationProcessingOptions>(configuration.GetSection(NotificationProcessingOptions.SectionName));
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
         services.Configure<ExternalServiceOptions>(configuration.GetSection(ExternalServiceOptions.SectionName));
