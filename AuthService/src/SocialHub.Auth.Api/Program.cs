@@ -28,6 +28,13 @@ builder.Logging.AddJsonConsole(options =>
     options.UseUtcTimestamp = true;
 });
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
+builder.Logging.Configure(options =>
+{
+    options.ActivityTrackingOptions = ActivityTrackingOptions.TraceId
+        | ActivityTrackingOptions.SpanId
+        | ActivityTrackingOptions.ParentId;
+});
+builder.Services.AddSocialHubTracing(builder.Configuration, builder.Environment);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {

@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.17" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
     <ProjectReference Include="..\SocialHub.Moderation.Application\SocialHub.Moderation.Application.csproj" />
     <ProjectReference Include="..\SocialHub.Moderation.Infrastructure\SocialHub.Moderation.Infrastructure.csproj" />
