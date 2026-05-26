@@ -26,6 +26,7 @@ services:
       Mongo__DatabaseName: socialhub_notifications
       Mongo__NotificationsCollection: notifications
       Mongo__EventsCollection: notification_events
+      ExternalServices__AuthBaseUrl: "${AUTH_BASE_URL:-}"
       NotificationProcessing__PollingIntervalSeconds: "2"
       NotificationProcessing__MaxAttempts: "5"
       Smtp__Enabled: "${SMTP_ENABLED:-false}"

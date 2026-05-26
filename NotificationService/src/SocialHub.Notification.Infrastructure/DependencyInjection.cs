@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using SocialHub.Notification.Application.Abstractions;
 using SocialHub.Notification.Infrastructure.Email;
+using SocialHub.Notification.Infrastructure.External;
 using SocialHub.Notification.Infrastructure.Health;
 using SocialHub.Notification.Infrastructure.Persistence;
 using SocialHub.Notification.Infrastructure.Processing;
@@ -17,6 +18,7 @@ public static class DependencyInjection
         services.Configure<MongoOptions>(configuration.GetSection(MongoOptions.SectionName));
         services.Configure<NotificationProcessingOptions>(configuration.GetSection(NotificationProcessingOptions.SectionName));
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
+        services.Configure<ExternalServiceOptions>(configuration.GetSection(ExternalServiceOptions.SectionName));
         services.AddSingleton<IMongoClient>(serviceProvider =>
         {
             var options = serviceProvider.GetRequiredService<IOptions<MongoOptions>>().Value;
@@ -31,6 +33,16 @@ public static class DependencyInjection
         services.AddScoped<INotificationRepository, MongoNotificationRepository>();
         services.AddScoped<INotificationEventRepository, MongoNotificationEventRepository>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddHttpClient<IRecipientEmailResolver, AuthRecipientEmailResolver>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<ExternalServiceOptions>>().Value;
+            if (!string.IsNullOrWhiteSpace(options.AuthBaseUrl))
+            {
+                client.BaseAddress = new Uri(options.AuthBaseUrl);
+            }
+
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+        });
         services.AddScoped<INotificationHealthCheck, MongoNotificationHealthCheck>();
         services.AddHostedService<NotificationEventProcessor>();
         return services;

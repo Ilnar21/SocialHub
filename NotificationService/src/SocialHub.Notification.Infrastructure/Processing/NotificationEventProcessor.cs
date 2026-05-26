@@ -51,6 +51,7 @@ public sealed class NotificationEventProcessor : BackgroundService
         var events = scope.ServiceProvider.GetRequiredService<INotificationEventRepository>();
         var notifications = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
         var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+        var emailResolver = scope.ServiceProvider.GetRequiredService<IRecipientEmailResolver>();
 
         var notificationEvent = await events.TryTakeNextAsync(cancellationToken);
         if (notificationEvent is null)
@@ -72,7 +73,13 @@ public sealed class NotificationEventProcessor : BackgroundService
             await notifications.AddAsync(notification, cancellationToken);
             await notifications.SaveChangesAsync(cancellationToken);
 
-            await TrySendEmailAsync(emailSender, notificationEvent, cancellationToken);
+            var recipientEmail = notificationEvent.RecipientEmail;
+            if (string.IsNullOrWhiteSpace(recipientEmail))
+            {
+                recipientEmail = await emailResolver.ResolveEmailAsync(notificationEvent.RecipientUserId, cancellationToken);
+            }
+
+            await TrySendEmailAsync(emailSender, notificationEvent, recipientEmail, cancellationToken);
 
             notificationEvent.MarkCompleted(DateTime.UtcNow);
             await events.SaveAsync(notificationEvent, cancellationToken);
@@ -90,12 +97,13 @@ public sealed class NotificationEventProcessor : BackgroundService
     private async Task TrySendEmailAsync(
         IEmailSender emailSender,
         Domain.Entities.NotificationEvent notificationEvent,
+        string? recipientEmail,
         CancellationToken cancellationToken)
     {
         try
         {
             var result = await emailSender.SendAsync(
-                new EmailMessage(notificationEvent.RecipientEmail, notificationEvent.Title, notificationEvent.Message),
+                new EmailMessage(recipientEmail, notificationEvent.Title, notificationEvent.Message),
                 cancellationToken);
 
             if (result.Skipped)

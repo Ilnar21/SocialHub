@@ -165,8 +165,7 @@ public sealed class ModerationService : IModerationService
         await _repository.AddUserBlockWithAuditAsync(block, audit, cancellationToken);
         var sideEffects = new[]
         {
-            await _externalClient.SetUserBlockedAsync(block, cancellationToken),
-            await _externalClient.NotifyUserBlockedAsync(block, cancellationToken)
+            await _externalClient.SetUserBlockedAsync(block, cancellationToken)
         };
         await SaveFailedSideEffectsAsync(sideEffects, "USER_BLOCKED", "USER", block.BlockedUserId, cancellationToken);
 

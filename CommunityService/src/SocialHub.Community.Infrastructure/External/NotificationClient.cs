@@ -21,21 +21,39 @@ public sealed class NotificationClient : INotificationClient
 
     public async Task<bool> NotifyAsync(InternalNotificationRequest request, CancellationToken cancellationToken)
     {
+        return await SendAsync("/api/notifications/internal", request, cancellationToken);
+    }
+
+    public async Task<bool> NotifyEventAsync(InternalNotificationRequest request, CancellationToken cancellationToken)
+    {
+        return await SendAsync("/api/notification-events", new
+        {
+            request.RecipientUserId,
+            request.Type,
+            request.Title,
+            request.Message,
+            sourceService = "CommunityService",
+            sourceEntityId = request.SourceEntityId ?? request.SourceCommunityId
+        }, cancellationToken);
+    }
+
+    private async Task<bool> SendAsync<T>(string path, T request, CancellationToken cancellationToken)
+    {
         if (string.IsNullOrWhiteSpace(_options.NotificationBaseUrl))
         {
-            _logger.LogInformation("Notification Service is not configured. Notification {Type} for user {UserId} was skipped by stub.", request.Type, request.RecipientUserId);
+            _logger.LogInformation("Notification Service is not configured. Notification request to {Path} was skipped by stub.", path);
             return true;
         }
 
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("/api/notifications/internal", request, cancellationToken);
+            var response = await _httpClient.PostAsJsonAsync(path, request, cancellationToken);
             if (response.IsSuccessStatusCode)
             {
                 return true;
             }
 
-            _logger.LogWarning("Notification Service returned {StatusCode} for notification {Type}.", response.StatusCode, request.Type);
+            _logger.LogWarning("Notification Service returned {StatusCode} for request {Path}.", response.StatusCode, path);
             return false;
         }
         catch (Exception ex)

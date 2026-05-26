@@ -176,6 +176,9 @@ public sealed class CommunityService : ICommunityService
 
         var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
         var now = DateTime.UtcNow;
+        string notificationType;
+        string notificationTitle;
+        string notificationMessage;
 
         if (request.Status == CommunityStatus.Blocked)
         {
@@ -188,13 +191,20 @@ public sealed class CommunityService : ICommunityService
             await _repository.AddAuditLogAsync(
                 new CommunityAuditLog(communityId, request.ModeratorUserId, "COMMUNITY_BLOCKED", request.Reason, now),
                 cancellationToken);
+            notificationType = "CommunityBlocked";
+            notificationTitle = "Сообщество заблокировано";
+            notificationMessage = $"Ваше сообщество «{community.Name}» заблокировано. Причина: {request.Reason.Trim()}.";
         }
         else if (request.Status == CommunityStatus.Active)
         {
+            var communityName = community.Name;
             community.Unblock(now);
             await _repository.AddAuditLogAsync(
                 new CommunityAuditLog(communityId, request.ModeratorUserId, "COMMUNITY_UNBLOCKED", request.Reason ?? "Community was unblocked.", now),
                 cancellationToken);
+            notificationType = "CommunityUnblocked";
+            notificationTitle = "Сообщество разблокировано";
+            notificationMessage = $"Ваше сообщество «{communityName}» разблокировано и снова доступно пользователям.";
         }
         else
         {
@@ -202,6 +212,7 @@ public sealed class CommunityService : ICommunityService
         }
 
         await _repository.SaveChangesAsync(cancellationToken);
+        await NotifyCommunityOwnersAsync(community, notificationType, notificationTitle, notificationMessage, cancellationToken);
         return ToDetails(community, null, null);
     }
 
@@ -520,8 +531,8 @@ public sealed class CommunityService : ICommunityService
                 new InternalNotificationRequest(
                     admin.UserId,
                     "SuggestedPostCreated",
-                    "New suggested post",
-                    $"A new post '{suggestedPost.Title}' is waiting for review.",
+                    "Новый предложенный пост",
+                    $"Пост «{suggestedPost.Title}» ожидает проверки.",
                     communityId,
                     suggestedPost.Id),
                 cancellationToken);
@@ -575,8 +586,8 @@ public sealed class CommunityService : ICommunityService
             new InternalNotificationRequest(
                 suggestedPost.AuthorUserId,
                 "SuggestedPostApproved",
-                "Your suggested post was approved",
-                $"Your post '{suggestedPost.Title}' was approved.",
+                "Предложенный пост одобрен",
+                $"Ваш пост «{suggestedPost.Title}» одобрен и опубликован.",
                 communityId,
                 suggestedPost.Id),
             cancellationToken);
@@ -597,8 +608,8 @@ public sealed class CommunityService : ICommunityService
             new InternalNotificationRequest(
                 suggestedPost.AuthorUserId,
                 "SuggestedPostRejected",
-                "Your suggested post was rejected",
-                $"Your post '{suggestedPost.Title}' was rejected.",
+                "Предложенный пост отклонен",
+                $"Ваш пост «{suggestedPost.Title}» отклонен владельцем сообщества.",
                 communityId,
                 suggestedPost.Id),
             cancellationToken);
@@ -628,6 +639,21 @@ public sealed class CommunityService : ICommunityService
     {
         return await _repository.GetJoinRequestAsync(communityId, requestId, cancellationToken)
             ?? throw AppException.NotFound("Заявка на вступление не найдена.");
+    }
+
+    private async Task NotifyCommunityOwnersAsync(
+        Community.Domain.Entities.Community community,
+        string type,
+        string title,
+        string message,
+        CancellationToken cancellationToken)
+    {
+        foreach (var owner in community.Members.Where(member => member.Role == CommunityMemberRole.Owner))
+        {
+            await _notificationClient.NotifyEventAsync(
+                new InternalNotificationRequest(owner.UserId, type, title, message, community.Id, community.Id),
+                cancellationToken);
+        }
     }
 
     private async Task EnsureCurrentUserCanAdminCommunityAsync(Guid communityId, CancellationToken cancellationToken)

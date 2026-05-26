@@ -180,8 +180,9 @@ public sealed class CommunityServiceTests
     public async Task SetCommunityStatusAsync_BlocksAndUnblocksCommunity()
     {
         var repository = new FakeCommunityRepository();
+        var notificationClient = new FakeNotificationClient();
         var community = repository.AddSeedCommunity("Target", OwnerId);
-        var service = CreateService(repository);
+        var service = CreateService(repository, notificationClient);
 
         var blocked = await service.SetCommunityStatusAsync(
             community.Id,
@@ -195,6 +196,8 @@ public sealed class CommunityServiceTests
         Assert.Equal(CommunityStatus.Blocked, blocked.Status);
         Assert.Equal(CommunityStatus.Active, active.Status);
         Assert.Equal(2, repository.AuditLogs.Count);
+        Assert.Contains(notificationClient.Events, request => request.Type == "CommunityBlocked" && request.RecipientUserId == OwnerId);
+        Assert.Contains(notificationClient.Events, request => request.Type == "CommunityUnblocked" && request.RecipientUserId == OwnerId);
     }
 
     [Fact]
@@ -354,10 +357,17 @@ public sealed class CommunityServiceTests
     private sealed class FakeNotificationClient : INotificationClient
     {
         public List<InternalNotificationRequest> Requests { get; } = [];
+        public List<InternalNotificationRequest> Events { get; } = [];
 
         public Task<bool> NotifyAsync(InternalNotificationRequest request, CancellationToken cancellationToken)
         {
             Requests.Add(request);
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> NotifyEventAsync(InternalNotificationRequest request, CancellationToken cancellationToken)
+        {
+            Events.Add(request);
             return Task.FromResult(true);
         }
     }

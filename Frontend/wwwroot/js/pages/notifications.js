@@ -11,7 +11,8 @@ const typeGroups = {
   messages: ["MessageReceived"],
   joinRequests: ["JoinRequestCreated", "JoinRequestApproved", "JoinRequestRejected"],
   suggestedPosts: ["SuggestedPostCreated", "SuggestedPostApproved", "SuggestedPostRejected"],
-  moderation: ["ReportResolved", "PublicationDecision", "UserBlocked"]
+  moderation: ["ReportResolved", "PublicationDecision", "UserBlocked", "UserUnblocked", "CommunityBlocked", "CommunityUnblocked"],
+  account: ["UserRegistered"]
 };
 
 const typeLabels = {
@@ -22,6 +23,10 @@ const typeLabels = {
   ReportResolved: "модерация",
   PublicationDecision: "модерация",
   UserBlocked: "блокировка",
+  UserUnblocked: "блокировка",
+  CommunityBlocked: "модерация",
+  CommunityUnblocked: "модерация",
+  UserRegistered: "аккаунт",
   JoinRequestCreated: "заявка",
   JoinRequestApproved: "заявка",
   JoinRequestRejected: "заявка"

@@ -229,6 +229,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-local-dev-jwt-secret-change-me-please-32-bytes}
       JWT_ACCESS_TOKEN_LIFETIME_MINUTES: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-60}
       BOOTSTRAP_MODERATORS: ${BOOTSTRAP_MODERATORS:-}
+      ExternalServices__NotificationBaseUrl: http://notification-service:8080
+      ExternalServices__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
       InternalAuth__RequireInternalToken: ${INTERNAL_AUTH_REQUIRE_TOKEN:-true}
       InternalAuth__Token: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
     depends_on:
@@ -322,6 +324,7 @@ services:
       Mongo__DatabaseName: socialhub_notifications
       Mongo__NotificationsCollection: notifications
       Mongo__EventsCollection: notification_events
+      ExternalServices__AuthBaseUrl: http://auth-service:8080
       NotificationProcessing__PollingIntervalSeconds: 2
       NotificationProcessing__MaxAttempts: 5
       Smtp__Enabled: ${SMTP_ENABLED:-false}
@@ -335,6 +338,8 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-SocialHub.AuthService}
       Jwt__Audience: ${JWT_AUDIENCE:-SocialHub.Client}
       Jwt__Secret: ${JWT_SECRET:-local-dev-jwt-secret-change-me-please-32-bytes}
+      InternalAuth__RequireInternalToken: ${INTERNAL_AUTH_REQUIRE_TOKEN:-true}
+      InternalAuth__Token: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
     depends_on:
       notification-db:
         condition: service_healthy
