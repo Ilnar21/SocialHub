@@ -54,7 +54,7 @@ public sealed class SmtpEmailSender : IEmailSender
         mailMessage.To.Add(message.RecipientEmail);
 
         await smtpClient.SendMailAsync(mailMessage, cancellationToken);
-        _logger.LogInformation("Email notification was sent to {RecipientEmail}.", message.RecipientEmail);
+        _logger.LogInformation("Email notification was sent.");
 
         return EmailDeliveryResult.Delivered();
     }
