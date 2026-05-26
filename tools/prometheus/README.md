@@ -5,6 +5,7 @@ Prometheus is included in the root Docker Compose stack and scrapes every public
 ## Endpoints
 
 - Prometheus UI: `http://localhost:9090`
+- Grafana UI: `http://localhost:3001`
 - Gateway exporter metrics: `http://localhost:9113/metrics`
 - Service metrics:
   - `http://localhost:5000/metrics` - Auth & User Service
@@ -22,3 +23,8 @@ Gateway creates or forwards `X-Correlation-Id`, includes it in the response, and
 Application services add the same correlation id to response headers, request log scope, completion logs, and outgoing internal HTTP calls.
 
 For TC-45 verification, run a user flow through `http://localhost:8080`, then search container logs by the returned `X-Correlation-Id`.
+
+## Grafana
+
+Grafana starts with a preconfigured Prometheus datasource named `Prometheus`.
+Local default login is `admin` / `local_grafana_password`, and anonymous viewer access is enabled for quick project demos.
