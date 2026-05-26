@@ -115,7 +115,8 @@ public sealed class PostService
     public async Task<OperationResult<PostResponse>> GetAsync(
         Guid postId,
         Guid? viewerId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool skipVisibilityCheck = false)
     {
         var metadata = await _metadataRepository.GetByIdAsync(postId, cancellationToken);
         if (metadata is null || metadata.Status == PostStatus.Deleted)
@@ -123,7 +124,7 @@ public sealed class PostService
             return OperationResult<PostResponse>.Fail("Post not found.", 404);
         }
 
-        if (!await CanViewPostAsync(metadata, viewerId, cancellationToken))
+        if (!skipVisibilityCheck && !await CanViewPostAsync(metadata, viewerId, cancellationToken))
         {
             return OperationResult<PostResponse>.Fail("Post is available only to approved community members.", 403);
         }

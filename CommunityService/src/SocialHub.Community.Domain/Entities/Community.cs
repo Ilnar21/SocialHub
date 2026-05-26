@@ -22,6 +22,7 @@ public sealed class Community
         NormalizedUsername = Username.ToUpperInvariant();
         Description = NormalizeOptional(description, CommunityLimits.DescriptionMaxLength);
         Type = type;
+        Status = CommunityStatus.Active;
         CreatedByUserId = createdByUserId;
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = createdAtUtc;
@@ -34,6 +35,10 @@ public sealed class Community
     public string NormalizedUsername { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public CommunityType Type { get; private set; }
+    public CommunityStatus Status { get; private set; } = CommunityStatus.Active;
+    public string? BlockReason { get; private set; }
+    public DateTime? BlockedAtUtc { get; private set; }
+    public Guid? BlockedByUserId { get; private set; }
     public Guid CreatedByUserId { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
@@ -60,6 +65,24 @@ public sealed class Community
     public void UpdateDescription(string? description, DateTime updatedAtUtc)
     {
         Description = NormalizeOptional(description, CommunityLimits.DescriptionMaxLength);
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void Block(Guid moderatorUserId, string reason, DateTime blockedAtUtc)
+    {
+        Status = CommunityStatus.Blocked;
+        BlockReason = NormalizeOptional(reason, 500);
+        BlockedAtUtc = blockedAtUtc;
+        BlockedByUserId = moderatorUserId;
+        UpdatedAtUtc = blockedAtUtc;
+    }
+
+    public void Unblock(DateTime updatedAtUtc)
+    {
+        Status = CommunityStatus.Active;
+        BlockReason = null;
+        BlockedAtUtc = null;
+        BlockedByUserId = null;
         UpdatedAtUtc = updatedAtUtc;
     }
 

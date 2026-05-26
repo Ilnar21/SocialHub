@@ -8,6 +8,9 @@ public sealed record CommunitySummaryResponse(
     string Username,
     string Description,
     CommunityType Type,
+    CommunityStatus Status,
+    string? BlockReason,
+    DateTime? BlockedAtUtc,
     DateTime CreatedAtUtc,
     int MembersCount,
     CommunityMemberRole? CurrentUserRole = null);

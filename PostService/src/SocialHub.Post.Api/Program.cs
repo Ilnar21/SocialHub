@@ -160,7 +160,11 @@ app.MapGet("/posts/{postId:guid}", async (
     PostService postService,
     CancellationToken cancellationToken) =>
 {
-    var result = await postService.GetAsync(postId, GetUserId(principal), cancellationToken);
+    var result = await postService.GetAsync(
+        postId,
+        GetUserId(principal),
+        cancellationToken,
+        skipVisibilityCheck: IsPlatformModerator(principal));
     return ToHttpResult(result);
 });
 
@@ -182,7 +186,11 @@ app.MapGet("/communities/{communityId:guid}/posts", async (
     PostService postService,
     CancellationToken cancellationToken) =>
 {
-    var posts = await postService.ListByCommunityAsync(communityId, GetUserId(principal), cancellationToken);
+    var posts = await postService.ListByCommunityAsync(
+        communityId,
+        GetUserId(principal),
+        cancellationToken,
+        skipVisibilityCheck: IsPlatformModerator(principal));
     return Results.Ok(posts);
 });
 

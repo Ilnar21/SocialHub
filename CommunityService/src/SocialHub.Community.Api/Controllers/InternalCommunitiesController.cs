@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialHub.Community.Api.Security;
 using SocialHub.Community.Application.Abstractions;
+using SocialHub.Community.Application.Models.Communities;
 
 namespace SocialHub.Community.Api.Controllers;
 
@@ -48,5 +49,14 @@ public sealed class InternalCommunitiesController : ControllerBase
     {
         var canViewPosts = await _communityService.CanViewPostsAsync(communityId, userId, cancellationToken);
         return Ok(new { communityId, userId, canViewPosts });
+    }
+
+    [HttpPost("internal/communities/{communityId:guid}/status")]
+    public async Task<ActionResult<CommunityDetailsResponse>> SetCommunityStatus(
+        Guid communityId,
+        SetCommunityStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _communityService.SetCommunityStatusAsync(communityId, request, cancellationToken));
     }
 }

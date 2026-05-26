@@ -29,6 +29,8 @@ public sealed class CommunityDbContext : DbContext
             builder.Property(x => x.NormalizedUsername).HasMaxLength(CommunityLimits.UsernameMaxLength).IsRequired();
             builder.Property(x => x.Description).HasMaxLength(CommunityLimits.DescriptionMaxLength).IsRequired();
             builder.Property(x => x.Type).HasConversion<string>().HasMaxLength(20).IsRequired();
+            builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            builder.Property(x => x.BlockReason).HasMaxLength(500);
             builder.HasIndex(x => x.NormalizedName).IsUnique();
             builder.HasIndex(x => x.NormalizedUsername).IsUnique();
             builder.Metadata.FindNavigation(nameof(Domain.Entities.Community.Members))!

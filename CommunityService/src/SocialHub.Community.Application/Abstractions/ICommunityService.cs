@@ -14,6 +14,7 @@ public interface ICommunityService
     Task<CommunityDetailsResponse> GetCommunityByUsernameAsync(string username, CancellationToken cancellationToken);
     Task<CommunityDetailsResponse> CreateCommunityAsync(CreateCommunityRequest request, CancellationToken cancellationToken);
     Task<CommunityDetailsResponse> UpdateCommunityAsync(Guid communityId, UpdateCommunityRequest request, CancellationToken cancellationToken);
+    Task<CommunityDetailsResponse> SetCommunityStatusAsync(Guid communityId, SetCommunityStatusRequest request, CancellationToken cancellationToken);
     Task<MemberResponse> JoinCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task<JoinRequestResponse> RequestToJoinCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task LeaveCommunityAsync(Guid communityId, CancellationToken cancellationToken);

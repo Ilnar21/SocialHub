@@ -34,6 +34,7 @@ public sealed class CommunityService : ICommunityService
     {
         var communities = await _repository.GetCommunitiesAsync(cancellationToken);
         return communities
+            .Where(c => c.Status == CommunityStatus.Active)
             .OrderBy(c => c.Name)
             .Select(c => ToSummary(c))
             .ToList();
@@ -43,7 +44,7 @@ public sealed class CommunityService : ICommunityService
     {
         var communities = await _repository.GetCommunitiesByUserAsync(_currentUser.UserId, cancellationToken);
         var response = new List<CommunitySummaryResponse>();
-        foreach (var community in communities.OrderBy(c => c.Name))
+        foreach (var community in communities.Where(c => c.Status == CommunityStatus.Active).OrderBy(c => c.Name))
         {
             var currentMembership = await _repository.GetMemberAsync(community.Id, _currentUser.UserId, cancellationToken);
             response.Add(ToSummary(community, currentMembership));
@@ -55,6 +56,7 @@ public sealed class CommunityService : ICommunityService
     public async Task<CommunityDetailsResponse> GetCommunityAsync(Guid communityId, CancellationToken cancellationToken)
     {
         var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        EnsureCommunityVisibleToCurrentUser(community);
         var currentMembership = await _repository.GetMemberAsync(communityId, _currentUser.UserId, cancellationToken);
         var pendingRequest = currentMembership is null
             ? await _repository.GetPendingJoinRequestAsync(communityId, _currentUser.UserId, cancellationToken)
@@ -67,6 +69,8 @@ public sealed class CommunityService : ICommunityService
         var normalizedUsername = NormalizeCommunityUsernameOrThrow(username).ToUpperInvariant();
         var community = await _repository.GetCommunityByUsernameAsync(normalizedUsername, cancellationToken)
             ?? throw AppException.NotFound("Сообщество не найдено.");
+
+        EnsureCommunityVisibleToCurrentUser(community);
 
         var currentMembership = await _repository.GetMemberAsync(community.Id, _currentUser.UserId, cancellationToken);
         var pendingRequest = currentMembership is null
@@ -115,6 +119,7 @@ public sealed class CommunityService : ICommunityService
     public async Task<CommunityDetailsResponse> UpdateCommunityAsync(Guid communityId, UpdateCommunityRequest request, CancellationToken cancellationToken)
     {
         var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        EnsureCommunityActive(community);
         var member = await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
         if (member.Role != CommunityMemberRole.Owner)
         {
@@ -129,9 +134,51 @@ public sealed class CommunityService : ICommunityService
         return ToDetails(community, member, null);
     }
 
+    public async Task<CommunityDetailsResponse> SetCommunityStatusAsync(
+        Guid communityId,
+        SetCommunityStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.ModeratorUserId == Guid.Empty)
+        {
+            throw AppException.BadRequest("Moderator user id is required.");
+        }
+
+        var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        var now = DateTime.UtcNow;
+
+        if (request.Status == CommunityStatus.Blocked)
+        {
+            if (string.IsNullOrWhiteSpace(request.Reason))
+            {
+                throw AppException.BadRequest("Community block reason is required.");
+            }
+
+            community.Block(request.ModeratorUserId, request.Reason, now);
+            await _repository.AddAuditLogAsync(
+                new CommunityAuditLog(communityId, request.ModeratorUserId, "COMMUNITY_BLOCKED", request.Reason, now),
+                cancellationToken);
+        }
+        else if (request.Status == CommunityStatus.Active)
+        {
+            community.Unblock(now);
+            await _repository.AddAuditLogAsync(
+                new CommunityAuditLog(communityId, request.ModeratorUserId, "COMMUNITY_UNBLOCKED", request.Reason ?? "Community was unblocked.", now),
+                cancellationToken);
+        }
+        else
+        {
+            throw AppException.BadRequest("Unknown community status.");
+        }
+
+        await _repository.SaveChangesAsync(cancellationToken);
+        return ToDetails(community, null, null);
+    }
+
     public async Task<MemberResponse> JoinCommunityAsync(Guid communityId, CancellationToken cancellationToken)
     {
         var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        EnsureCommunityActive(community);
         var existingMember = await _repository.GetMemberAsync(communityId, _currentUser.UserId, cancellationToken);
         if (existingMember is not null)
         {
@@ -161,6 +208,7 @@ public sealed class CommunityService : ICommunityService
     public async Task<JoinRequestResponse> RequestToJoinCommunityAsync(Guid communityId, CancellationToken cancellationToken)
     {
         var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        EnsureCommunityActive(community);
         if (community.Type != CommunityType.Closed)
         {
             throw AppException.BadRequest("В открытое сообщество можно вступить без заявки.");
@@ -322,11 +370,23 @@ public sealed class CommunityService : ICommunityService
 
     public async Task<bool> IsMemberAsync(Guid communityId, Guid userId, CancellationToken cancellationToken)
     {
+        var community = await _repository.GetCommunityAsync(communityId, cancellationToken);
+        if (community is null || community.Status == CommunityStatus.Blocked)
+        {
+            return false;
+        }
+
         return await _repository.IsMemberAsync(communityId, userId, cancellationToken);
     }
 
     public async Task<bool> IsOwnerAsync(Guid communityId, Guid userId, CancellationToken cancellationToken)
     {
+        var community = await _repository.GetCommunityAsync(communityId, cancellationToken);
+        if (community is null || community.Status == CommunityStatus.Blocked)
+        {
+            return false;
+        }
+
         var member = await _repository.GetMemberAsync(communityId, userId, cancellationToken);
         return member?.Role == CommunityMemberRole.Owner;
     }
@@ -334,6 +394,11 @@ public sealed class CommunityService : ICommunityService
     public async Task<bool> CanViewPostsAsync(Guid communityId, Guid? userId, CancellationToken cancellationToken)
     {
         var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        if (community.Status == CommunityStatus.Blocked)
+        {
+            return false;
+        }
+
         if (community.Type == CommunityType.Open)
         {
             return true;
@@ -344,7 +409,11 @@ public sealed class CommunityService : ICommunityService
 
     public async Task<List<Guid>> GetCommunityIdsByUserAsync(Guid userId, CancellationToken cancellationToken)
     {
-        return await _repository.GetCommunityIdsByUserAsync(userId, cancellationToken);
+        var communities = await _repository.GetCommunitiesByUserAsync(userId, cancellationToken);
+        return communities
+            .Where(community => community.Status == CommunityStatus.Active)
+            .Select(community => community.Id)
+            .ToList();
     }
 
     public async Task RemoveMemberAsync(Guid communityId, Guid memberUserId, CancellationToken cancellationToken)
@@ -395,7 +464,8 @@ public sealed class CommunityService : ICommunityService
 
     public async Task<SuggestedPostResponse> SubmitSuggestedPostAsync(Guid communityId, SubmitSuggestedPostRequest request, CancellationToken cancellationToken)
     {
-        await GetRequiredCommunityAsync(communityId, cancellationToken);
+        var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        EnsureCommunityActive(community);
         await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
 
         var suggestedPost = new SuggestedPost(communityId, _currentUser.UserId, request.Title, request.Text, DateTime.UtcNow);
@@ -522,7 +592,8 @@ public sealed class CommunityService : ICommunityService
 
     private async Task EnsureCurrentUserCanAdminCommunityAsync(Guid communityId, CancellationToken cancellationToken)
     {
-        await GetRequiredCommunityAsync(communityId, cancellationToken);
+        var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        EnsureCommunityActive(community);
         var member = await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
         if (member.Role is not (CommunityMemberRole.Owner or CommunityMemberRole.Admin))
         {
@@ -532,12 +603,37 @@ public sealed class CommunityService : ICommunityService
 
     private async Task EnsureCurrentUserOwnsCommunityAsync(Guid communityId, CancellationToken cancellationToken)
     {
-        await GetRequiredCommunityAsync(communityId, cancellationToken);
+        var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        EnsureCommunityActive(community);
         var member = await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
         if (member.Role != CommunityMemberRole.Owner)
         {
             throw AppException.Forbidden("Только владелец сообщества может управлять этим разделом.");
         }
+    }
+
+    private void EnsureCommunityVisibleToCurrentUser(Community.Domain.Entities.Community community)
+    {
+        if (community.Status == CommunityStatus.Blocked && !IsPlatformModeratorRole(_currentUser.PlatformRole))
+        {
+            throw AppException.NotFound("РЎРѕРѕР±С‰РµСЃС‚РІРѕ РЅРµ РЅР°Р№РґРµРЅРѕ.");
+        }
+    }
+
+    private static void EnsureCommunityActive(Community.Domain.Entities.Community community)
+    {
+        if (community.Status == CommunityStatus.Blocked)
+        {
+            throw AppException.Conflict("Community is blocked by platform moderation.");
+        }
+    }
+
+    private static bool IsPlatformModeratorRole(string? role)
+    {
+        return role is not null
+            && (role.Equals("PlatformModerator", StringComparison.OrdinalIgnoreCase)
+                || role.Equals("PLATFORM_MODERATOR", StringComparison.OrdinalIgnoreCase)
+                || role.Equals("MODERATOR", StringComparison.OrdinalIgnoreCase));
     }
 
     private CommunityDetailsResponse ToDetails(
@@ -551,6 +647,9 @@ public sealed class CommunityService : ICommunityService
             community.Username,
             community.Description,
             community.Type,
+            community.Status,
+            community.BlockReason,
+            community.BlockedAtUtc,
             community.CreatedByUserId,
             community.CreatedAtUtc,
             community.Members.Count,
@@ -568,6 +667,9 @@ public sealed class CommunityService : ICommunityService
             community.Username,
             community.Description,
             community.Type,
+            community.Status,
+            community.BlockReason,
+            community.BlockedAtUtc,
             community.CreatedAtUtc,
             community.Members.Count,
             currentMembership?.Role);
