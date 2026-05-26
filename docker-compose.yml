@@ -295,6 +295,7 @@ services:
       ConnectionStrings__ModerationDatabase: Host=moderation-db;Port=5432;Database=${MODERATION_POSTGRES_DB:-socialhub_moderation};Username=${MODERATION_POSTGRES_USER:-socialhub};Password=${MODERATION_POSTGRES_PASSWORD:-local_moderation_password}
       ExternalServices__PostBaseUrl: http://post-service:8080
       ExternalServices__AuthBaseUrl: http://auth-service:8080
+      ExternalServices__CommunityBaseUrl: http://community-service:8080
       ExternalServices__NotificationBaseUrl: http://notification-service:8080
       ExternalServices__InternalToken: ${INTERNAL_SERVICE_TOKEN:-local-dev-internal-service-token-change-me}
       Jwt__Issuer: ${JWT_ISSUER:-SocialHub.AuthService}

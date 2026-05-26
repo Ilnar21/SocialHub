@@ -116,6 +116,35 @@ public sealed class ModerationServiceTests
     }
 
     [Test]
+    public async Task BlockCommunityAsync_sets_status_and_writes_audit()
+    {
+        var repository = new InMemoryModerationRepository();
+        var external = new FakeExternalClient();
+        var service = CreateService(repository, "pavel.mod", "PLATFORM_MODERATOR", external);
+
+        var response = await service.BlockCommunityAsync("community-1", new BlockCommunityRequest("spam"), CancellationToken.None);
+
+        Assert.That(response.Action, Is.EqualTo("COMMUNITY_BLOCKED"));
+        Assert.That(response.TargetType, Is.EqualTo("COMMUNITY"));
+        Assert.That(repository.AuditLogs.Single().CommunityId, Is.EqualTo("community-1"));
+        Assert.That(external.SetCommunityBlockedCalls, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task UnblockCommunityAsync_sets_status_and_writes_audit()
+    {
+        var repository = new InMemoryModerationRepository();
+        var external = new FakeExternalClient();
+        var service = CreateService(repository, "pavel.mod", "PLATFORM_MODERATOR", external);
+
+        var response = await service.UnblockCommunityAsync("community-1", CancellationToken.None);
+
+        Assert.That(response.Action, Is.EqualTo("COMMUNITY_UNBLOCKED"));
+        Assert.That(repository.AuditLogs.Single().TargetId, Is.EqualTo("community-1"));
+        Assert.That(external.SetCommunityActiveCalls, Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task External_service_failures_are_saved_without_breaking_action()
     {
         var repository = new InMemoryModerationRepository();
@@ -238,6 +267,8 @@ public sealed class ModerationServiceTests
         }
 
         public int SetActiveCalls { get; private set; }
+        public int SetCommunityBlockedCalls { get; private set; }
+        public int SetCommunityActiveCalls { get; private set; }
 
         public Task<ExternalUserResponse?> GetUserAsync(string userId, CancellationToken cancellationToken) =>
             Task.FromResult<ExternalUserResponse?>(new ExternalUserResponse(Guid.NewGuid(), "target", _targetRole, "Active"));
@@ -248,6 +279,18 @@ public sealed class ModerationServiceTests
         {
             SetActiveCalls++;
             return Result("auth", $"/api/users/{userId}/status");
+        }
+
+        public Task<SideEffectResult> SetCommunityBlockedAsync(string communityId, string moderatorUserId, string reason, CancellationToken cancellationToken)
+        {
+            SetCommunityBlockedCalls++;
+            return Result("community", $"/internal/communities/{communityId}/status");
+        }
+
+        public Task<SideEffectResult> SetCommunityActiveAsync(string communityId, string moderatorUserId, CancellationToken cancellationToken)
+        {
+            SetCommunityActiveCalls++;
+            return Result("community", $"/internal/communities/{communityId}/status");
         }
 
         public Task<SideEffectResult> NotifyPostDeletedAsync(string postId, string reason, CancellationToken cancellationToken) => Result("notifications", "/api/notifications");

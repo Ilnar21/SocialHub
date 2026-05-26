@@ -50,6 +50,31 @@ public sealed class ExternalModerationClient : IExternalModerationClient
         return TryPostAsync("auth", $"/api/users/{userId}/status", new { status = "ACTIVE", reason = (string?)null, expiresAtUtc = (DateTimeOffset?)null }, cancellationToken);
     }
 
+    public Task<SideEffectResult> SetCommunityBlockedAsync(
+        string communityId,
+        string moderatorUserId,
+        string reason,
+        CancellationToken cancellationToken)
+    {
+        return TryPostAsync(
+            "community",
+            $"/internal/communities/{communityId}/status",
+            new { status = "Blocked", moderatorUserId, reason },
+            cancellationToken);
+    }
+
+    public Task<SideEffectResult> SetCommunityActiveAsync(
+        string communityId,
+        string moderatorUserId,
+        CancellationToken cancellationToken)
+    {
+        return TryPostAsync(
+            "community",
+            $"/internal/communities/{communityId}/status",
+            new { status = "Active", moderatorUserId, reason = "Community unblocked by platform moderator." },
+            cancellationToken);
+    }
+
     public Task<SideEffectResult> NotifyPostDeletedAsync(string postId, string reason, CancellationToken cancellationToken)
     {
         return Task.FromResult(SideEffectResult.Success("notifications", "/api/notification-events"));

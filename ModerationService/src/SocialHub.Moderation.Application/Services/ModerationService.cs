@@ -183,6 +183,63 @@ public sealed class ModerationService : IModerationService
         return ToAuditResponse(savedAudit);
     }
 
+    public async Task<AuditResponse> BlockCommunityAsync(
+        string communityId,
+        BlockCommunityRequest request,
+        CancellationToken cancellationToken)
+    {
+        EnsurePlatformModerator();
+
+        if (string.IsNullOrWhiteSpace(communityId) || string.IsNullOrWhiteSpace(request.Reason))
+        {
+            throw AppException.BadRequest("Community id and reason are required.");
+        }
+
+        var normalizedCommunityId = communityId.Trim();
+        var reason = request.Reason.Trim();
+        var sideEffect = await _externalClient.SetCommunityBlockedAsync(
+            normalizedCommunityId,
+            _currentUser.UserId,
+            reason,
+            cancellationToken);
+
+        await SaveFailedSideEffectsAsync([sideEffect], "COMMUNITY_BLOCKED", "COMMUNITY", normalizedCommunityId, cancellationToken);
+
+        if (!sideEffect.Succeeded)
+        {
+            throw AppException.BadRequest("Community status could not be changed.");
+        }
+
+        var audit = CreateAudit("COMMUNITY_BLOCKED", "COMMUNITY", normalizedCommunityId, reason, normalizedCommunityId, "PLATFORM_MODERATOR", DateTimeOffset.UtcNow);
+        return ToAuditResponse(await _repository.AddAuditAsync(audit, cancellationToken));
+    }
+
+    public async Task<AuditResponse> UnblockCommunityAsync(string communityId, CancellationToken cancellationToken)
+    {
+        EnsurePlatformModerator();
+
+        if (string.IsNullOrWhiteSpace(communityId))
+        {
+            throw AppException.BadRequest("Community id is required.");
+        }
+
+        var normalizedCommunityId = communityId.Trim();
+        var sideEffect = await _externalClient.SetCommunityActiveAsync(
+            normalizedCommunityId,
+            _currentUser.UserId,
+            cancellationToken);
+
+        await SaveFailedSideEffectsAsync([sideEffect], "COMMUNITY_UNBLOCKED", "COMMUNITY", normalizedCommunityId, cancellationToken);
+
+        if (!sideEffect.Succeeded)
+        {
+            throw AppException.BadRequest("Community status could not be changed.");
+        }
+
+        var audit = CreateAudit("COMMUNITY_UNBLOCKED", "COMMUNITY", normalizedCommunityId, "Community unblocked by platform moderator.", normalizedCommunityId, "PLATFORM_MODERATOR", DateTimeOffset.UtcNow);
+        return ToAuditResponse(await _repository.AddAuditAsync(audit, cancellationToken));
+    }
+
     private static string BuildReportResolvedAction(string targetType)
     {
         var normalized = targetType.Trim().ToUpperInvariant();

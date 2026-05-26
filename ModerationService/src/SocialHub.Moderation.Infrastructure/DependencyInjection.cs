@@ -39,6 +39,12 @@ public static class DependencyInjection
             AddInternalToken(client, configuration["ExternalServices:InternalToken"]);
         })
             .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
+        services.AddHttpClient("community", client =>
+        {
+            ConfigureBaseAddress(client, configuration["ExternalServices:CommunityBaseUrl"]);
+            AddInternalToken(client, configuration["ExternalServices:InternalToken"]);
+        })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
         services.AddScoped<IExternalModerationClient, ExternalModerationClient>();
 
         return services;

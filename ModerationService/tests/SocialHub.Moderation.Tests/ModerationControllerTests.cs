@@ -43,6 +43,26 @@ public sealed class ModerationControllerTests
     }
 
     [Test]
+    public async Task BlockCommunity_returns_created_response()
+    {
+        var controller = new CommunityBlocksController(new FakeModerationService());
+
+        var result = await controller.BlockCommunity("community-1", new BlockCommunityRequest("spam"), CancellationToken.None);
+
+        Assert.That(result.Result, Is.TypeOf<CreatedResult>());
+    }
+
+    [Test]
+    public async Task UnblockCommunity_returns_no_content_response()
+    {
+        var controller = new CommunityBlocksController(new FakeModerationService());
+
+        var result = await controller.UnblockCommunity("community-1", CancellationToken.None);
+
+        Assert.That(result, Is.TypeOf<NoContentResult>());
+    }
+
+    [Test]
     public void PrivateMessages_endpoint_is_forbidden()
     {
         var controller = new PrivateMessagesController();
@@ -66,6 +86,7 @@ public sealed class ModerationControllerTests
     public void Moderator_only_controllers_require_platform_moderator_role()
     {
         AssertHasAuthorizeAttribute<BlocksController>("PlatformModerator");
+        AssertHasAuthorizeAttribute<CommunityBlocksController>("PlatformModerator");
         AssertHasAuthorizeAttribute<AuditController>("PlatformModerator");
     }
 
@@ -105,6 +126,16 @@ public sealed class ModerationControllerTests
         public Task<AuditResponse> UnblockUserAsync(string userId, CancellationToken cancellationToken)
         {
             return Task.FromResult(new AuditResponse(Guid.NewGuid(), "pavel.mod", "PLATFORM_MODERATOR", "USER_UNBLOCKED", "USER", userId, null, "User unblocked by platform moderator.", DateTimeOffset.UtcNow));
+        }
+
+        public Task<AuditResponse> BlockCommunityAsync(string communityId, BlockCommunityRequest request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new AuditResponse(Guid.NewGuid(), "pavel.mod", "PLATFORM_MODERATOR", "COMMUNITY_BLOCKED", "COMMUNITY", communityId, communityId, request.Reason, DateTimeOffset.UtcNow));
+        }
+
+        public Task<AuditResponse> UnblockCommunityAsync(string communityId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new AuditResponse(Guid.NewGuid(), "pavel.mod", "PLATFORM_MODERATOR", "COMMUNITY_UNBLOCKED", "COMMUNITY", communityId, communityId, "Community unblocked by platform moderator.", DateTimeOffset.UtcNow));
         }
 
         public Task<AuditResponse> CreateAuditAsync(CreateAuditRequest request, CancellationToken cancellationToken)

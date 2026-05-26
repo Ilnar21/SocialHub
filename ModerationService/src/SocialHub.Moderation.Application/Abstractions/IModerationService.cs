@@ -12,6 +12,8 @@ public interface IModerationService
     Task<ReportResponse> DeleteReportedPostAsync(Guid reportId, ResolveReportRequest request, CancellationToken cancellationToken);
     Task<BlockResponse> BlockUserAsync(string userId, BlockUserRequest request, CancellationToken cancellationToken);
     Task<AuditResponse> UnblockUserAsync(string userId, CancellationToken cancellationToken);
+    Task<AuditResponse> BlockCommunityAsync(string communityId, BlockCommunityRequest request, CancellationToken cancellationToken);
+    Task<AuditResponse> UnblockCommunityAsync(string communityId, CancellationToken cancellationToken);
     Task<AuditResponse> CreateAuditAsync(CreateAuditRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<AuditResponse>> GetAuditAsync(string? actorUserId, DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken);
 }
