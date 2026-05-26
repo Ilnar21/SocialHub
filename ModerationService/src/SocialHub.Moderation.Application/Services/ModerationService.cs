@@ -63,6 +63,10 @@ public sealed class ModerationService : IModerationService
 
         var report = await _repository.GetReportAsync(reportId, cancellationToken)
             ?? throw AppException.NotFound("Report was not found.");
+        if (!report.TargetType.Equals("POST", StringComparison.OrdinalIgnoreCase))
+        {
+            throw AppException.BadRequest("Only post reports can delete a post.");
+        }
 
         var reason = request.Comment?.Trim();
         if (string.IsNullOrWhiteSpace(reason))
@@ -85,6 +89,34 @@ public sealed class ModerationService : IModerationService
         return ToReportResponse(resolved);
     }
 
+    public async Task<ReportResponse> ResolveReportAsync(Guid reportId, ResolveReportRequest request, CancellationToken cancellationToken)
+    {
+        EnsurePlatformModerator();
+
+        var report = await _repository.GetReportAsync(reportId, cancellationToken)
+            ?? throw AppException.NotFound("Report was not found.");
+
+        var reason = request.Comment?.Trim();
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            reason = "Report reviewed by platform moderator.";
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var resolved = report.Resolve(_currentUser.UserId, reason, now);
+        var audit = CreateAudit(
+            BuildReportResolvedAction(report.TargetType),
+            report.TargetType,
+            report.TargetId,
+            reason,
+            report.TargetType.Equals("COMMUNITY", StringComparison.OrdinalIgnoreCase) ? report.TargetId : null,
+            "PLATFORM_MODERATOR",
+            now);
+
+        await _repository.ResolveReportWithAuditAsync(resolved, audit, cancellationToken);
+        return ToReportResponse(resolved);
+    }
+
     public async Task<BlockResponse> BlockUserAsync(string userId, BlockUserRequest request, CancellationToken cancellationToken)
     {
         EnsurePlatformModerator();
@@ -94,15 +126,23 @@ public sealed class ModerationService : IModerationService
             throw AppException.BadRequest("User id, reason and positive duration are required.");
         }
 
-        if (userId.Trim().Equals(_currentUser.UserId, StringComparison.OrdinalIgnoreCase))
+        var normalizedUserId = userId.Trim();
+        if (normalizedUserId.Equals(_currentUser.UserId, StringComparison.OrdinalIgnoreCase))
         {
             throw AppException.BadRequest("Moderator cannot block own account.");
+        }
+
+        var targetUser = await _externalClient.GetUserAsync(normalizedUserId, cancellationToken)
+            ?? throw AppException.NotFound("User was not found.");
+        if (IsPlatformModeratorRole(targetUser.Role))
+        {
+            throw AppException.BadRequest("Platform moderators cannot block other platform moderators.");
         }
 
         var now = DateTimeOffset.UtcNow;
         var block = new UserBlock(
             Guid.NewGuid(),
-            userId.Trim(),
+            normalizedUserId,
             _currentUser.UserId,
             request.Reason.Trim(),
             now,
@@ -143,6 +183,17 @@ public sealed class ModerationService : IModerationService
         return ToAuditResponse(savedAudit);
     }
 
+    private static string BuildReportResolvedAction(string targetType)
+    {
+        var normalized = targetType.Trim().ToUpperInvariant();
+        return normalized switch
+        {
+            "COMMUNITY" => "COMMUNITY_REPORT_RESOLVED",
+            "POST" => "POST_REPORT_RESOLVED",
+            _ => $"{normalized}_REPORT_RESOLVED"
+        };
+    }
+
     public async Task<AuditResponse> CreateAuditAsync(CreateAuditRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Action) || string.IsNullOrWhiteSpace(request.TargetType) || string.IsNullOrWhiteSpace(request.TargetId))
@@ -171,14 +222,18 @@ public sealed class ModerationService : IModerationService
     private void EnsurePlatformModerator()
     {
         var role = _currentUser.PlatformRole;
-        if (role is null || (!role.Equals("PLATFORM_MODERATOR", StringComparison.OrdinalIgnoreCase)
-            && !role.Equals("PLATFORMMODERATOR", StringComparison.OrdinalIgnoreCase)
-            && !role.Equals("PlatformModerator", StringComparison.OrdinalIgnoreCase)
-            && !role.Equals("MODERATOR", StringComparison.OrdinalIgnoreCase)))
+        if (!IsPlatformModeratorRole(role))
         {
             throw AppException.Forbidden("Platform moderator role is required.");
         }
     }
+
+    private static bool IsPlatformModeratorRole(string? role) =>
+        role is not null
+        && (role.Equals("PLATFORM_MODERATOR", StringComparison.OrdinalIgnoreCase)
+            || role.Equals("PLATFORMMODERATOR", StringComparison.OrdinalIgnoreCase)
+            || role.Equals("PlatformModerator", StringComparison.OrdinalIgnoreCase)
+            || role.Equals("MODERATOR", StringComparison.OrdinalIgnoreCase));
 
     private async Task SaveFailedSideEffectsAsync(
         IReadOnlyCollection<SideEffectResult> results,

@@ -17,6 +17,24 @@ public sealed class ExternalModerationClient : IExternalModerationClient
         _logger = logger;
     }
 
+    public async Task<ExternalUserResponse?> GetUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        var client = _httpClientFactory.CreateClient("auth");
+        if (client.BaseAddress is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await client.GetFromJsonAsync<ExternalUserResponse>($"/api/users/{userId}", cancellationToken);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
     public Task<SideEffectResult> DeletePostAsync(string postId, string reason, CancellationToken cancellationToken)
     {
         return TryPostAsync("post", $"/api/posts/{postId}/moderation-delete", new { reason }, cancellationToken);

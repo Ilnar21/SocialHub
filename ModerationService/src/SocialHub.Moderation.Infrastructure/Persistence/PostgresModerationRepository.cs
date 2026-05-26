@@ -1,5 +1,6 @@
 using System.Data;
 using Npgsql;
+using NpgsqlTypes;
 using SocialHub.Moderation.Application.Abstractions;
 using SocialHub.Moderation.Domain.Entities;
 using SocialHub.Moderation.Domain.Enums;
@@ -128,9 +129,12 @@ public sealed class PostgresModerationRepository : IModerationRepository
             order by created_at_utc desc;
             """, connection);
 
-        command.Parameters.AddWithValue("actor_user_id", string.IsNullOrWhiteSpace(actorUserId) ? DBNull.Value : actorUserId.Trim());
-        command.Parameters.AddWithValue("from", from is null ? DBNull.Value : from.Value);
-        command.Parameters.AddWithValue("to", to is null ? DBNull.Value : to.Value);
+        command.Parameters.Add("actor_user_id", NpgsqlDbType.Text).Value =
+            string.IsNullOrWhiteSpace(actorUserId) ? DBNull.Value : actorUserId.Trim();
+        command.Parameters.Add("from", NpgsqlDbType.TimestampTz).Value =
+            from is null ? DBNull.Value : from.Value;
+        command.Parameters.Add("to", NpgsqlDbType.TimestampTz).Value =
+            to is null ? DBNull.Value : to.Value;
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         var entries = new List<AuditLog>();

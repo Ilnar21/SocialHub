@@ -5,6 +5,7 @@ namespace SocialHub.Moderation.Application.Abstractions;
 
 public interface IExternalModerationClient
 {
+    Task<ExternalUserResponse?> GetUserAsync(string userId, CancellationToken cancellationToken);
     Task<SideEffectResult> DeletePostAsync(string postId, string reason, CancellationToken cancellationToken);
     Task<SideEffectResult> SetUserBlockedAsync(UserBlock block, CancellationToken cancellationToken);
     Task<SideEffectResult> SetUserActiveAsync(string userId, CancellationToken cancellationToken);

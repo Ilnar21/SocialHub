@@ -41,6 +41,34 @@ public sealed class ModerationServiceTests
     }
 
     [Test]
+    public void DeleteReportedPostAsync_rejects_non_post_report()
+    {
+        var repository = new InMemoryModerationRepository();
+        var report = NewReport("community-1", "COMMUNITY");
+        repository.Reports[report.Id] = report;
+        var service = CreateService(repository, "pavel.mod", "PLATFORM_MODERATOR");
+
+        var ex = Assert.ThrowsAsync<AppException>(() => service.DeleteReportedPostAsync(report.Id, new ResolveReportRequest("reviewed"), CancellationToken.None));
+
+        Assert.That(ex!.StatusCode, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task ResolveReportAsync_resolves_community_report_and_writes_audit()
+    {
+        var repository = new InMemoryModerationRepository();
+        var report = NewReport("community-1", "COMMUNITY");
+        repository.Reports[report.Id] = report;
+        var service = CreateService(repository, "pavel.mod", "PLATFORM_MODERATOR");
+
+        var response = await service.ResolveReportAsync(report.Id, new ResolveReportRequest("reviewed"), CancellationToken.None);
+
+        Assert.That(response.Status, Is.EqualTo("RESOLVED"));
+        Assert.That(repository.AuditLogs.Single().Action, Is.EqualTo("COMMUNITY_REPORT_RESOLVED"));
+        Assert.That(repository.AuditLogs.Single().CommunityId, Is.EqualTo("community-1"));
+    }
+
+    [Test]
     public async Task BlockUserAsync_creates_block_and_audit()
     {
         var repository = new InMemoryModerationRepository();
@@ -60,6 +88,17 @@ public sealed class ModerationServiceTests
 
         var ex = Assert.ThrowsAsync<AppException>(() => service.BlockUserAsync("maria.sokolova", new BlockUserRequest(7, "reason"), CancellationToken.None));
         Assert.That(ex!.StatusCode, Is.EqualTo(403));
+    }
+
+    [Test]
+    public void BlockUserAsync_rejects_platform_moderator_target()
+    {
+        var external = new FakeExternalClient(targetRole: "PlatformModerator");
+        var service = CreateService(new InMemoryModerationRepository(), "pavel.mod", "PLATFORM_MODERATOR", external);
+
+        var ex = Assert.ThrowsAsync<AppException>(() => service.BlockUserAsync("moderator-id", new BlockUserRequest(7, "reason"), CancellationToken.None));
+
+        Assert.That(ex!.StatusCode, Is.EqualTo(400));
     }
 
     [Test]
@@ -112,10 +151,10 @@ public sealed class ModerationServiceTests
         return new ModerationAppService(repository, new TestCurrentUserContext(userId, role), external ?? new FakeExternalClient());
     }
 
-    private static ModerationReport NewReport(string targetId)
+    private static ModerationReport NewReport(string targetId, string targetType = "POST")
     {
         var now = DateTimeOffset.UtcNow;
-        return new ModerationReport(Guid.NewGuid(), "ivan.petrov", "POST", targetId, "Спам", null, ModerationReportStatus.New, null, null, now, now);
+        return new ModerationReport(Guid.NewGuid(), "ivan.petrov", targetType, targetId, "Спам", null, ModerationReportStatus.New, null, null, now, now);
     }
 
     private sealed class InMemoryModerationRepository : IModerationRepository
@@ -190,10 +229,18 @@ public sealed class ModerationServiceTests
     private sealed class FakeExternalClient : IExternalModerationClient
     {
         private readonly bool _fail;
+        private readonly string _targetRole;
 
-        public FakeExternalClient(bool fail = false) => _fail = fail;
+        public FakeExternalClient(bool fail = false, string targetRole = "User")
+        {
+            _fail = fail;
+            _targetRole = targetRole;
+        }
 
         public int SetActiveCalls { get; private set; }
+
+        public Task<ExternalUserResponse?> GetUserAsync(string userId, CancellationToken cancellationToken) =>
+            Task.FromResult<ExternalUserResponse?>(new ExternalUserResponse(Guid.NewGuid(), "target", _targetRole, "Active"));
 
         public Task<SideEffectResult> DeletePostAsync(string postId, string reason, CancellationToken cancellationToken) => Result("post", $"/api/posts/{postId}/moderation-delete");
         public Task<SideEffectResult> SetUserBlockedAsync(UserBlock block, CancellationToken cancellationToken) => Result("auth", $"/api/users/{block.BlockedUserId}/status");

@@ -40,4 +40,14 @@ public sealed class ReportsController : ControllerBase
     {
         return Ok(await _moderationService.DeleteReportedPostAsync(reportId, request, cancellationToken));
     }
+
+    [HttpPost("{reportId:guid}/resolve")]
+    [Authorize(Roles = "PlatformModerator")]
+    public async Task<ActionResult<ReportResponse>> ResolveReport(
+        Guid reportId,
+        ResolveReportRequest request,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _moderationService.ResolveReportAsync(reportId, request, cancellationToken));
+    }
 }

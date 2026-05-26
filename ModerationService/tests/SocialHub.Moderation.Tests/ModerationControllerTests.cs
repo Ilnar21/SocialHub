@@ -59,6 +59,7 @@ public sealed class ModerationControllerTests
         AssertHasAuthorizeAttribute<ReportsController>();
         AssertMethodRequiresRole<ReportsController>(nameof(ReportsController.GetReports), "PlatformModerator");
         AssertMethodRequiresRole<ReportsController>(nameof(ReportsController.DeleteReportedPost), "PlatformModerator");
+        AssertMethodRequiresRole<ReportsController>(nameof(ReportsController.ResolveReport), "PlatformModerator");
     }
 
     [Test]
@@ -87,6 +88,11 @@ public sealed class ModerationControllerTests
         }
 
         public Task<ReportResponse> DeleteReportedPostAsync(Guid reportId, ResolveReportRequest request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(NewReport("RESOLVED"));
+        }
+
+        public Task<ReportResponse> ResolveReportAsync(Guid reportId, ResolveReportRequest request, CancellationToken cancellationToken)
         {
             return Task.FromResult(NewReport("RESOLVED"));
         }
