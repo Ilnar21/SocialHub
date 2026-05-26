@@ -84,7 +84,7 @@ public sealed class NotificationService : INotificationService
         }
 
         notification.MarkAsRead(DateTime.UtcNow);
-        await _repository.SaveChangesAsync(cancellationToken);
+        await _repository.SaveAsync(notification, cancellationToken);
     }
 
     private static NotificationResponse ToResponse(NotificationEntity notification)

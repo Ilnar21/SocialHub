@@ -8,5 +8,6 @@ public interface INotificationRepository
     Task<IReadOnlyCollection<NotificationEntity>> GetByRecipientAsync(Guid recipientUserId, CancellationToken cancellationToken);
     Task<NotificationEntity?> GetByIdAsync(Guid notificationId, CancellationToken cancellationToken);
     Task<int> CountUnreadAsync(Guid recipientUserId, CancellationToken cancellationToken);
+    Task SaveAsync(NotificationEntity notification, CancellationToken cancellationToken);
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

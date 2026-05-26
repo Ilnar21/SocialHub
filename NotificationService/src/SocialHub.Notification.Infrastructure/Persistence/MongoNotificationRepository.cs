@@ -48,6 +48,16 @@ public sealed class MongoNotificationRepository : INotificationRepository
         return (int)count;
     }
 
+    public async Task SaveAsync(NotificationEntity notification, CancellationToken cancellationToken)
+    {
+        var filter = Builders<NotificationDocument>.Filter.Eq(x => x.Id, notification.Id);
+        await _notifications.ReplaceOneAsync(
+            filter,
+            NotificationDocument.FromDomain(notification),
+            new ReplaceOptions { IsUpsert = false },
+            cancellationToken);
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         await Task.CompletedTask;

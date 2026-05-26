@@ -64,6 +64,21 @@ public sealed class NotificationServiceTests
         Assert.Equal(403, exception.StatusCode);
     }
 
+    [Fact]
+    public async Task MarkAsReadAsync_SavesReadState()
+    {
+        var repository = new FakeNotificationRepository();
+        var notification = new NotificationEntity(UserId, NotificationType.MessageReceived, "A", "Body", DateTime.UtcNow);
+        repository.Notifications.Add(notification);
+        var service = CreateService(notificationRepository: repository);
+
+        await service.MarkAsReadAsync(notification.Id, CancellationToken.None);
+
+        Assert.True(repository.Notifications.Single().IsRead);
+        Assert.NotNull(repository.Notifications.Single().ReadAtUtc);
+        Assert.Equal(notification.Id, repository.SavedNotificationIds.Single());
+    }
+
     private static NotificationAppService CreateService(
         FakeNotificationRepository? notificationRepository = null,
         FakeNotificationEventRepository? eventRepository = null)
@@ -87,6 +102,7 @@ public sealed class NotificationServiceTests
     private sealed class FakeNotificationRepository : INotificationRepository
     {
         public List<NotificationEntity> Notifications { get; } = [];
+        public List<Guid> SavedNotificationIds { get; } = [];
 
         public Task AddAsync(NotificationEntity notification, CancellationToken cancellationToken)
         {
@@ -111,6 +127,18 @@ public sealed class NotificationServiceTests
         public Task<int> CountUnreadAsync(Guid recipientUserId, CancellationToken cancellationToken)
         {
             return Task.FromResult(Notifications.Count(x => x.RecipientUserId == recipientUserId && !x.IsRead));
+        }
+
+        public Task SaveAsync(NotificationEntity notification, CancellationToken cancellationToken)
+        {
+            SavedNotificationIds.Add(notification.Id);
+            var index = Notifications.FindIndex(x => x.Id == notification.Id);
+            if (index >= 0)
+            {
+                Notifications[index] = notification;
+            }
+
+            return Task.CompletedTask;
         }
 
         public Task SaveChangesAsync(CancellationToken cancellationToken)
