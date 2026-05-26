@@ -12,6 +12,7 @@ const communitySearchInput = document.querySelector("[data-community-search]");
 const communitySearchResult = document.querySelector("[data-community-search-result]");
 const communityBlockReasonInput = document.querySelector("[data-community-block-reason]");
 const blockedUsersList = document.querySelector("[data-blocked-users-list]");
+const blockedCommunitiesList = document.querySelector("[data-blocked-communities-list]");
 const reportsList = document.querySelector("[data-reports-list]");
 const auditList = document.querySelector("[data-audit-list]");
 
@@ -60,7 +61,7 @@ if (!isPlatformModerator()) {
 }
 
 async function loadModeration() {
-  await Promise.all([loadReports(), loadAudit(), loadBlockedUsers()]);
+  await Promise.all([loadReports(), loadAudit(), loadBlockedUsers(), loadBlockedCommunities()]);
 }
 
 async function findUserByUsername() {
@@ -172,7 +173,7 @@ async function blockCommunity(button, community = selectedCommunity, reason = co
     await api(`/api/communities/${community.id}/blocks`, toJson("POST", { reason: blockReason }));
     toast("Сообщество заблокировано");
     await refreshCommunitySearchResult(community.username);
-    await Promise.all([loadReports(), loadAudit()]);
+    await Promise.all([loadReports(), loadAudit(), loadBlockedCommunities()]);
   });
 }
 
@@ -186,7 +187,7 @@ async function unblockCommunity(button, community = selectedCommunity) {
     await api(`/api/communities/${community.id}/blocks`, { method: "DELETE" });
     toast("Сообщество разблокировано");
     await refreshCommunitySearchResult(community.username);
-    await Promise.all([loadReports(), loadAudit()]);
+    await Promise.all([loadReports(), loadAudit(), loadBlockedCommunities()]);
   });
 }
 
@@ -216,6 +217,20 @@ async function loadBlockedUsers() {
     bindUserActionButtons(blockedUsersList);
   } catch (error) {
     blockedUsersList.innerHTML = empty(error.message);
+  }
+}
+
+async function loadBlockedCommunities() {
+  blockedCommunitiesList.innerHTML = empty("Загружаем заблокированные сообщества...");
+  try {
+    const communities = await api("/api/communities/blocked");
+    communities.forEach(cacheCommunity);
+    blockedCommunitiesList.innerHTML = communities.length
+      ? communities.map(renderBlockedCommunity).join("")
+      : empty("Сейчас нет заблокированных сообществ.");
+    bindCommunityActionButtons(blockedCommunitiesList);
+  } catch (error) {
+    blockedCommunitiesList.innerHTML = empty(error.message);
   }
 }
 
@@ -303,6 +318,26 @@ function renderCommunitySearchResult(community) {
     </article>`;
 }
 
+function renderBlockedCommunity(community) {
+  return `
+    <article class="card">
+      <div class="row">
+        <h2>${renderCommunityLink(community)}</h2>
+        <span class="badge danger">Заблокировано</span>
+      </div>
+      <p>${escapeHtml(community.blockReason || "Причина не указана.")}</p>
+      <div class="meta">
+        <span>@${escapeHtml(community.username)}</span>
+        <span>${translateCommunityType(community.type)}</span>
+        <span>${community.membersCount ?? 0} подписчиков</span>
+        ${community.blockedAtUtc ? `<span>С ${formatDate(community.blockedAtUtc)}</span>` : ""}
+      </div>
+      <div class="actions">
+        <button class="button secondary" type="button" data-unblock-community="${community.id}">Разблокировать сообщество</button>
+      </div>
+    </article>`;
+}
+
 function bindUserActionButtons(root) {
   for (const button of root.querySelectorAll("[data-unblock-user]")) {
     if (button.dataset.bound === "true") continue;
@@ -315,13 +350,19 @@ function bindCommunityActionButtons(root) {
   for (const button of root.querySelectorAll("[data-block-community]")) {
     if (button.dataset.bound === "true") continue;
     button.dataset.bound = "true";
-    button.addEventListener("click", () => blockCommunity(button));
+    button.addEventListener("click", () => {
+      const community = communitiesById.get(button.dataset.blockCommunity) ?? selectedCommunity;
+      blockCommunity(button, community);
+    });
   }
 
   for (const button of root.querySelectorAll("[data-unblock-community]")) {
     if (button.dataset.bound === "true") continue;
     button.dataset.bound = "true";
-    button.addEventListener("click", () => unblockCommunity(button));
+    button.addEventListener("click", () => {
+      const community = communitiesById.get(button.dataset.unblockCommunity) ?? selectedCommunity;
+      unblockCommunity(button, community);
+    });
   }
 }
 

@@ -9,6 +9,7 @@ namespace SocialHub.Community.Application.Abstractions;
 public interface ICommunityService
 {
     Task<List<CommunitySummaryResponse>> GetCommunitiesAsync(CancellationToken cancellationToken);
+    Task<List<CommunitySummaryResponse>> GetBlockedCommunitiesAsync(CancellationToken cancellationToken);
     Task<List<CommunitySummaryResponse>> GetCurrentUserCommunitiesAsync(CancellationToken cancellationToken);
     Task<CommunityDetailsResponse> GetCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task<CommunityDetailsResponse> GetCommunityByUsernameAsync(string username, CancellationToken cancellationToken);

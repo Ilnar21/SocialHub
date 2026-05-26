@@ -33,6 +33,13 @@ public sealed class CommunitiesController : ControllerBase
         return Ok(await _communityService.GetCurrentUserCommunitiesAsync(cancellationToken));
     }
 
+    [HttpGet("blocked")]
+    [Authorize(Roles = "PlatformModerator")]
+    public async Task<ActionResult<List<CommunitySummaryResponse>>> GetBlockedCommunities(CancellationToken cancellationToken)
+    {
+        return Ok(await _communityService.GetBlockedCommunitiesAsync(cancellationToken));
+    }
+
     [HttpGet("{communityId:guid}")]
     public async Task<ActionResult<CommunityDetailsResponse>> GetCommunity(Guid communityId, CancellationToken cancellationToken)
     {

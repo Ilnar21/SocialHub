@@ -161,6 +161,22 @@ public sealed class CommunityServiceTests
     }
 
     [Fact]
+    public async Task GetBlockedCommunitiesAsync_ReturnsOnlyBlockedCommunities()
+    {
+        var repository = new FakeCommunityRepository();
+        repository.AddSeedCommunity("Visible", OwnerId);
+        var blocked = repository.AddSeedCommunity("Blocked", OwnerId);
+        blocked.Block(AdminId, "spam", DateTime.UtcNow);
+        var service = CreateService(repository);
+
+        var response = await service.GetBlockedCommunitiesAsync(CancellationToken.None);
+
+        Assert.Single(response);
+        Assert.Equal("Blocked", response[0].Name);
+        Assert.Equal(CommunityStatus.Blocked, response[0].Status);
+    }
+
+    [Fact]
     public async Task SetCommunityStatusAsync_BlocksAndUnblocksCommunity()
     {
         var repository = new FakeCommunityRepository();

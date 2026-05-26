@@ -279,6 +279,16 @@ public sealed class CommunityService : ICommunityService
             .ToList();
     }
 
+    public async Task<List<CommunitySummaryResponse>> GetBlockedCommunitiesAsync(CancellationToken cancellationToken)
+    {
+        var communities = await _repository.GetCommunitiesAsync(cancellationToken);
+        return communities
+            .Where(c => c.Status == CommunityStatus.Blocked)
+            .OrderByDescending(c => c.BlockedAtUtc ?? c.UpdatedAtUtc)
+            .Select(c => ToSummary(c))
+            .ToList();
+    }
+
     public async Task<List<JoinRequestResponse>> GetJoinRequestsAsync(
         Guid communityId,
         CommunityJoinRequestStatus? status,
