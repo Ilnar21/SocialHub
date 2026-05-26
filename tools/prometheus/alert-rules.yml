@@ -1,0 +1,40 @@
+groups:
+  - name: socialhub-availability
+    rules:
+      - alert: SocialHubServiceDown
+        expr: up{job=~"socialhub-.+"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SocialHub service is down"
+          description: "{{ $labels.job }} has not been scraped successfully for more than 1 minute."
+
+  - name: socialhub-http
+    rules:
+      - alert: SocialHubHigh5xxRate
+        expr: sum by (job) (rate(http_requests_received_total{job=~"socialhub-.+", code=~"5.."}[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx rate"
+          description: "{{ $labels.job }} returns more than 0.05 5xx responses per second for 2 minutes."
+
+      - alert: SocialHubHighP95Latency
+        expr: histogram_quantile(0.95, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~"socialhub-.+"}[5m]))) > 1
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 latency"
+          description: "{{ $labels.job }} p95 request latency is above 1 second for 3 minutes."
+
+      - alert: SocialHubGatewayNoTraffic
+        expr: rate(nginx_http_requests_total[10m]) == 0
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "No gateway traffic"
+          description: "Gateway has not received HTTP requests for 10 minutes. This can be normal in local development."

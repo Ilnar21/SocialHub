@@ -49,6 +49,7 @@ services:
       - "9090:9090"
     volumes:
       - ./tools/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./tools/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
       - prometheus_data:/prometheus
     networks:
       - socialhub-network
@@ -57,6 +58,7 @@ services:
     image: grafana/grafana:11.5.2
     depends_on:
       - prometheus
+      - loki
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-local_grafana_password}
@@ -70,6 +72,31 @@ services:
       - ./tools/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./tools/grafana/dashboards:/etc/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
+    networks:
+      - socialhub-network
+
+  loki:
+    image: grafana/loki:2.9.8
+    command:
+      - -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./tools/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    networks:
+      - socialhub-network
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    command:
+      - -config.file=/etc/promtail/promtail.yml
+    depends_on:
+      - loki
+    volumes:
+      - ./tools/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail_positions:/tmp
     networks:
       - socialhub-network
 
@@ -416,3 +443,5 @@ volumes:
   notification_mongo_data:
   prometheus_data:
   grafana_data:
+  loki_data:
+  promtail_positions:
