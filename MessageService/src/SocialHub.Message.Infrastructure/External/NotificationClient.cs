@@ -40,7 +40,7 @@ public sealed class NotificationClient : INotificationClient
                 recipientUserId,
                 type = 1,
                 title = "Новое сообщение",
-                message = $"Пользователь {request.SenderUserId} отправил вам сообщение.",
+                message = "Вам отправили новое личное сообщение.",
                 sourceService = "MessageService",
                 sourceEntityId
             }, cancellationToken);
