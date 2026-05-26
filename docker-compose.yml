@@ -1,5 +1,8 @@
 name: socialhub
 
+x-otel-env: &otel-env
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4317
+
 services:
   gateway:
     image: nginx:1.27-alpine
@@ -59,6 +62,7 @@ services:
     depends_on:
       - prometheus
       - loki
+      - tempo
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-local_grafana_password}
@@ -100,10 +104,27 @@ services:
     networks:
       - socialhub-network
 
+  tempo:
+    image: grafana/tempo:2.6.1
+    command:
+      - -config.file=/etc/tempo/tempo.yml
+    ports:
+      - "${TEMPO_PORT:-3200}:3200"
+      - "${TEMPO_OTLP_GRPC_PORT:-4317}:4317"
+      - "${TEMPO_OTLP_HTTP_PORT:-4318}:4318"
+    volumes:
+      - ./tools/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    networks:
+      - socialhub-network
+
   frontend:
     build:
       context: ./Frontend
       dockerfile: Dockerfile
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: frontend
     ports:
       - "3000:8080"
     networks:
@@ -246,6 +267,8 @@ services:
       context: ./AuthService
       dockerfile: src/SocialHub.Auth.Api/Dockerfile
     environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: auth-service
       POSTGRES_HOST: auth-db
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${AUTH_POSTGRES_DB:-socialhub_auth}
@@ -273,6 +296,8 @@ services:
       context: ./CommunityService
       dockerfile: src/SocialHub.Community.Api/Dockerfile
     environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: community-service
       ASPNETCORE_URLS: http://+:8080
       ApplyMigrationsOnStartup: "true"
       ConnectionStrings__CommunityDatabase: Host=community-db;Port=5432;Database=${COMMUNITY_POSTGRES_DB:-socialhub_community};Username=${COMMUNITY_POSTGRES_USER:-socialhub};Password=${COMMUNITY_POSTGRES_PASSWORD:-local_community_password}
@@ -299,6 +324,8 @@ services:
       context: ./MessageService
       dockerfile: src/SocialHub.Message.Api/Dockerfile
     environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: message-service
       ASPNETCORE_URLS: http://+:8080
       Mongo__ConnectionString: mongodb://message-db:27017
       Mongo__DatabaseName: socialhub_messages
@@ -321,6 +348,8 @@ services:
       context: ./ModerationService
       dockerfile: src/SocialHub.Moderation.Api/Dockerfile
     environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: moderation-service
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__ModerationDatabase: Host=moderation-db;Port=5432;Database=${MODERATION_POSTGRES_DB:-socialhub_moderation};Username=${MODERATION_POSTGRES_USER:-socialhub};Password=${MODERATION_POSTGRES_PASSWORD:-local_moderation_password}
       ExternalServices__PostBaseUrl: http://post-service:8080
@@ -346,6 +375,8 @@ services:
       context: ./NotificationService
       dockerfile: src/SocialHub.Notification.Api/Dockerfile
     environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: notification-service
       ASPNETCORE_URLS: http://+:8080
       Mongo__ConnectionString: mongodb://notification-db:27017
       Mongo__DatabaseName: socialhub_notifications
@@ -380,6 +411,8 @@ services:
       context: ./FeedService
       dockerfile: src/SocialHub.Feed.Api/Dockerfile
     environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: feed-service
       ASPNETCORE_URLS: http://+:8080
       Cache__ConnectionString: feed-cache:6379
       Cache__KeyPrefix: feed
@@ -404,6 +437,8 @@ services:
       context: ./PostService
       dockerfile: src/SocialHub.Post.Api/Dockerfile
     environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: post-service
       ASPNETCORE_URLS: http://+:8080
       CommunityService__BaseUrl: http://community-service:8080
       CommunityService__SkipMembershipCheck: "false"
@@ -445,3 +480,4 @@ volumes:
   grafana_data:
   loki_data:
   promtail_positions:
+  tempo_data:
