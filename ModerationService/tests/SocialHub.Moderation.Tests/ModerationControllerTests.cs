@@ -118,6 +118,11 @@ public sealed class ModerationControllerTests
             return Task.FromResult(NewReport("RESOLVED"));
         }
 
+        public Task<int> DeleteReportsByTargetAsync(string targetType, string targetId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(1);
+        }
+
         public Task<BlockResponse> BlockUserAsync(string userId, BlockUserRequest request, CancellationToken cancellationToken)
         {
             return Task.FromResult(new BlockResponse(Guid.NewGuid(), userId, "pavel.mod", request.Reason, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(request.DurationDays)));

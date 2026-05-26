@@ -69,6 +69,23 @@ public sealed class ModerationServiceTests
     }
 
     [Test]
+    public async Task DeleteReportsByTargetAsync_removes_only_matching_reports()
+    {
+        var repository = new InMemoryModerationRepository();
+        var communityReport = NewReport("community-1", "COMMUNITY");
+        var postReport = NewReport("post-1", "POST");
+        repository.Reports[communityReport.Id] = communityReport;
+        repository.Reports[postReport.Id] = postReport;
+        var service = CreateService(repository, "system", "PLATFORM_MODERATOR");
+
+        var deleted = await service.DeleteReportsByTargetAsync("community", "community-1", CancellationToken.None);
+
+        Assert.That(deleted, Is.EqualTo(1));
+        Assert.That(repository.Reports.Values, Has.None.Matches<ModerationReport>(report => report.TargetId == "community-1"));
+        Assert.That(repository.Reports.Values, Has.Some.Matches<ModerationReport>(report => report.TargetId == "post-1"));
+    }
+
+    [Test]
     public async Task BlockUserAsync_creates_block_and_audit()
     {
         var repository = new InMemoryModerationRepository();
@@ -209,6 +226,22 @@ public sealed class ModerationServiceTests
         {
             Reports.TryGetValue(reportId, out var report);
             return Task.FromResult(report);
+        }
+
+        public Task<int> DeleteReportsByTargetAsync(string targetType, string targetId, CancellationToken cancellationToken)
+        {
+            var deleted = 0;
+            foreach (var report in Reports.Values
+                         .Where(report => report.TargetType == targetType && report.TargetId == targetId)
+                         .ToArray())
+            {
+                if (Reports.Remove(report.Id))
+                {
+                    deleted++;
+                }
+            }
+
+            return Task.FromResult(deleted);
         }
 
         public Task ResolveReportWithAuditAsync(ModerationReport report, AuditLog auditLog, CancellationToken cancellationToken)

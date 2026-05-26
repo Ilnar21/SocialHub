@@ -11,6 +11,8 @@ using SocialHub.Moderation.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.Configure<InternalAuthOptions>(builder.Configuration.GetSection(InternalAuthOptions.SectionName));
+builder.Services.AddScoped<InternalTokenFilter>();
 builder.Services.AddScoped<ICurrentUserContext, JwtCurrentUserContext>();
 builder.Services.AddScoped<IModerationService, SocialHub.Moderation.Application.Services.ModerationService>();
 builder.Services.AddInfrastructure(builder.Configuration);

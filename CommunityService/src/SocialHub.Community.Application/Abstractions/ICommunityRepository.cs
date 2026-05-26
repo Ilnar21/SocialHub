@@ -27,5 +27,6 @@ public interface ICommunityRepository
     Task AddSuggestedPostAsync(SuggestedPost suggestedPost, CancellationToken cancellationToken);
     Task AddAuditLogAsync(CommunityAuditLog auditLog, CancellationToken cancellationToken);
     void RemoveMember(CommunityMember member);
+    void RemoveCommunity(Community.Domain.Entities.Community community);
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

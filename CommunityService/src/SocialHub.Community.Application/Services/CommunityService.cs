@@ -17,17 +17,20 @@ public sealed class CommunityService : ICommunityService
     private readonly ICurrentUserContext _currentUser;
     private readonly INotificationClient _notificationClient;
     private readonly IPostServiceClient _postServiceClient;
+    private readonly IModerationClient _moderationClient;
 
     public CommunityService(
         ICommunityRepository repository,
         ICurrentUserContext currentUser,
         INotificationClient notificationClient,
-        IPostServiceClient postServiceClient)
+        IPostServiceClient postServiceClient,
+        IModerationClient moderationClient)
     {
         _repository = repository;
         _currentUser = currentUser;
         _notificationClient = notificationClient;
         _postServiceClient = postServiceClient;
+        _moderationClient = moderationClient;
     }
 
     public async Task<List<CommunitySummaryResponse>> GetCommunitiesAsync(CancellationToken cancellationToken)
@@ -132,6 +135,33 @@ public sealed class CommunityService : ICommunityService
         await _repository.SaveChangesAsync(cancellationToken);
 
         return ToDetails(community, member, null);
+    }
+
+    public async Task DeleteCommunityAsync(Guid communityId, CancellationToken cancellationToken)
+    {
+        var community = await GetRequiredCommunityAsync(communityId, cancellationToken);
+        EnsureCommunityActive(community);
+        var member = await GetRequiredMemberAsync(communityId, _currentUser.UserId, cancellationToken);
+        if (member.Role != CommunityMemberRole.Owner)
+        {
+            throw AppException.Forbidden("Только владелец сообщества может удалить сообщество.");
+        }
+
+        if (!await _postServiceClient.DeletePostsByCommunityAsync(communityId, cancellationToken))
+        {
+            throw AppException.Conflict("Не удалось удалить посты сообщества. Попробуйте еще раз.");
+        }
+
+        if (!await _moderationClient.DeleteCommunityReportsAsync(communityId, cancellationToken))
+        {
+            throw AppException.Conflict("Не удалось удалить жалобы на сообщество. Попробуйте еще раз.");
+        }
+
+        await _repository.AddAuditLogAsync(
+            new CommunityAuditLog(communityId, _currentUser.UserId, "COMMUNITY_DELETED", $"Community '{community.Name}' was deleted by owner.", DateTime.UtcNow),
+            cancellationToken);
+        _repository.RemoveCommunity(community);
+        await _repository.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<CommunityDetailsResponse> SetCommunityStatusAsync(

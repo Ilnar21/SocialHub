@@ -45,6 +45,18 @@ public static class DependencyInjection
         })
             .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
 
+        services.AddHttpClient<IModerationClient, ModerationClient>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<ExternalServiceOptions>>().Value;
+            if (!string.IsNullOrWhiteSpace(options.ModerationBaseUrl))
+            {
+                client.BaseAddress = new Uri(options.ModerationBaseUrl);
+            }
+
+            ConfigureExternalClient(client, options);
+        })
+            .AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
+
         return services;
     }
 

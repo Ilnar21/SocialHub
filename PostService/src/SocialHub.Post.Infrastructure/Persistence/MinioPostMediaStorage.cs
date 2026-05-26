@@ -32,6 +32,11 @@ public sealed class MinioPostMediaStorage(IAmazonS3 s3, IOptions<MinioOptions> o
         return memory.ToArray();
     }
 
+    public async Task DeleteAsync(string objectKey, CancellationToken cancellationToken)
+    {
+        await s3.DeleteObjectAsync(options.Value.BucketName, objectKey, cancellationToken);
+    }
+
     private static string Sanitize(string fileName)
     {
         var name = Path.GetFileName(fileName.Trim());

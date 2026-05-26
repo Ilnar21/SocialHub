@@ -154,6 +154,22 @@ app.MapPost("/internal/posts/by-communities", async (
             .ToArray());
 });
 
+app.MapDelete("/internal/posts/by-community/{communityId:guid}", async (
+    Guid communityId,
+    HttpContext httpContext,
+    IOptions<InternalAuthOptions> internalAuth,
+    PostService postService,
+    CancellationToken cancellationToken) =>
+{
+    if (!HasValidInternalToken(httpContext, internalAuth.Value))
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await postService.DeleteByCommunityAsync(communityId, cancellationToken);
+    return ToHttpResult(result);
+});
+
 app.MapGet("/posts/{postId:guid}", async (
     Guid postId,
     ClaimsPrincipal principal,

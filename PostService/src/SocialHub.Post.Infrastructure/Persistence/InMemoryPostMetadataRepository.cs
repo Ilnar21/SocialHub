@@ -55,4 +55,18 @@ public sealed class InMemoryPostMetadataRepository : IPostMetadataRepository
         _posts[metadata.Id] = metadata;
         return Task.CompletedTask;
     }
+
+    public Task<int> DeleteByCommunityAsync(Guid communityId, CancellationToken cancellationToken)
+    {
+        var deleted = 0;
+        foreach (var post in _posts.Values.Where(post => post.CommunityId == communityId).ToArray())
+        {
+            if (_posts.TryRemove(post.Id, out _))
+            {
+                deleted++;
+            }
+        }
+
+        return Task.FromResult(deleted);
+    }
 }

@@ -51,6 +51,8 @@ public sealed record PostVoteResponse(
     int Score,
     int ViewerVote);
 
+public sealed record DeleteCommunityPostsResponse(int DeletedPosts, int DeletedMediaFiles);
+
 public sealed record OperationResult<T>(bool Succeeded, T? Value, string? Error, int StatusCode)
 {
     public static OperationResult<T> Ok(T value) => new(true, value, null, 200);

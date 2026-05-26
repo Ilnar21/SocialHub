@@ -173,6 +173,11 @@ public sealed class CommunityRepository : ICommunityRepository
         _dbContext.CommunityMembers.Remove(member);
     }
 
+    public void RemoveCommunity(Domain.Entities.Community community)
+    {
+        _dbContext.Communities.Remove(community);
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         await _dbContext.SaveChangesAsync(cancellationToken);

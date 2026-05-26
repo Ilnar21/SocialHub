@@ -14,4 +14,5 @@ public interface IPostMetadataRepository
 
     Task AddAsync(PostMetadata metadata, CancellationToken cancellationToken);
     Task UpdateAsync(PostMetadata metadata, CancellationToken cancellationToken);
+    Task<int> DeleteByCommunityAsync(Guid communityId, CancellationToken cancellationToken);
 }

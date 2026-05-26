@@ -108,6 +108,7 @@ function renderCommunityAction() {
     return `
       <button class="button secondary" type="button" disabled>Вы владелец</button>
       <button class="button primary" type="button" data-edit-community>${editingDescription ? "Закрыть" : "Изменить"}</button>
+      <button class="button danger" type="button" data-delete-community>Удалить сообщество</button>
       ${renderCommunityReportButton()}`;
   }
 
@@ -312,6 +313,9 @@ function bindActions() {
     renderPage();
   });
 
+  root.querySelector("[data-delete-community]")?.addEventListener("click", (event) =>
+    deleteCommunity(event.currentTarget));
+
   root.querySelector('[data-form="edit-community"]')?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -405,6 +409,27 @@ async function removeMember(button) {
     toast("Участник удален из сообщества.");
     activeTab = "members";
     await loadCommunityPage();
+  });
+}
+
+async function deleteCommunity(button) {
+  const firstConfirmation = confirm(
+    `Удалить сообщество «${community.name}»? Все посты и жалобы на это сообщество будут удалены.`
+  );
+  if (!firstConfirmation) {
+    return;
+  }
+
+  const typedUsername = prompt(`Для подтверждения введите username сообщества: ${community.username}`);
+  if ((typedUsername || "").trim().toLowerCase() !== community.username.toLowerCase()) {
+    toast("Удаление отменено: username сообщества введен неверно.", "error");
+    return;
+  }
+
+  await runWithButton(button, "Удаляем...", async () => {
+    await api(`/api/communities/${community.id}`, { method: "DELETE" });
+    toast("Сообщество удалено.");
+    location.href = "/Communities";
   });
 }
 

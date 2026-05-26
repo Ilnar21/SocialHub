@@ -59,6 +59,20 @@ public sealed class PostgresModerationRepository : IModerationRepository
         return await GetReportAsync(connection, null, reportId, cancellationToken);
     }
 
+    public async Task<int> DeleteReportsByTargetAsync(string targetType, string targetId, CancellationToken cancellationToken)
+    {
+        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("""
+            delete from moderation_reports
+            where target_type = @target_type
+              and target_id = @target_id;
+            """, connection);
+
+        command.Parameters.AddWithValue("target_type", targetType.Trim().ToUpperInvariant());
+        command.Parameters.AddWithValue("target_id", targetId.Trim());
+        return await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public async Task ResolveReportWithAuditAsync(ModerationReport report, AuditLog auditLog, CancellationToken cancellationToken)
     {
         await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);

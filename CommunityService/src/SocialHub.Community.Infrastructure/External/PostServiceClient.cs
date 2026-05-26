@@ -46,4 +46,30 @@ public sealed class PostServiceClient : IPostServiceClient
             return PostPublicationResult.Deferred("Post Service is unavailable; publication should be retried later.");
         }
     }
+
+    public async Task<bool> DeletePostsByCommunityAsync(Guid communityId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_options.PostBaseUrl))
+        {
+            _logger.LogInformation("Post Service is not configured. Post cleanup for community {CommunityId} was skipped by stub.", communityId);
+            return true;
+        }
+
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"/internal/posts/by-community/{communityId}", cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            _logger.LogWarning("Post Service returned {StatusCode} while deleting posts for community {CommunityId}.", response.StatusCode, communityId);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Post Service is unavailable. Community {CommunityId} cannot be deleted safely.", communityId);
+            return false;
+        }
+    }
 }

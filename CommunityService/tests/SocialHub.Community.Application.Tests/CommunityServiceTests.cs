@@ -290,16 +290,54 @@ public sealed class CommunityServiceTests
         Assert.Equal("new description", response.Description);
     }
 
+    [Fact]
+    public async Task DeleteCommunityAsync_AllowsOwnerAndCleansExternalData()
+    {
+        var repository = new FakeCommunityRepository();
+        var postClient = new FakePostServiceClient();
+        var moderationClient = new FakeModerationClient();
+        var community = repository.AddSeedCommunity("Owned", OwnerId, UserId);
+        repository.JoinRequests.Add(new CommunityJoinRequest(community.Id, UserId, DateTime.UtcNow));
+        repository.SuggestedPosts.Add(new SuggestedPost(community.Id, UserId, "Draft", "Text", DateTime.UtcNow));
+        var service = CreateService(repository, currentUserId: OwnerId, postServiceClient: postClient, moderationClient: moderationClient);
+
+        await service.DeleteCommunityAsync(community.Id, CancellationToken.None);
+
+        Assert.Empty(repository.Communities);
+        Assert.Empty(repository.JoinRequests);
+        Assert.Empty(repository.SuggestedPosts);
+        Assert.Equal(community.Id, postClient.DeletedCommunityIds.Single());
+        Assert.Equal(community.Id, moderationClient.DeletedCommunityIds.Single());
+        Assert.Contains(repository.AuditLogs, log => log.Action == "COMMUNITY_DELETED");
+    }
+
+    [Fact]
+    public async Task DeleteCommunityAsync_RejectsNonOwner()
+    {
+        var repository = new FakeCommunityRepository();
+        var community = repository.AddSeedCommunity("Owned", OwnerId, UserId);
+        var service = CreateService(repository, currentUserId: UserId);
+
+        var exception = await Assert.ThrowsAsync<AppException>(() =>
+            service.DeleteCommunityAsync(community.Id, CancellationToken.None));
+
+        Assert.Equal(403, exception.StatusCode);
+        Assert.Single(repository.Communities);
+    }
+
     private static CommunityAppService CreateService(
         FakeCommunityRepository repository,
         FakeNotificationClient? notificationClient = null,
-        Guid? currentUserId = null)
+        Guid? currentUserId = null,
+        FakePostServiceClient? postServiceClient = null,
+        FakeModerationClient? moderationClient = null)
     {
         return new CommunityAppService(
             repository,
             new FakeCurrentUserContext(currentUserId ?? UserId),
             notificationClient ?? new FakeNotificationClient(),
-            new FakePostServiceClient());
+            postServiceClient ?? new FakePostServiceClient(),
+            moderationClient ?? new FakeModerationClient());
     }
 
     private sealed class FakeCurrentUserContext : ICurrentUserContext
@@ -326,11 +364,30 @@ public sealed class CommunityServiceTests
 
     private sealed class FakePostServiceClient : IPostServiceClient
     {
+        public List<Guid> DeletedCommunityIds { get; } = [];
+
         public Task<PostPublicationResult> PublishApprovedSuggestedPostAsync(
             PublishSuggestedPostRequest request,
             CancellationToken cancellationToken)
         {
             return Task.FromResult(PostPublicationResult.Success(Guid.NewGuid()));
+        }
+
+        public Task<bool> DeletePostsByCommunityAsync(Guid communityId, CancellationToken cancellationToken)
+        {
+            DeletedCommunityIds.Add(communityId);
+            return Task.FromResult(true);
+        }
+    }
+
+    private sealed class FakeModerationClient : IModerationClient
+    {
+        public List<Guid> DeletedCommunityIds { get; } = [];
+
+        public Task<bool> DeleteCommunityReportsAsync(Guid communityId, CancellationToken cancellationToken)
+        {
+            DeletedCommunityIds.Add(communityId);
+            return Task.FromResult(true);
         }
     }
 
@@ -509,6 +566,13 @@ public sealed class CommunityServiceTests
         public void RemoveMember(CommunityMember member)
         {
             // Domain collection removal is covered by EF in production; tests only assert service decisions.
+        }
+
+        public void RemoveCommunity(CommunityEntity community)
+        {
+            Communities.Remove(community);
+            JoinRequests.RemoveAll(request => request.CommunityId == community.Id);
+            SuggestedPosts.RemoveAll(post => post.CommunityId == community.Id);
         }
 
         public Task SaveChangesAsync(CancellationToken cancellationToken)

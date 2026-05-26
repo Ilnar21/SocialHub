@@ -305,6 +305,33 @@ public sealed class PostService
             cancellationToken));
     }
 
+    public async Task<OperationResult<DeleteCommunityPostsResponse>> DeleteByCommunityAsync(
+        Guid communityId,
+        CancellationToken cancellationToken)
+    {
+        if (communityId == Guid.Empty)
+        {
+            return OperationResult<DeleteCommunityPostsResponse>.Fail("Community id is required.", 400);
+        }
+
+        var posts = await _metadataRepository.ListByCommunityAsync(communityId, cancellationToken);
+        var mediaToDelete = new List<PostMedia>();
+        foreach (var post in posts)
+        {
+            var media = await _mediaRepository.ListByPostIdAsync(post.Id, cancellationToken);
+            mediaToDelete.AddRange(media);
+        }
+
+        foreach (var media in mediaToDelete)
+        {
+            await _mediaStorage.DeleteAsync(media.ObjectKey, cancellationToken);
+        }
+
+        var deletedPosts = await _metadataRepository.DeleteByCommunityAsync(communityId, cancellationToken);
+        return OperationResult<DeleteCommunityPostsResponse>.Ok(
+            new DeleteCommunityPostsResponse(deletedPosts, mediaToDelete.Count));
+    }
+
     public async Task<OperationResult<PostVoteResponse>> VoteAsync(
         Guid postId,
         VotePostRequest request,

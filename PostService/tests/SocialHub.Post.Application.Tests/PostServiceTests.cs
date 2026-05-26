@@ -363,6 +363,38 @@ public sealed class PostServiceTests
     }
 
     [Fact]
+    public async Task DeleteByCommunity_removes_posts_and_media_objects()
+    {
+        var communityId = Guid.NewGuid();
+        var otherCommunityId = Guid.NewGuid();
+        var metadata = new InMemoryMetadataRepository();
+        var content = new InMemoryContentRepository();
+        var media = new InMemoryMediaRepository();
+        var storage = new FakeMediaStorage();
+        var deletedPost = PostMetadata.Create(Guid.NewGuid(), communityId, "Deleted", DateTimeOffset.UtcNow);
+        var preservedPost = PostMetadata.Create(Guid.NewGuid(), otherCommunityId, "Preserved", DateTimeOffset.UtcNow);
+        var deletedMedia = NewMedia(deletedPost.Id, "posts/deleted/photo.jpg");
+        var preservedMedia = NewMedia(preservedPost.Id, "posts/preserved/photo.jpg");
+        await metadata.AddAsync(deletedPost, CancellationToken.None);
+        await metadata.AddAsync(preservedPost, CancellationToken.None);
+        await content.SaveAsync(new PostContent(deletedPost.Id, "Text", DateTimeOffset.UtcNow), CancellationToken.None);
+        await media.AddRangeAsync([deletedMedia, preservedMedia], CancellationToken.None);
+        storage.Files[deletedMedia.ObjectKey] = Encoding.UTF8.GetBytes("delete");
+        storage.Files[preservedMedia.ObjectKey] = Encoding.UTF8.GetBytes("keep");
+        var service = CreateService(metadata: metadata, content: content, media: media, storage: storage);
+
+        var result = await service.DeleteByCommunityAsync(communityId, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, result.Value!.DeletedPosts);
+        Assert.Equal(1, result.Value.DeletedMediaFiles);
+        Assert.DoesNotContain(metadata.Items, post => post.CommunityId == communityId);
+        Assert.Contains(metadata.Items, post => post.Id == preservedPost.Id);
+        Assert.False(storage.Files.ContainsKey(deletedMedia.ObjectKey));
+        Assert.True(storage.Files.ContainsKey(preservedMedia.ObjectKey));
+    }
+
+    [Fact]
     public async Task VoteAsync_updates_score_and_viewer_vote()
     {
         var viewerId = Guid.NewGuid();
@@ -489,6 +521,12 @@ public sealed class PostServiceTests
         }
 
         public Task UpdateAsync(PostMetadata metadata, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<int> DeleteByCommunityAsync(Guid communityId, CancellationToken cancellationToken)
+        {
+            var deleted = Items.RemoveAll(post => post.CommunityId == communityId);
+            return Task.FromResult(deleted);
+        }
     }
 
     private sealed class InMemoryContentRepository : IPostContentRepository
@@ -539,6 +577,12 @@ public sealed class PostServiceTests
 
         public Task<byte[]> ReadAsync(string objectKey, CancellationToken cancellationToken) =>
             Task.FromResult(Files[objectKey]);
+
+        public Task DeleteAsync(string objectKey, CancellationToken cancellationToken)
+        {
+            Files.Remove(objectKey);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class InMemoryVoteRepository : IPostVoteRepository

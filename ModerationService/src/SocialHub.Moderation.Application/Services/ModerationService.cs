@@ -57,6 +57,19 @@ public sealed class ModerationService : IModerationService
         return reports.Select(ToReportResponse).ToArray();
     }
 
+    public async Task<int> DeleteReportsByTargetAsync(string targetType, string targetId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(targetType) || string.IsNullOrWhiteSpace(targetId))
+        {
+            throw AppException.BadRequest("Target type and target id are required.");
+        }
+
+        return await _repository.DeleteReportsByTargetAsync(
+            targetType.Trim().ToUpperInvariant(),
+            targetId.Trim(),
+            cancellationToken);
+    }
+
     public async Task<ReportResponse> DeleteReportedPostAsync(Guid reportId, ResolveReportRequest request, CancellationToken cancellationToken)
     {
         EnsurePlatformModerator();

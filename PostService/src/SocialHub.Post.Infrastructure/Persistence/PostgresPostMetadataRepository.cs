@@ -102,6 +102,18 @@ public sealed class PostgresPostMetadataRepository(NpgsqlDataSource dataSource) 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task<int> DeleteByCommunityAsync(Guid communityId, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            delete from post_metadata
+            where community_id = @community_id
+            """;
+
+        await using var command = dataSource.CreateCommand(sql);
+        command.Parameters.AddWithValue("community_id", communityId);
+        return await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     private static void AddMetadataParameters(NpgsqlCommand command, PostMetadata metadata)
     {
         command.Parameters.AddWithValue("id", metadata.Id);

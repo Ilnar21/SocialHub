@@ -68,6 +68,13 @@ public sealed class CommunitiesController : ControllerBase
         return Ok(await _communityService.UpdateCommunityAsync(communityId, request, cancellationToken));
     }
 
+    [HttpDelete("{communityId:guid}")]
+    public async Task<IActionResult> DeleteCommunity(Guid communityId, CancellationToken cancellationToken)
+    {
+        await _communityService.DeleteCommunityAsync(communityId, cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost("{communityId:guid}/join")]
     public async Task<ActionResult<MemberResponse>> JoinCommunity(Guid communityId, CancellationToken cancellationToken)
     {

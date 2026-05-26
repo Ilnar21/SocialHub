@@ -8,6 +8,7 @@ public interface IModerationService
 {
     Task<ReportResponse> CreateReportAsync(CreateReportRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<ReportResponse>> GetReportsAsync(string? status, CancellationToken cancellationToken);
+    Task<int> DeleteReportsByTargetAsync(string targetType, string targetId, CancellationToken cancellationToken);
     Task<ReportResponse> ResolveReportAsync(Guid reportId, ResolveReportRequest request, CancellationToken cancellationToken);
     Task<ReportResponse> DeleteReportedPostAsync(Guid reportId, ResolveReportRequest request, CancellationToken cancellationToken);
     Task<BlockResponse> BlockUserAsync(string userId, BlockUserRequest request, CancellationToken cancellationToken);

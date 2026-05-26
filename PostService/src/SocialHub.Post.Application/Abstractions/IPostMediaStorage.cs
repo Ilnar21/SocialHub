@@ -5,6 +5,8 @@ public interface IPostMediaStorage
     Task<StoredPostMedia> SaveAsync(PostMediaUpload upload, CancellationToken cancellationToken);
 
     Task<byte[]> ReadAsync(string objectKey, CancellationToken cancellationToken);
+
+    Task DeleteAsync(string objectKey, CancellationToken cancellationToken);
 }
 
 public sealed record PostMediaUpload(
