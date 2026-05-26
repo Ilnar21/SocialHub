@@ -318,6 +318,7 @@ function canViewCommunityPosts() {
 
 async function runWithButton(button, pendingText, action) {
   const originalText = button.textContent;
+  button.dataset.busy = "true";
   button.disabled = true;
   button.textContent = pendingText;
   try {
@@ -326,6 +327,7 @@ async function runWithButton(button, pendingText, action) {
     toast(error.message, "error");
   } finally {
     button.disabled = false;
+    delete button.dataset.busy;
     button.textContent = originalText;
   }
 }

@@ -92,6 +92,7 @@ async function submitReport(event) {
   const button = form.querySelector('button[type="submit"]');
   const originalText = button.textContent;
 
+  button.dataset.busy = "true";
   button.disabled = true;
   button.textContent = "Отправляем...";
   try {
@@ -107,6 +108,7 @@ async function submitReport(event) {
     toast(error.message, "error");
   } finally {
     button.disabled = false;
+    delete button.dataset.busy;
     button.textContent = originalText;
   }
 }

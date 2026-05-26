@@ -583,9 +583,13 @@ small { font-size: 12px; color: var(--muted); }
 .button:focus-visible { outline: none; box-shadow: var(--ring); }
 
 .button:disabled {
-  cursor: wait;
+  cursor: default;
   opacity: .55;
   transform: none;
+}
+
+.button[data-busy="true"]:disabled {
+  cursor: wait;
 }
 
 .button.primary {
@@ -616,6 +620,25 @@ small { font-size: 12px; color: var(--muted); }
   color: #fff;
   border-color: var(--danger);
   background: var(--danger);
+}
+
+.button.secondary:disabled:hover {
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+.button.primary:disabled:hover {
+  background: var(--brand);
+  border-color: var(--brand);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.06) inset,
+    0 6px 16px rgba(255, 90, 31, .25);
+}
+
+.button.danger:disabled:hover {
+  color: var(--danger);
+  border-color: rgba(232, 85, 79, .35);
+  background: var(--danger-soft);
 }
 
 .subtle-action { opacity: .82; }

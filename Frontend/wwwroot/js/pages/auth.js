@@ -34,6 +34,7 @@ async function submitLogin(form, username = null, password = null) {
   const originalText = button?.textContent;
 
   if (button) {
+    button.dataset.busy = "true";
     button.disabled = true;
     button.textContent = "Проверяем...";
   }
@@ -52,6 +53,7 @@ async function submitLogin(form, username = null, password = null) {
   } finally {
     if (button) {
       button.disabled = false;
+      delete button.dataset.busy;
       button.textContent = originalText;
     }
   }
