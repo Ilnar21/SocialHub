@@ -16,7 +16,7 @@ public sealed class UserRepository(AuthDbContext dbContext) : IUserRepository
         dbContext.Users.FirstOrDefaultAsync(user => user.Id == id, cancellationToken);
 
     public Task<UserAccount?> FindByUsernameAsync(string username, CancellationToken cancellationToken) =>
-        dbContext.Users.AsNoTracking().FirstOrDefaultAsync(
+        dbContext.Users.FirstOrDefaultAsync(
             user => user.Username.ToLower() == username.ToLower(),
             cancellationToken);
 

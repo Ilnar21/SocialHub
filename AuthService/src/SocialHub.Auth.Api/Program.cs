@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using SocialHub.Auth.Application;
+using SocialHub.Auth.Application.Services;
 using SocialHub.Auth.Infrastructure.Configuration;
 using SocialHub.Auth.Infrastructure;
 using SocialHub.Auth.Infrastructure.Persistence;
@@ -98,6 +99,7 @@ builder.Services.AddAuthorization(options =>
 var app = builder.Build();
 
 await DatabaseInitializer.InitializeAsync(app.Services);
+await BootstrapPlatformModeratorsAsync(app.Services, app.Configuration);
 
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -114,3 +116,32 @@ app.MapAuditEndpoints();
 app.MapMetrics();
 
 app.Run();
+
+static async Task BootstrapPlatformModeratorsAsync(IServiceProvider services, IConfiguration configuration)
+{
+    var configuredModerators = configuration["BOOTSTRAP_MODERATORS"];
+    if (string.IsNullOrWhiteSpace(configuredModerators))
+    {
+        return;
+    }
+
+    using var scope = services.CreateScope();
+    var bootstrap = scope.ServiceProvider.GetRequiredService<PlatformModeratorBootstrapService>();
+    var logger = scope.ServiceProvider
+        .GetRequiredService<ILoggerFactory>()
+        .CreateLogger("PlatformModeratorBootstrap");
+
+    var result = await bootstrap.ApplyAsync(configuredModerators, CancellationToken.None);
+    if (result.PromotedCount > 0 || result.AlreadyModeratorCount > 0)
+    {
+        logger.LogInformation(
+            "Platform moderator bootstrap finished. Promoted: {PromotedCount}. Already moderators: {AlreadyModeratorCount}.",
+            result.PromotedCount,
+            result.AlreadyModeratorCount);
+    }
+
+    foreach (var skippedEntry in result.SkippedEntries)
+    {
+        logger.LogWarning("Platform moderator bootstrap skipped entry: {SkippedEntry}", skippedEntry);
+    }
+}
