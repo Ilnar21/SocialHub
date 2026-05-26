@@ -125,8 +125,6 @@ services:
     environment:
       <<: *otel-env
       OTEL_SERVICE_NAME: frontend
-    ports:
-      - "3000:8080"
     networks:
       - socialhub-network
 

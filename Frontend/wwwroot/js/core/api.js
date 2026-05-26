@@ -1,7 +1,5 @@
 import { clearSession, getSession } from "./session.js";
 
-const apiBase = location.port === "3000" ? "http://localhost:8080" : "";
-
 export async function api(path, options = {}) {
   const session = getSession();
   const headers = {
@@ -12,7 +10,7 @@ export async function api(path, options = {}) {
 
   if (session.token) headers.Authorization = `Bearer ${session.token}`;
 
-  const response = await fetch(`${apiBase}${path}`, { ...options, headers });
+  const response = await fetch(path, { ...options, headers });
   if (response.status === 401) {
     clearSession();
     if (!isAuthPage()) {

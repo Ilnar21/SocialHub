@@ -19,8 +19,6 @@ docker compose up --build
 
 Application URL: `http://localhost:8080`
 
-Direct frontend container URL: `http://localhost:3000`. In this mode browser API calls still go to `http://localhost:8080`.
-
 Local run without Docker:
 
 ```bash
