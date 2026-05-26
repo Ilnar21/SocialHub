@@ -1,3 +1,4 @@
+using SocialHub.Community.Application.Models.JoinRequests;
 using SocialHub.Community.Domain.Enums;
 
 namespace SocialHub.Community.Application.Models.Communities;
@@ -13,4 +14,5 @@ public sealed record CommunitySummaryResponse(
     DateTime? BlockedAtUtc,
     DateTime CreatedAtUtc,
     int MembersCount,
-    CommunityMemberRole? CurrentUserRole = null);
+    CommunityMemberRole? CurrentUserRole = null,
+    JoinRequestResponse? CurrentUserJoinRequest = null);

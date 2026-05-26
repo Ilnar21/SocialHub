@@ -99,6 +99,21 @@ public sealed class CommunityServiceTests
     }
 
     [Fact]
+    public async Task GetCommunitiesAsync_ReturnsCurrentUserPendingJoinRequest()
+    {
+        var repository = new FakeCommunityRepository();
+        var target = repository.AddSeedCommunity("Private", OwnerId, type: CommunityType.Closed);
+        repository.JoinRequests.Add(new CommunityJoinRequest(target.Id, UserId, DateTime.UtcNow));
+        var service = CreateService(repository);
+
+        var response = await service.GetCommunitiesAsync(CancellationToken.None);
+
+        var community = Assert.Single(response);
+        Assert.Equal(target.Id, community.Id);
+        Assert.Equal(CommunityJoinRequestStatus.Pending, community.CurrentUserJoinRequest?.Status);
+    }
+
+    [Fact]
     public async Task ApproveJoinRequestAsync_AddsMemberAndNotifiesRequester()
     {
         var repository = new FakeCommunityRepository();

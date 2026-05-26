@@ -36,11 +36,17 @@ public sealed class CommunityService : ICommunityService
     public async Task<List<CommunitySummaryResponse>> GetCommunitiesAsync(CancellationToken cancellationToken)
     {
         var communities = await _repository.GetCommunitiesAsync(cancellationToken);
-        return communities
-            .Where(c => c.Status == CommunityStatus.Active)
-            .OrderBy(c => c.Name)
-            .Select(c => ToSummary(c))
-            .ToList();
+        var response = new List<CommunitySummaryResponse>();
+        foreach (var community in communities.Where(c => c.Status == CommunityStatus.Active).OrderBy(c => c.Name))
+        {
+            var currentMembership = await _repository.GetMemberAsync(community.Id, _currentUser.UserId, cancellationToken);
+            var pendingRequest = currentMembership is null
+                ? await _repository.GetPendingJoinRequestAsync(community.Id, _currentUser.UserId, cancellationToken)
+                : null;
+            response.Add(ToSummary(community, currentMembership, pendingRequest));
+        }
+
+        return response;
     }
 
     public async Task<List<CommunitySummaryResponse>> GetCurrentUserCommunitiesAsync(CancellationToken cancellationToken)
@@ -725,7 +731,8 @@ public sealed class CommunityService : ICommunityService
 
     private static CommunitySummaryResponse ToSummary(
         Community.Domain.Entities.Community community,
-        CommunityMember? currentMembership = null)
+        CommunityMember? currentMembership = null,
+        CommunityJoinRequest? currentJoinRequest = null)
     {
         return new CommunitySummaryResponse(
             community.Id,
@@ -738,7 +745,8 @@ public sealed class CommunityService : ICommunityService
             community.BlockedAtUtc,
             community.CreatedAtUtc,
             community.Members.Count,
-            currentMembership?.Role);
+            currentMembership?.Role,
+            currentJoinRequest is null ? null : ToJoinRequestResponse(currentJoinRequest));
     }
 
     private static string NormalizeCommunityUsernameOrThrow(string username)

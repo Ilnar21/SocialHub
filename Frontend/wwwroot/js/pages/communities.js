@@ -148,7 +148,11 @@ function renderMembershipAction(community, isMember, role, canLeave) {
   const communityId = community.id;
   if (!isMember) {
     if (community.type === "Closed") {
-      return `<a class="button primary" href="${communityUrl(community)}">Подать заявку</a>`;
+      if (community.currentUserJoinRequest?.status === "Pending") {
+        return `<button class="button secondary" type="button" disabled>Заявка отправлена</button>`;
+      }
+
+      return `<button class="button primary" type="button" data-request-join="${communityId}">Подать заявку</button>`;
     }
 
     return `<button class="button primary" type="button" data-join="${communityId}">Вступить</button>`;
@@ -169,6 +173,10 @@ function bindCommunityActions(scope) {
   for (const button of scope.querySelectorAll("[data-leave]")) {
     button.addEventListener("click", () => runCommunityAction(button, button.dataset.leave, "DELETE"));
   }
+
+  for (const button of scope.querySelectorAll("[data-request-join]")) {
+    button.addEventListener("click", () => runJoinRequestAction(button, button.dataset.requestJoin));
+  }
 }
 
 async function runCommunityAction(button, id, method) {
@@ -176,6 +184,14 @@ async function runCommunityAction(button, id, method) {
     const path = method === "POST" ? `/api/communities/${id}/join` : `/api/communities/${id}/membership`;
     await api(path, { method });
     toast(method === "POST" ? "Вы вступили в сообщество." : "Вы вышли из сообщества.");
+    await loadCommunities();
+  });
+}
+
+async function runJoinRequestAction(button, id) {
+  await runWithButton(button, "Отправляем...", async () => {
+    await api(`/api/communities/${id}/join-requests`, { method: "POST" });
+    toast("Заявка отправлена владельцу сообщества.");
     await loadCommunities();
   });
 }
