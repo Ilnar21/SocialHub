@@ -24,15 +24,17 @@
     <div class="stack">
         <section class="panel">
             <h2>Очередь решений</h2>
-            <p class="muted">Жалобы создают пользователи из карточек постов. Здесь модератор рассматривает обращения, удаляет нарушающий контент и видит журнал действий.</p>
+            <p class="muted">Модератор рассматривает жалобы на посты и сообщества, удаляет нарушающие посты, закрывает проверенные обращения и управляет блокировками пользователей.</p>
         </section>
 
         <form class="panel form-grid" data-form="block-user">
-            <h2>Заблокировать пользователя</h2>
-            <label>Пользователь
-                <select name="userId" data-user-select></select>
+            <h2>Пользователь</h2>
+            <label>Username
+                <input name="username" data-user-search placeholder="username без @@" autocomplete="off" />
             </label>
-            <label>Длительность (дней)
+            <button class="button secondary" type="button" data-find-user>Найти</button>
+            <div class="content-list" data-user-search-result></div>
+            <label>Длительность блокировки (дней)
                 <input name="durationDays" type="number" value="7" min="1" />
             </label>
             <label>Причина
@@ -49,8 +51,8 @@
         </form>
 
         <div class="panel">
-            <h2>Пользователи</h2>
-            <div class="content-list" data-users-list></div>
+            <h2>Заблокированные пользователи</h2>
+            <div class="content-list" data-blocked-users-list></div>
         </div>
     </div>
 

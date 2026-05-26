@@ -162,6 +162,14 @@ function translateErrorText(text) {
     return "Нельзя заблокировать собственный аккаунт модератора.";
   }
 
+  if (value.includes("platform moderators cannot block other platform moderators")) {
+    return "Нельзя заблокировать другого модератора платформы.";
+  }
+
+  if (value.includes("only post reports can delete a post")) {
+    return "Удалить пост можно только по жалобе на пост.";
+  }
+
   if (value.includes("membership limit") || value.includes("no more than 30") || value.includes("больше чем в 30 сообществах")) {
     return "Нельзя состоять больше чем в 30 сообществах.";
   }
